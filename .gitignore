@@ -1,0 +1,10 @@
+.env.local
+.env*.local
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+*.zip
+.DS_Store
+scenario_output/
