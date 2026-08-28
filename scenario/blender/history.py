@@ -5,19 +5,23 @@ import threading
 
 from . import runtime
 from ..core import history as core_history
+from ..core.api import assets as assets_api
 from ..core.api import jobs as jobs_api
 from ..core.api.errors import ScenarioError
+
+MAX_PROMPT_LOOKUPS = 30
+_prompt_texts = {}  # asset_id -> prompt text, lives for the session
 
 KIND_BY_LANE = {"image": "image", "video": "video", "3d": "3d", "material": "material"}
 
 
 def _kinds():
+    """model_id -> kind, most specific lane first so Patina (also txt2img) reads as material."""
     kinds = {}
-    for lane, records in runtime.state.lane_models.items():
+    for lane in ("material", "3d", "video", "image"):
         kind = KIND_BY_LANE.get(lane)
-        if kind:
-            for record in records:
-                kinds.setdefault(record.id, kind)
+        for record in runtime.state.lane_models.get(lane, []):
+            kinds.setdefault(record.id, kind)
     return kinds
 
 
@@ -25,6 +29,15 @@ def _fetch(manager, token, append):
     try:
         client = runtime.make_client()
         rows, next_token = jobs_api.list_jobs(client, page_size=50, token=token)
+        for asset_id in core_history.prompt_asset_ids(rows)[:MAX_PROMPT_LOOKUPS]:
+            if asset_id in _prompt_texts:
+                continue
+            try:
+                asset = assets_api.get_asset(client, asset_id)
+                _prompt_texts[asset_id] = str((asset.get("metadata") or {}).get("preview") or "")
+            except ScenarioError:
+                _prompt_texts[asset_id] = ""
+        core_history.resolve_prompts(rows, _prompt_texts)
     except ScenarioError as err:
         manager.events.put(("error", f"history: {err.reason}"))
         return

@@ -89,7 +89,8 @@ def _apply_default(item, spec, schema=None):
         set_multi_selection(item, default or [])
     elif spec.ptype == "string" and not spec.allowed_values:
         item.str_value = default if isinstance(default, str) else ""
-    item.enabled = True
+    # No schema default and not required: leave it to the server unless the user opts in (seed, optional strengths).
+    item.enabled = spec.required_always or default is not None
 
 
 def collect_values(lane_state, schema):

@@ -18,3 +18,13 @@ def test_entries_merge_cloud_jobs_with_local_files():
     a = entries[1]
     assert a.local_files == ["/out/a.png"] and a.prompt == "teapot" and a.cu_cost == 6.0 and a.kind == "image"
     assert entries[0].kind == "3d" and entries[0].status == "failure"
+
+
+def test_prompt_asset_ids_are_hidden_until_resolved():
+    jobs = [{"jobId": "job_p", "jobType": "custom", "status": "success", "createdAt": "2026-08-28T09:00:00.000Z",
+             "metadata": {"input": {"modelId": "model_g", "prompt": "asset_Lq9G6auxQxXpiWiahw6K5nc6"}, "assetIds": ["a"]}}]
+    assert history.prompt_asset_ids(jobs) == ["asset_Lq9G6auxQxXpiWiahw6K5nc6"]
+    assert history.entries_from_jobs(jobs, [])[0].prompt == ""
+    history.resolve_prompts(jobs, {"asset_Lq9G6auxQxXpiWiahw6K5nc6": "mossy stone wall"})
+    assert history.entries_from_jobs(jobs, [])[0].prompt == "mossy stone wall"
+    assert history.prompt_asset_ids(jobs) == []
