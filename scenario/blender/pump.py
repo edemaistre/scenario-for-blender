@@ -43,6 +43,9 @@ def _tick():
 
 
 def _process():
+    from . import mcp_service
+
+    mcp_service.process_pending()
     manager = runtime.state.manager
     changed = False
     if manager is not None:

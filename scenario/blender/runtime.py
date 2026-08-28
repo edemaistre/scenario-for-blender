@@ -34,6 +34,9 @@ class RuntimeState:
         self.jobs_view = []        # JobRecord list shown in the panel (active + recent)
         self.history = []
         self.history_token = None
+        self.mcp = None
+        self.mcp_token = ""
+        self.mcp_error = ""
 
     def reset(self):
         self.__init__()
@@ -112,6 +115,8 @@ def previews():
 def shutdown():
     if state.manager:
         state.manager.shutdown()
+    if state.mcp is not None:
+        state.mcp.stop()
     if state.previews is not None:
         import bpy.utils.previews
 
