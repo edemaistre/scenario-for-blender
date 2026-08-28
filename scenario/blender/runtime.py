@@ -38,9 +38,17 @@ class RuntimeState:
         self.mcp_token = ""
         self.mcp_error = ""
         self.cli_handle = None
+        self.composer = None
+        self.composer_modal_running = False
+
+    SESSION_ATTRS = ("mcp", "mcp_token", "mcp_error", "cli_handle", "composer", "composer_modal_running", "previews")
 
     def reset(self):
+        """Forget catalog, jobs and history; keep process-level services (MCP server, composer, previews)."""
+        kept = {name: getattr(self, name) for name in self.SESSION_ATTRS}
         self.__init__()
+        for name, value in kept.items():
+            setattr(self, name, value)
 
 
 state = RuntimeState()
