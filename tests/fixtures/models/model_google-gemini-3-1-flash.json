@@ -1,0 +1,224 @@
+{
+ "model": {
+  "id": "model_google-gemini-3-1-flash",
+  "userId": "c452b44467bd7f9d443c631491b6948b",
+  "authorId": "c452b44467bd7f9d443c631491b6948b",
+  "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+  "createdAt": "2026-02-26T21:06:25.121Z",
+  "updatedAt": "2026-08-20T21:54:14.318Z",
+  "name": "Gemini 3.1 \ud83c\udf4c",
+  "shortDescription": "Gemini 3.1 Flash Image by Google: fast image generation and editing with resolutions from 512 to 4K, adjustable thinking depth, and optional Search grounding.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "txt2img",
+   "img2img",
+   "video2img"
+  ],
+  "source": "other",
+  "status": "trained",
+  "trainingProgress": {},
+  "parameters": {},
+  "trainingImagesNumber": 0,
+  "trainingImagePairs": [],
+  "tags": [
+   "editing",
+   "featured",
+   "sc:featured",
+   "sc:third-party"
+  ],
+  "collectionIds": [],
+  "exampleAssetIds": [
+   "asset_gRXtUFpudMzwMXkknVRAkMxE",
+   "asset_WBLrDF3qp79rWMMSNPkG7Vos",
+   "asset_qEyhBDkVPW2EYmgYhhtFH8PA",
+   "asset_xcNEepfcmjwy9unevafZzM5X",
+   "asset_pdbH5RvU5k8WnbToVGkDN3qt",
+   "asset_NzBQPRAf5i2CPXpmnCGXcJ3G",
+   "asset_3Q5ikwfnEjvVAMr7W59XzM1Y",
+   "asset_pDx3T3Nr9upeMjkATQiS8tNZ",
+   "asset_XfTcjr78k4QRf4oFySCXarbd",
+   "asset_jCVNWuui8vUiA8xtu8s1JMBF",
+   "asset_Mc8ace6Ggm6QZBBWfg3Q6u7o",
+   "asset_bBwYdhTqT14VuWGLdgaBjQU1",
+   "asset_s5bszuw7EbztmXoz8Rjz53ZV",
+   "asset_hqTnTjqLWzgYskawiujiRxEF",
+   "asset_5Fj4CTyhfNQnoTVxBtRrMHQE",
+   "asset_YRUXTHfLAGPD5HDBedvgfxRJ",
+   "asset_oe3Hj7GVNSxbL8t64vp42Suo",
+   "asset_iW4S24FWpSoCkovwPFMXvth2",
+   "asset_qs7Dkk5gtVTPyF2XhSv5Fwwj",
+   "asset_uo1pc1uB4mgzx9bsMKNyNh7D",
+   "asset_2gKgT5Wa4FyrieR4sLCL4VFv",
+   "asset_9NxCfCcZZqiswioSeKKToJd1",
+   "asset_3STomcCH3NhEZ7qia3UjjqZr",
+   "asset_ktziXR4VEm9YpPofYKtQ7YyM",
+   "asset_2hfZGNDTm6vXg4Luw5yz93kW",
+   "asset_TDfgRPvq4p4cebMnbtb3t4a7",
+   "asset_GV6FMjdmWDMXmTLLA87canCP",
+   "asset_wLJC93koFsgGWUcuQ1tFMk79",
+   "asset_mS2J473pRAEtYanN6FVGBZNQ",
+   "asset_W1TgXca7DribKb28ruMhz4oG",
+   "asset_vZgs21Ty5AZXPXFUHJENzK6K",
+   "asset_mfLfRSGGvsQSawX8Mrrn9RBZ",
+   "asset_9aaZAHVoruFgHkYyz7mEMRQU",
+   "asset_TahhJCSyAfgUnqguyBc9uR1N",
+   "asset_jx9LppSrhuDMqedMtuN97Np8",
+   "asset_T3DgNULJZzku9Wwymn7pTEPr",
+   "asset_aSR1yMqT41WAwzSpZK6kdL6E",
+   "asset_4rpHnpRa1uTkKV6pd2cKvGCN",
+   "asset_EBY5TeyS7va32Yr1ReekwhJr",
+   "asset_wVZ68puofgYpk5ZbFgA3LVwL",
+   "asset_Hx9WSi5LtsHXwfAwhrff4pFY",
+   "asset_okABf9UDkLzxU6cRdyE7U58i",
+   "asset_EnM6XyWN3ihi5L8r2xTFCzPc",
+   "asset_Gj6sWLfN9ZoW6sAg3Zmz4vPZ",
+   "asset_QipgRtsTxfu8iWtQDH4dRQNs",
+   "asset_y9et1LdqjKPY3Vwk893uACb1",
+   "asset_e3TTu8pYyY5yc86CxcR4HvNq"
+  ],
+  "custom": true,
+  "accessRestrictions": 0,
+  "complianceMetadata": {
+   "enterpriseStatus": "Ready",
+   "modelProvider": "Google",
+   "maintainer": "Scenario",
+   "licenseTerms": "https://cloud.google.com/terms/service-terms",
+   "subProcessor": "Provider",
+   "dataProcessingComment": "temporaryRetention"
+  },
+  "inputs": [
+   {
+    "description": "Text prompt for image generation/editing",
+    "label": "Prompt",
+    "maxLength": 250000,
+    "name": "prompt",
+    "costImpact": false,
+    "prompt": true,
+    "required": {
+     "always": true
+    },
+    "type": "string",
+    "promptSpark": true
+   },
+   {
+    "description": "Reference images for style or content guidance (up to 14). Mutually exclusive with input video \u2014 use reference images or a video, not both.",
+    "kind": "image",
+    "label": "Reference images",
+    "maxLength": 14,
+    "name": "referenceImages",
+    "costImpact": true,
+    "parent": true,
+    "type": "file_array"
+   },
+   {
+    "description": "Optional input video for video to image generation (e.g. a thumbnail from a clip). Mutually exclusive with reference images. Max ~15 MB inline.",
+    "kind": "video",
+    "label": "Input video",
+    "maxSize": 15728640,
+    "name": "video",
+    "costImpact": true,
+    "parent": true,
+    "type": "file"
+   },
+   {
+    "description": "Frame sampling rate for the input video in (0, 24] fps. Lower values sample fewer frames. Defaults to 1.0 fps when unset. Only applies when a video is provided.",
+    "default": 1,
+    "group": "Settings",
+    "label": "Video frame rate",
+    "max": 24,
+    "min": 0.1,
+    "name": "videoFps",
+    "costImpact": true,
+    "step": 0.1,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "21:9",
+     "16:9",
+     "3:2",
+     "4:3",
+     "5:4",
+     "1:1",
+     "4:5",
+     "3:4",
+     "2:3",
+     "9:16",
+     "auto"
+    ],
+    "description": "Aspect ratio for the generated image",
+    "default": "auto",
+    "group": "Settings",
+    "label": "Aspect Ratio",
+    "name": "aspectRatio",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "allowedValues": [
+     "512",
+     "1K",
+     "2K",
+     "4K"
+    ],
+    "description": "Resolution for the generated image",
+    "default": "1K",
+    "group": "Settings",
+    "label": "Resolution",
+    "name": "resolution",
+    "costImpact": true,
+    "type": "string"
+   },
+   {
+    "description": "Use Google Search to find more information about the prompt",
+    "default": false,
+    "group": "Settings",
+    "label": "Use Google Search",
+    "name": "useGoogleSearch",
+    "costImpact": true,
+    "type": "boolean"
+   },
+   {
+    "allowedValues": [
+     "MINIMAL",
+     "LOW",
+     "MEDIUM",
+     "HIGH"
+    ],
+    "description": "Thinking level for the generated image",
+    "default": "HIGH",
+    "group": "Settings",
+    "label": "Thinking Level",
+    "name": "thinkingLevel",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "description": "Number of images to generate",
+    "default": 1,
+    "group": "Settings",
+    "label": "Image Count",
+    "max": 4,
+    "min": 1,
+    "name": "numOutputs",
+    "costImpact": true,
+    "step": 1,
+    "type": "number"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "aspectRatio": {
+     "auto": "Auto"
+    },
+    "thinkingLevel": {
+     "HIGH": "High - Best Reasoning",
+     "MINIMAL": "Minimal - Fastest",
+     "LOW": "Low - Fast",
+     "MEDIUM": "Medium - Balanced"
+    }
+   }
+  }
+ }
+}

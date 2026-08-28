@@ -1,0 +1,234 @@
+{
+ "model": {
+  "id": "model_tripo-v3-1-image-to-3d",
+  "userId": "c452b44467bd7f9d443c631491b6948b",
+  "authorId": "c452b44467bd7f9d443c631491b6948b",
+  "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+  "createdAt": "2026-03-04T11:22:21.361Z",
+  "updatedAt": "2026-06-28T14:04:36.664Z",
+  "name": "Tripo 3.1",
+  "shortDescription": "Tripo 3.1 by Tripo AI converts a single image into a textured, game-ready 3D asset with PBR materials, adjustable geometry density, and quad mesh output.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "img23d"
+  ],
+  "source": "other",
+  "status": "trained",
+  "trainingProgress": {},
+  "parameters": {},
+  "trainingImagesNumber": 0,
+  "trainingImagePairs": [],
+  "tags": [
+   "High Quality Textures",
+   "Image to 3D",
+   "Low Poly",
+   "PBR",
+   "Tripo",
+   "sc:featured",
+   "sc:third-party"
+  ],
+  "collectionIds": [],
+  "exampleAssetIds": [
+   "asset_9g9JAQ31PiVLq6g6BqoUp4Lq",
+   "asset_WkFCSXjsXcwZcTgZ5BkQH783",
+   "asset_7MBMTFohjcBxFxBgHGhAYT2f",
+   "asset_gopgJLmMNN8HcE7L2mvJzSh1",
+   "asset_qFMnvYHRNymGaCwzfMYkrNXd",
+   "asset_4q1cgygAYadUkgeivnvdJDVx",
+   "asset_XnyHkwrbpE93GNL52i6niDSi",
+   "asset_kK3rwBBeXrJHAuCZBRrrqPXZ",
+   "asset_htMYTNha6eZFFbuPWyXFWjiP",
+   "asset_Tk9vBGkC8JWorHomtKxnnqTn",
+   "asset_JsYLeWQeTLVVmPuKrquyH4mt",
+   "asset_qBjFa2p8TYU8VQNFhqLvEEAm",
+   "asset_harW1rSuGncqGMrHPe9J3hcq",
+   "asset_BRgUzRBcVADystXQxgQ89oRj",
+   "asset_bfNsYY8FkQVmRaan1X7BPr6F",
+   "asset_vP1MjicPiq34ia4KFb2U9wXJ",
+   "asset_doccZSsAsUaUWKrNvFnVMKJ2",
+   "asset_WqSFrCcXLNoekhjJSLLw36iC",
+   "asset_cBKji73Zq7BSmLWbCZLjRbzK",
+   "asset_QLrg2ZBUgKcwkZnJUQFHoShH",
+   "asset_F1irAgSMBmrEuNNJ6wrkhDsS",
+   "asset_CAtFkDEsUx4d737kyt5BY8QG"
+  ],
+  "custom": true,
+  "accessRestrictions": 0,
+  "complianceMetadata": {
+   "enterpriseStatus": "Ready",
+   "licenseTerms": "https://www.tripo3d.ai/terms",
+   "dataProcessingComment": "temporaryRetention",
+   "subProcessor": "Provider",
+   "modelProvider": "Tripo AI",
+   "maintainer": "Provider"
+  },
+  "inputs": [
+   {
+    "backgroundBehavior": "transparent",
+    "description": "Single image for image-to-model.",
+    "kind": "image",
+    "label": "Image",
+    "name": "image",
+    "costImpact": false,
+    "parent": true,
+    "required": {
+     "always": true
+    },
+    "type": "file"
+   },
+   {
+    "description": "Enable texturing. Set to false for a model without textures.",
+    "default": true,
+    "group": "Texture",
+    "label": "Texture",
+    "name": "texture",
+    "costImpact": true,
+    "type": "boolean"
+   },
+   {
+    "allowedValues": [
+     "standard",
+     "detailed",
+     "extreme"
+    ],
+    "description": "Texture quality level. 'Detailed' gives HD quality textures.",
+    "default": "standard",
+    "group": "Texture",
+    "label": "Quality",
+    "name": "textureQuality",
+    "costImpact": true,
+    "type": "string"
+   },
+   {
+    "allowedValues": [
+     "original_image",
+     "geometry"
+    ],
+    "description": "Determines the prioritization of texture alignment in the 3D model.",
+    "default": "original_image",
+    "group": "Texture",
+    "label": "Alignment",
+    "name": "textureAlignment",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "allowedValues": [
+     "standard",
+     "detailed"
+    ],
+    "description": "Geometry quality level. 'Detailed' gives HD quality geometry.",
+    "default": "standard",
+    "group": "Texture",
+    "label": "Geometry Quality",
+    "name": "geometryQuality",
+    "costImpact": true,
+    "type": "string"
+   },
+   {
+    "description": "Random seed for texture generation. Using the same seed will produce identical textures.",
+    "group": "Texture",
+    "label": "Seed",
+    "name": "textureSeed",
+    "costImpact": false,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "default",
+     "align_image"
+    ],
+    "description": "Set orientation to 'Align Image' will automatically rotate the model to align the original image.",
+    "default": "default",
+    "group": "Settings",
+    "label": "Orientation",
+    "name": "orientation",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "description": "Enable PBR generation. Default value is True. If this option is set to True, texture parameters will be ignored.",
+    "default": true,
+    "group": "Settings",
+    "label": "PBR",
+    "name": "pbr",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "description": "Maximum face count. Adaptive if unset. With Smart Low Poly: 1,000\u201320,000 (500\u201310,000 if Quad is also enabled). Otherwise capped at 1,500,000 (standard geometry) or 2,000,000 (detailed geometry). Quad alone caps face limit at 150,000.",
+    "group": "Settings",
+    "label": "Face Limit",
+    "name": "faceLimit",
+    "costImpact": false,
+    "type": "number"
+   },
+   {
+    "description": "Automatically scale the model to real-world dimensions, with the unit in meters.",
+    "default": false,
+    "group": "Settings",
+    "label": "Auto Size",
+    "name": "autoSize",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "description": "Enable quad mesh output (FBX format). When Smart Low Poly is off, face limit is capped at 150,000. When Smart Low Poly is on and Face Limit is unset, defaults to 10,000.",
+    "default": false,
+    "group": "Settings",
+    "label": "Quad",
+    "name": "quad",
+    "costImpact": true,
+    "type": "boolean"
+   },
+   {
+    "description": "Generate hand-crafted low-poly topology. When enabled and Face Limit is set: 1,000\u201320,000 (500\u201310,000 if Quad is also enabled).",
+    "default": false,
+    "group": "Settings",
+    "label": "Smart Low Poly",
+    "name": "smartLowPoly",
+    "costImpact": true,
+    "type": "boolean"
+   },
+   {
+    "description": "Generate segmented 3D model parts. Incompatible with texture, pbr, and quad.",
+    "default": false,
+    "group": "Settings",
+    "label": "Generate Parts",
+    "name": "generateParts",
+    "costImpact": true,
+    "type": "boolean"
+   },
+   {
+    "description": "Random seed for model generation. The seed controls the geometry generation process, ensuring identical models when the same seed is used.",
+    "group": "Settings",
+    "label": "Seed",
+    "name": "seed",
+    "costImpact": false,
+    "type": "number"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "geometryQuality": {
+     "standard": "Standard",
+     "detailed": "HD"
+    },
+    "textureAlignment": {
+     "original_image": "Original Image",
+     "geometry": "Geometry"
+    },
+    "textureQuality": {
+     "extreme": "8K",
+     "detailed": "HD",
+     "standard": "Standard"
+    },
+    "orientation": {
+     "default": "Default",
+     "align_image": "Align Image"
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,431 @@
+{
+ "model": {
+  "id": "model_patina-material",
+  "userId": "c452b44467bd7f9d443c631491b6948b",
+  "authorId": "c452b44467bd7f9d443c631491b6948b",
+  "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+  "createdAt": "2026-08-21T11:43:04.227Z",
+  "updatedAt": "2026-08-21T17:13:55.834Z",
+  "name": "PATINA Material",
+  "shortDescription": "Generates a seamlessly tiling PBR material from text prompt, with img2img variation and inpainting. Outputs base color, normal, roughness, metalness, and height maps, up to 8K.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "txt2img",
+   "img2img"
+  ],
+  "source": "other",
+  "status": "trained",
+  "trainingProgress": {},
+  "parameters": {},
+  "trainingImagesNumber": 0,
+  "trainingImagePairs": [],
+  "tags": [
+   "Material Generation",
+   "PBR",
+   "Patina AI",
+   "Texture",
+   "sc:texture",
+   "sc:third-party"
+  ],
+  "collectionIds": [],
+  "exampleAssetIds": [
+   "asset_i8PzaCVhJPcMmx6ThXUPsFDm",
+   "asset_1tmaYn24rHfYE3r8vBxdAXZL",
+   "asset_JNKBJ8KGWPhEG1mai5rr4dyg",
+   "asset_wBd2d9ouTTGi1UC8KcSWUfCy",
+   "asset_7wAruAwE21NvhNncMDHgFwgd",
+   "asset_Dtf5ZkwB5asbntLKWR3WQfCk",
+   "asset_z2MtG823jV1FGcZ4qPX8Cb3x",
+   "asset_gqxENgyS8ZzX2Ty5R2f1SQdp",
+   "asset_KEPNymRC1c9hQac2dmxW1wpW",
+   "asset_pJ1LZXgnLEYe8iiQxMrqRiBo",
+   "asset_xtowsNVJFJLLHxFzJzfSau1m",
+   "asset_BVcWMrJiehYHjN1hGhDbPmKq",
+   "asset_6YaPH96fmwg1EPTWS2zXdNgR",
+   "asset_DA4YQvJfU6bUBm9mv5ke6DTk",
+   "asset_QhAPvjhpGBMJdJzjwuNtynbo",
+   "asset_n3gTvmdwr4CAkVjAith6Y8wd",
+   "asset_kK6NFr6Q6jhpbXVwmWagThJH",
+   "asset_N1UXYw6P3SmN9QNoUqe2reSU",
+   "asset_7MTJxFycFa743L5pbqRh3ARu",
+   "asset_XGeS3Sd6E1zNpifM9i3LhwwH",
+   "asset_US7GFmr88nJJHaNnSdz7YX4s",
+   "asset_JKm9UTvuD5ZY8iiGYVRCrJei",
+   "asset_yxL9epZc2rb7UMtjeNCZrVwb",
+   "asset_yHH4GTthpZDDHitcTSSUicj1",
+   "asset_UNn23wPycsH9edBMqs2YZ8NX",
+   "asset_zWUoRYN1rkVzz2EfpZRhAUL8",
+   "asset_oJa2p4zHEjWDwLoSCaCe6MQb",
+   "asset_8Zc3yUtgfxHv3Dg9QwvhmHeN",
+   "asset_Ge1ViMmEdSZKav83kvgCaxZd",
+   "asset_eUmk3XSaCoJ4RhxEpLMXPvVF",
+   "asset_9Rd2yQgUyHYXcVnvr3zNZBvT",
+   "asset_A5rTEnRo85AfqcujqPq1bnFJ",
+   "asset_S3UudDCddZzRfRhAzxRZ4WHa",
+   "asset_agSs4ewqaxqMUsqa7oFnq8du",
+   "asset_pGMAz2trfqqPFvcnp91W1R1m",
+   "asset_LZCWJf4Rz4bVwReMNSREYAbb",
+   "asset_Gkdu682r5QywpWytXmgRA64j",
+   "asset_ZXtsaNNcc9vSyxhwesCKqqU7",
+   "asset_ZHUJfBaAnvFRr3kCGPCo6Rpk",
+   "asset_tzfZuwNSA5GHrjNLbU6ZYK9c",
+   "asset_j4oXpKxd8ePdThDuxdKEy8US",
+   "asset_ATgXSGuEkuYyrazFS1eNKE4j",
+   "asset_UwBVR9xKmW82LU892p6mwrZ3",
+   "asset_i1c5zuGK1MMDYKbhQdLQ6quR",
+   "asset_WtMV5atbhZvnk4XPafECCbip",
+   "asset_dZPLuL4YB8HE444Ym8dD29Yj",
+   "asset_8R5TXu4ZH61xmCGq98NhKXc5",
+   "asset_9YGWcnGaNxBDF3GaLpAavQRu",
+   "asset_DTaLJnmvdNYfNxntZg3EtgbM",
+   "asset_4pBHtH4jcBR1YRkV5Aw7NjRu",
+   "asset_7DmKAaiLtKKQN94MUSwyYYmc",
+   "asset_nfiR4xSGo7EVyHwezyXBPzMW",
+   "asset_SQ21Kjrq93RzkSbNibajVWWh",
+   "asset_1CujSVtEmpCjiep7k8BuRy1g",
+   "asset_wafjvH43GqxDu1gD9k1Gvysg",
+   "asset_CqfG8BQv5b87zW23m4p4waWU",
+   "asset_PT5edXEMJ4jiQPwAxYvKP7X1",
+   "asset_SP1k8VyqpZVP88aSHRVBoTFb",
+   "asset_sLnS6a6bxvzzSQMRsgRNUqRi",
+   "asset_JesVkjCAK2AFZuREbWEHmMJd",
+   "asset_ikaCwo9xmHDoeaMLqv3i3X2t",
+   "asset_pxyn4vAJW63vy7DBCqEZd7jp",
+   "asset_cZ8fMK6B8CBQ1CDRibF1KqWw",
+   "asset_U1snXxUyqzTJdm6EudRzxBKD",
+   "asset_kTUE8yWkDM7LqKQyUJSHRvfG",
+   "asset_ezMEpUPdGAVYhmQCT9C6PtrB",
+   "asset_UomEYNkj3xKzGanuZnR9Yz4m",
+   "asset_UU1r7bHYEj228WVKNou6J7gP",
+   "asset_WnjJzi6iYS1yFyHptzP9Frvz",
+   "asset_nR1qpkcCVh2VGNQSix1DyVjp",
+   "asset_TFeoJtCPj4P42HS5nJWMjzvc",
+   "asset_ooh1Zew93Rk7j4zQJQH1Pe3v",
+   "asset_cy97jkoF3vEwhTdDttxtEXsh",
+   "asset_eswWpjme1bujJk3MdQeSEcFr",
+   "asset_YxvhHnvvnU9pjkbDAsaanRfY",
+   "asset_B5rFUnewJsxtuiyjM1uwRZki",
+   "asset_KccZE7URdo2pPZCeVVtdKdTV",
+   "asset_2bZDbZ7pNtkf7JYBD99Wiyjy",
+   "asset_g17m2WGfBMe9bqVnmFUVWKGx",
+   "asset_2U6c46DStAhDYqqAydJqZK8N",
+   "asset_LTBzMsL5LT896HtokxkmdZQT",
+   "asset_4UTqnAJMh5qrFd1QTzyhEpiR",
+   "asset_8gMtF8usyDabBPyPpgLhJ4RC",
+   "asset_mDqvMiKsGuximopqfo353eXh",
+   "asset_EUDYgevv8nV63cGCqsd8jFqh",
+   "asset_9rxB9TLgk67oGdPGdWpvhmma",
+   "asset_hNepmYzQaDt6Dk1pskX27FHv",
+   "asset_EDCciN6tcS5hmU3Tnb4SKC5J",
+   "asset_tW6AiPX27gsp8QkQbno33rX2",
+   "asset_N7vnGXetQ7XwMHrzeomZJFCC",
+   "asset_yfTbaU4qMLYVjdrtCHCo7R5S",
+   "asset_oc3XWJ1wFhi1n7enohHFhYbo",
+   "asset_dSkdXiKPecUEELkXJ4AKHRM8",
+   "asset_y6uutYXXHbrbMnGJdMEgABQW",
+   "asset_3UZ7T9PyU4S5DJHFDrAP4Mr7",
+   "asset_Ut3Wss9TjbKUfX32vMtqm3pS",
+   "asset_UDuFeDjmRy8ABFi6ExBbFzE5",
+   "asset_zmALe2tijEPGjzoUmriFMa3u",
+   "asset_yQfxuS61P4tjFUPYSshrLnU2",
+   "asset_Ubf2Cn3BS3bCrYFvQhyFedh8",
+   "asset_aAiPZ685umM8hya2ai7fdFLa",
+   "asset_bCiT1xWbr7P8Dq6bNbLs4CLE",
+   "asset_YZMTvGUoQqif7cvoj9A1pFVQ",
+   "asset_SM1PHfrRarHxdQXUkd3pLMjj",
+   "asset_S9L6oT5cT7eBKFa5RGRwtyer",
+   "asset_5p2oqDGDvQUZHoJohygZwh4W",
+   "asset_YVZmuw5TZyQ3MVCPBAEfsJsp",
+   "asset_SX18thViyoFehL1tmgVVMLSp",
+   "asset_GNHGUmV5g5QehWC3Yw1Jk8Fj",
+   "asset_dsFt5keuaxxbaBHhwfD3NPYf",
+   "asset_P5dUu4dCeDrN17asQF1DBBMz",
+   "asset_MLVFXUm1x3EtMKDbwwv2rdG6",
+   "asset_3o6atwCYrMxQD8i8S1hz4ms1",
+   "asset_ZbGoNvGwVw6CB7Yf8MScPCYk",
+   "asset_izXYguRFNHKptHj7MVm3LKTa",
+   "asset_cK2BqwBhS8gCsVoAnzbbh4wx",
+   "asset_1si4JFUiG11QBgV4SuLengx7",
+   "asset_wYnKAyuKAJk4JoLsL6i1toLB",
+   "asset_4tTwS2AawjtUjfrrSAhRNqs3",
+   "asset_UgqoXKKZ9kon9ET8FNNeyT7i",
+   "asset_egfbD7oiwTquzYRNRS4np7eb",
+   "asset_5B9qLjhv6NrQXKgEATNwJy3b",
+   "asset_9NmC68rzxbeQ5w25xRXXMemm",
+   "asset_PpYKgbUgosFD3xQ9z7erpyaa",
+   "asset_nK6XR8yA5LqW4DjrMUjqWLxX",
+   "asset_w6jQ4NAr9ios4QhUVMNoppND"
+  ],
+  "custom": true,
+  "accessRestrictions": 50,
+  "complianceMetadata": {
+   "enterpriseStatus": "Ready",
+   "subProcessor": "Fal",
+   "maintainer": "Fal",
+   "licenseTerms": "https://fal.ai/terms",
+   "modelProvider": "Patina AI",
+   "dataProcessingComment": "temporaryRetention"
+  },
+  "inputs": [
+   {
+    "description": "Text description of the material to generate, for example weathered copper patina or mossy stone wall.",
+    "label": "Prompt",
+    "maxLength": 2048,
+    "name": "prompt",
+    "costImpact": false,
+    "prompt": true,
+    "required": {
+     "always": true
+    },
+    "type": "string",
+    "promptSpark": true
+   },
+   {
+    "description": "An optional starting texture. Without a mask, PATINA creates variations. With a mask, it inpaints the marked region.",
+    "group": "Reference Image",
+    "kind": "image",
+    "label": "Image",
+    "name": "image",
+    "costImpact": false,
+    "parent": true,
+    "required": {
+     "ifDefined": {
+      "mask": {
+       "message": "An image is required when a mask is provided."
+      }
+     }
+    },
+    "type": "file"
+   },
+   {
+    "description": "How much to transform the input image. Higher values change it more. Only used when an image is provided.",
+    "default": 0.6,
+    "group": "Reference Image",
+    "label": "Image Strength",
+    "max": 1,
+    "min": 0.01,
+    "name": "imageStrength",
+    "costImpact": false,
+    "step": 0.01,
+    "type": "number"
+   },
+   {
+    "description": "A black-and-white mask for inpainting. White regions are regenerated, black regions are preserved. Requires an input image.",
+    "group": "Reference Image",
+    "kind": "image",
+    "label": "Mask",
+    "name": "mask",
+    "costImpact": false,
+    "parent": true,
+    "type": "file",
+    "maskFrom": "image"
+   },
+   {
+    "description": "Output width in pixels. Upscaling applies to PBR maps only, not the base texture.",
+    "default": 1024,
+    "group": "Settings",
+    "label": "Width",
+    "max": 2048,
+    "min": 512,
+    "name": "width",
+    "costImpact": true,
+    "step": 16,
+    "type": "number"
+   },
+   {
+    "description": "Output height in pixels. Upscaling applies to PBR maps only, not the base texture.",
+    "default": 1024,
+    "group": "Settings",
+    "label": "Height",
+    "max": 2048,
+    "min": 512,
+    "name": "height",
+    "costImpact": true,
+    "step": 16,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "basecolor",
+     "normal",
+     "roughness",
+     "metalness",
+     "height"
+    ],
+    "description": "Which PBR maps to predict. Deselect all to skip PBR estimation and only generate the texture.",
+    "default": [
+     "basecolor",
+     "normal",
+     "roughness",
+     "metalness",
+     "height"
+    ],
+    "group": "Settings",
+    "label": "Maps",
+    "maxLength": 5,
+    "name": "maps",
+    "costImpact": true,
+    "type": "string_array"
+   },
+   {
+    "allowedValues": [
+     0,
+     2,
+     4
+    ],
+    "description": "Seamless upscale for predicted PBR maps. 0 keeps map resolution, 2 doubles it, 4 quadruples it (up to 8K from a 2048 texture). The base texture is not upscaled.",
+    "default": 0,
+    "group": "Settings",
+    "label": "Upscale Factor",
+    "name": "upscaleFactor",
+    "costImpact": true,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "both",
+     "horizontal",
+     "vertical"
+    ],
+    "description": "Which directions the material repeats seamlessly. Both repeats in every direction; Horizontal repeats left-to-right; Vertical repeats top-to-bottom.",
+    "default": "both",
+    "group": "Settings",
+    "label": "Tiling Mode",
+    "name": "tilingMode",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "description": "Number of texture images to generate from the same prompt.",
+    "default": 1,
+    "group": "Settings",
+    "label": "Image Count",
+    "max": 4,
+    "min": 1,
+    "name": "numOutputs",
+    "costImpact": true,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "Number of denoising steps for texture generation. Higher values take longer.",
+    "default": 8,
+    "group": "Settings",
+    "label": "Inference Steps",
+    "max": 8,
+    "min": 1,
+    "name": "numInferenceSteps",
+    "costImpact": false,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "Expand the prompt with an LLM for richer material detail.",
+    "default": true,
+    "group": "Settings",
+    "label": "Enable Prompt Expansion",
+    "name": "enablePromptExpansion",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "description": "Seamless-tiling window in latent space. 64 \u2248 512px, 128 \u2248 1024px, 256 \u2248 2048px. Match this to the output resolution for cleaner repeats.",
+    "default": 128,
+    "group": "Settings",
+    "label": "Tile Size",
+    "max": 256,
+    "min": 32,
+    "name": "tileSize",
+    "costImpact": false,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "How far the tiling window steps between passes. Smaller than tile size adds overlap and usually smoother seams; larger is faster but can show a grid.",
+    "default": 64,
+    "group": "Settings",
+    "label": "Tile Stride",
+    "max": 128,
+    "min": 16,
+    "name": "tileStride",
+    "costImpact": false,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "A number that makes results repeatable. Reusing the same seed and settings produces the same material; leave it empty for a different result each time.",
+    "group": "Settings",
+    "label": "Seed",
+    "max": 2147483647,
+    "min": 0,
+    "name": "seed",
+    "costImpact": false,
+    "type": "number"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "upscaleFactor": {
+     "0": "None",
+     "2": "2x",
+     "4": "4x"
+    },
+    "tilingMode": {
+     "horizontal": "Horizontal",
+     "vertical": "Vertical",
+     "both": "Both"
+    },
+    "maps": {
+     "basecolor": "Base Color",
+     "metalness": "Metalness",
+     "roughness": "Roughness",
+     "height": "Height",
+     "normal": "Normal"
+    }
+   },
+   "resolutionComponent": {
+    "widthInput": "width",
+    "label": "Dimensions",
+    "heightInput": "height",
+    "presets": [
+     {
+      "width": 512,
+      "label": "1:1 (512x512)",
+      "height": 512
+     },
+     {
+      "label": "1:1 (1024x1024)",
+      "height": 1024,
+      "width": 1024
+     },
+     {
+      "height": 2048,
+      "label": "1:1 (2048x2048)",
+      "width": 2048
+     },
+     {
+      "label": "4:3 (1024x768)",
+      "width": 1024,
+      "height": 768
+     },
+     {
+      "label": "3:4 (768x1024)",
+      "width": 768,
+      "height": 1024
+     },
+     {
+      "label": "16:9 (1024x576)",
+      "width": 1024,
+      "height": 576
+     },
+     {
+      "height": 1024,
+      "label": "9:16 (576x1024)",
+      "width": 576
+     }
+    ]
+   }
+  }
+ }
+}
