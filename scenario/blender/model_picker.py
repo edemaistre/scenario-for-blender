@@ -5,7 +5,11 @@
 Modality tabs (Image, Video, Audio, 3D) with Scenario's icons, the category chips of the web app per tab (Generate,
 Edit, Upscale... / Speech, Music, SFX... / Splat, Remesh, Retexture...), a search field, the list with thumbnails and
 the description of the highlighted model. LoRAs and deprecated models never show. Picking a model from another tab
-than the lane's moves the scene to that modality's lane. The native dropdown stays as a small fallback button."""
+than the lane's moves the scene to that modality's lane. The native dropdown stays as a small fallback button.
+
+Layout: the tabs and the chips are compact centred groups (each button as wide as its icon and word, the group in the
+middle of the dialog, like Scenario's "Choose a Model" and the lane tabs of the sidebar); the search field, the list and
+the highlighted model's box stay full width."""
 import logging
 import textwrap
 import threading
@@ -21,6 +25,7 @@ from ..core.api.catalog import PATINA_MODELS
 log = logging.getLogger("scenario.picker")
 
 THUMB_LIMIT = 40           # thumbnails fetched per refilter, the rows a user can scroll to before typing again
+CHIPS_PER_ROW = 6          # more category chips than this wrap onto two centred rows
 RECENT_FILE = "recent_models.json"
 _ctx = {"lane": "", "records": [], "current": "", "material_only": False}
 _pending_thumbs = set()
@@ -285,6 +290,36 @@ def category_labels(record):
     return ", ".join(labels.get(c, c) for c in sorted(model_filter.categories_of(record)))
 
 
+# -- dialog layout --------------------------------------------------------------------
+def chip_rows(chips, per_row=CHIPS_PER_ROW):
+    """The category chips as one row, or two balanced rows when there are more than `per_row` (Image and Video have 8,
+    3D has 9, Audio 5)."""
+    chips = list(chips)
+    if len(chips) <= per_row:
+        return [chips]
+    half = (len(chips) + 1) // 2
+    return [chips[:half], chips[half:]]
+
+
+def draw_filters(layout, wm):
+    """Modality tabs and category chips as compact centred groups. A full-width enum row (`prop(..., expand=True)`)
+    stretches every button and pins its icon to the left edge; one `prop_enum` per value in a row aligned CENTER keeps
+    each button as wide as its content and centres the group. The tab icon comes from the enum item itself (Scenario's
+    PNG, or the built-in fallback when headless)."""
+    col = layout.column()
+    tabs = col.row(align=True)
+    tabs.alignment = 'CENTER'
+    for ident, _label, _icon in model_filter.MODALITIES:
+        tabs.prop_enum(wm, "scenario_picker_modality", ident)
+    col.separator()
+    chips = col.column(align=True)
+    for chip_row in chip_rows(model_filter.category_items(wm.scenario_picker_modality)):
+        row = chips.row(align=True)
+        row.alignment = 'CENTER'
+        for ident, _label in chip_row:
+            row.prop_enum(wm, "scenario_picker_category", ident)
+
+
 # -- Blender classes ----------------------------------------------------------------
 class ScenarioPickerItem(bpy.types.PropertyGroup):
     model_id: StringProperty()
@@ -328,11 +363,14 @@ class SCENARIO_OT_pick_model(bpy.types.Operator):
     def draw(self, context):
         wm = context.window_manager
         layout = self.layout
-        if not _ctx["material_only"]:
-            layout.row(align=True).prop(wm, "scenario_picker_modality", expand=True)
-            layout.row(align=True).prop(wm, "scenario_picker_category", expand=True)
+        layout.separator()  # breathing room under the title, as in the composer
+        if _ctx["material_only"]:
+            header = layout.row()
+            header.alignment = 'CENTER'
+            header.label(text="Materials: PATINA models", icon='MATERIAL')
         else:
-            layout.label(text="Materials: PATINA models", icon='MATERIAL')
+            draw_filters(layout, wm)
+        layout.separator()
         layout.prop(wm, "scenario_picker_query", text="", icon='VIEWZOOM', placeholder="Search models")
         layout.template_list("SCENARIO_UL_models", "", wm, "scenario_picker_items", wm, "scenario_picker_index", rows=10)
         if not wm.scenario_picker_items:

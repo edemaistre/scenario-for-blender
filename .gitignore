@@ -13,3 +13,6 @@ dist/
 # scene files other than the test scene (Robots.blend is a 700 MB working file)
 tools/*.blend
 !tools/blank.blend
+tools/*.blend?
+*.blend1
+*.blend2

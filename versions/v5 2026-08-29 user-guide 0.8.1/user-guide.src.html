@@ -116,7 +116,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 <nav class="toc" aria-label="Contents">
   <div class="toc-head">
     <span class="eyebrow">Handbook</span>
-    <span class="version">v0.8.2 &middot; 2026-08-29</span>
+    <span class="version">v0.8.1 &middot; 2026-08-29</span>
   </div>
   <ol>
     <li><a href="#what">What it does</a></li>
@@ -183,7 +183,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
       <dl class="anatomy">
         <dt>Scenario</dt><dd>What to generate. Lane tabs with Scenario's modality icons: Image, Video, 3D, Materials, Audio, Render Image, Render Video. Below them, the form of the lane; the 3D tab has an Edit mode for the selected mesh.</dd>
         <dt>Jobs</dt><dd>What is running, all lanes together, with a count in the header: "Prompt Spark is writing the look", "uploading and submitting", "rendering 40%".</dd>
-        <dt>Generations</dt><dd>What came back. Each entry: type icon, start of the prompt, price, a collapse arrow; then the model, the asset id (one click copies it), a failure marker when something went wrong, the output thumbnail and the actions of its kind. The info button opens <b>Details</b>: prompt, settings sent, references with their asset ids, result assets, files, errors; the refresh button <b>reloads the parameters</b> into the form (lane, model, prompt, settings, references). Then, with the Project history (cloud) checkbox on, the project's cloud history with Download and open; a cloud generation that also exists on this machine is drawn like a session entry.</dd>
+        <dt>Generations</dt><dd>What came back. Each entry: type icon, start of the prompt, price, a collapse arrow; then the model, the asset id (one click copies it), a failure marker when something went wrong, the output thumbnail and the actions of its kind. The info button opens <b>Details</b>: prompt, settings sent, references with their asset ids, result assets, files, errors; the refresh button <b>reloads the parameters</b> into the form (lane, model, prompt, settings, references). Then, with the globe toggle on, the project's cloud history with Import into scene and Load older.</dd>
         <dt>Agents (MCP)</dt><dd>The local MCP server: status, token, one-click client setups, the Python permission.</dd>
       </dl>
       <p>The tabs answer "what do I want to make"; the panels below answer "what is running" and "what did I get", whatever the lane.</p>
@@ -205,7 +205,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
   <dl class="anatomy">
     <dt>Account strip</dt><dd>Your team and project, a refresh for the model list, a shortcut to the preferences.</dd>
     <dt>Model</dt><dd>A button with the current model. It opens the <b>model picker</b>, laid out like Scenario's "Choose a Model": modality tabs (Image, Video, Audio, 3D), the web app's category chips (Image: Generate, Edit, Expand, Upscale, Vectorize, Remove Background, Tools; Video: Generate, Edit, Lipsync, Upscale, Reframe, Remove Background, Tools; Audio: Speech, Music, SFX, Tools; 3D: Generate, Splat, Remesh, Retexture, UV Unwrap, Rigging, Animate, Parts), a search field, the list with thumbnails and the description of the highlighted model. Scenario's trained LoRAs are not listed. Picking a model of another modality switches to that lane. The small arrow next to the button is the plain dropdown.</dd>
-    <dt>Prompt</dt><dd>Its own box, like Scenario's: a Prompt header with the pencil (a wider editor), the full-width field, the long prompt wrapped underneath, and three equal buttons with Scenario's icons: dice <b>Generate a new prompt</b> and sparkles <b>Rewrite your prompt</b> (Prompt Spark, up to 3.75 CU; the Scenario LLM steps in when Prompt Spark has no usable answer for a model), <b>Translate to English</b> (Scenario LLM, 0.5 CU). They run in the background and the field updates when the answer arrives.</dd>
+    <dt>Prompt</dt><dd>One line, the pencil opens a wider editor, then three buttons with Scenario's icons: dice <b>Generate a new prompt</b> and sparkles <b>Rewrite your prompt</b> (Prompt Spark, up to 3.75 CU; the Scenario LLM steps in when Prompt Spark has no usable answer for a model), <b>Translate to English</b> (Scenario LLM, 0.5 CU). They run in the background and the field updates when the answer arrives.</dd>
     <dt>References</dt><dd>One box per file input the model accepts (image, video, audio, 3D), a thumbnail per file. <b>Add</b> offers File, Viewport still, Camera still, Viewport clip, Camera clip and Render Result. Captures are taken when you press Generate. Pinned rows are inputs the lane adds itself: the capture, the selected mesh.</dd>
     <dt>Parameters</dt><dd>A checkbox in front of an optional parameter means "send this value"; unchecked, Scenario uses its default. <code>(cost)</code> marks the ones that change the price.</dd>
     <dt>Generate (N CU)</dt><dd>The exact price of the form as it stands, refreshed as you edit, computed by a free dry run. "from N CU" means references that will only be uploaded at generate time are not in the quote yet; "Price shown after the upload" means the model needs the mesh or the capture first.</dd>
@@ -230,7 +230,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 
 <section id="image">
   <h3>Image</h3>
-  <p>Text or reference images to images with GPT Image 2, Gemini 3.1, Seedream, Z-Image and any other txt2img or img2img model in the catalog. Results open in an Image Editor (whole image visible) and appear in Generations with <b>View image</b>, <b>Use as reference</b> (3D image to 3D: the 3D tab opens in Image mode with the picture attached; or the Image, Video, Render Image or Render Video lane), <b>Remove background</b> (a background removal model runs on it, the cut-out lands in Generations), <b>Apply as texture</b> and <b>Add as plane</b>.</p>
+  <p>Text or reference images to images with GPT Image 2, Gemini 3.1, Seedream, Z-Image and any other txt2img or img2img model in the catalog. Results open in an Image Editor (whole image visible) and appear in Generations with <b>View image</b>, <b>Convert to 3D</b> (the 3D tab opens in Image mode with the picture attached), <b>Use as reference</b> (to the Image, Video, 3D, Render Image or Render Video lane), <b>Remove background</b> (a background removal model runs on it, the cut-out lands in Generations), <b>Apply as texture</b> and <b>Add as plane</b>.</p>
 </section>
 
 <section id="video">
@@ -466,7 +466,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
     <li>Team-scoped keys generate into the first project; a project switcher is planned. Skyboxes, custom LoRAs, Scenario Workflows and sign-in with Scenario are still planned.</li>
   </ul>
   <footer>
-    <span>Scenario for Blender v0.8.2</span>
+    <span>Scenario for Blender v0.8.1</span>
     <a href="https://github.com/edemaistre/scenario-for-blender">Source on GitHub</a>
     <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/CHANGELOG.md">Changelog</a>
     <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/docs/USER_GUIDE.md">Markdown guide</a>

@@ -309,7 +309,6 @@ def draw_result(layout, rec):
                 row.template_icon(icon_value=icon_id, scale=3.0)
             col = row.column(align=True)
             col.operator("scenario.show_image", text="View image", icon='ZOOM_ALL').filepath = path
-            col.operator("scenario.convert_to_3d", text="Convert to 3D", icon='MESH_DATA').filepath = path
             col.operator_menu_enum("scenario.use_as_reference", "target", text="Use as reference", icon='IMAGE_REFERENCE').filepath = path
             col.operator("scenario.remove_background", text="Remove background", icon='MOD_MASK').filepath = path
             sub = col.row(align=True)
@@ -351,11 +350,21 @@ def draw_result(layout, rec):
         box.label(text=os.path.basename(rec.files[0]), icon='FILE')
 
 
-def draw_history(layout, context):
+def draw_history(layout, context, shown_ids=()):
     if not runtime.state.history:
-        layout.label(text="Press Refresh to list this project's generations", icon='INFO')
+        layout.label(text="Press Refresh cloud to list this project's generations", icon='INFO')
         return
+    local_by_job = {}
+    manager = runtime.state.manager
+    if manager is not None:
+        local_by_job = {r.job_id: r for r in manager.registry.all() if r.job_id and r.files}
     for entry in runtime.state.history[:24]:
+        if entry.job_id in shown_ids:
+            continue  # already listed among this session's results
+        local = local_by_job.get(entry.job_id)
+        if local is not None:
+            draw_result(layout, local)  # same entry, same actions as a session result
+            continue
         box = layout.box()
         header = box.row()
         header.label(text=(entry.prompt or entry.model_id)[:40], icon=KIND_ICON.get(entry.kind, 'FILE'))
@@ -368,7 +377,7 @@ def draw_history(layout, context):
             if icon_id:
                 box.template_icon(icon_value=icon_id, scale=3.0)
         if entry.is_success:
-            op = box.operator("scenario.import_result", text="Import into scene" if not entry.local_files else "Bring into scene again", icon='IMPORT')
+            op = box.operator("scenario.import_result", text="Download and open", icon='IMPORT')
             op.job_id, op.kind, op.model_id, op.prompt = entry.job_id, entry.kind, entry.model_id, entry.prompt
         else:
             box.label(text=entry.status, icon='ERROR' if entry.status in ("failure", "failed", "canceled") else 'TIME')
@@ -393,6 +402,7 @@ class SCENARIO_PT_main(bpy.types.Panel):
         col = layout.column(align=True)
         for row_lanes in (("image", "video", "3d"), ("audio", "material"), ("render_image", "render_video")):
             row = col.row(align=True)
+            row.alignment = 'CENTER'  # compact buttons: the icon sits right next to its word and the group is centred
             for lane_id in row_lanes:
                 row.prop_enum(scenario, "lane", lane_id)
         lane = scenario.lane
@@ -420,13 +430,12 @@ class SCENARIO_PT_jobs(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Scenario"
-    bl_label = "Jobs"
+    bl_label = ""
     bl_order = 1
 
     def draw_header(self, context):
         active = sum(1 for r in runtime.state.jobs_view if not r.is_terminal)
-        if active:
-            self.layout.label(text=str(active))
+        self.layout.label(text="Jobs" if not active else ("1 Job" if active == 1 else f"{active} Jobs"))
 
     def draw(self, context):
         layout = self.layout
@@ -455,21 +464,21 @@ class SCENARIO_PT_generations(bpy.types.Panel):
         row = layout.row(align=True)
         row.operator("scenario.open_output_folder", text="Output folder", icon='FILE_FOLDER')
         row.operator("scenario.history_refresh", text="Refresh cloud", icon='FILE_REFRESH')
-        row.prop(context.scene.scenario, "show_cloud_history", text="", icon='WORLD')
-        shown = 0
+        shown, shown_ids = 0, set()
         for rec in runtime.state.jobs_view:
             if not rec.is_terminal:
                 continue
             draw_result(layout, rec)
+            shown_ids.add(rec.job_id)
             shown += 1
             if shown >= 12:
                 break
         if shown == 0:
             layout.label(text="Nothing generated yet in this session")
+        layout.separator()
+        layout.prop(context.scene.scenario, "show_cloud_history", text="Project history (cloud)", icon='WORLD')
         if context.scene.scenario.show_cloud_history:
-            layout.separator()
-            layout.label(text="Project history (cloud)", icon='WORLD')
-            draw_history(layout, context)
+            draw_history(layout, context, shown_ids)
 
 
 class SCENARIO_PT_agents(bpy.types.Panel):

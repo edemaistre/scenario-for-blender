@@ -171,8 +171,7 @@ def _clip_info(scene):
 def _draw_look(layout, lane_state, lane):
     from . import panels
 
-    box = layout.box()
-    panels.draw_prompt_row(box, lane_state, lane, text="Look")
+    box = panels.draw_prompt_row(layout, lane_state, lane, text="Look")  # the prompt box; the Spark hints go inside it
     if not lane_state.prompt.strip():
         sub = box.row(align=True)
         sub.prop(lane_state, "spark_enabled", text="")

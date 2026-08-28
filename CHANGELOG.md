@@ -6,6 +6,16 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.8.2] - 2026-08-29
+
+### Changed
+- **Tabs with the icon glued to the text, centred**: the lane tabs (Image / Video / 3D, Audio / Materials, Render Image / Render Video) and the model picker's modality tabs and category chips are compact centred groups, like Scenario's web app, instead of full-width buttons that pin the icon to the left edge.
+- **Prompt box**: the prompt is a box of its own (a "Prompt" header, the full-width field, the long prompt wrapped underneath so it stays readable, and the three tool buttons as a row of equal squares), in every lane and in the settings dialog.
+- Prompt tool icons redrawn (one die with five dots, a clean sparkle, 文A) at a weight that reads at 16 px; the modality icons follow the same stroke.
+- Model picker: breathing room under the title, tabs and chips centred, wider list.
+- Generations: the header shows "Output folder" and "Refresh cloud" as two equal buttons and the cloud toggle is a labelled checkbox; a cloud entry that also exists locally is drawn like a session entry (same actions), so "Bring into scene again" is gone; image actions are View image, Use as reference (3D image to 3D, Image, Video, Render Image style, Render Video style), Remove background, Apply as texture, Add as plane.
+- Jobs header reads "1 Job" / "3 Jobs".
+
 ## [0.8.1] - 2026-08-29
 
 ### Added

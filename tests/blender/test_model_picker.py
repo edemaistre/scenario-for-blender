@@ -4,6 +4,7 @@
 import importlib
 import importlib.util
 import sys
+import types
 import unittest
 
 import bpy
@@ -68,7 +69,50 @@ def fake_records():
     ]
 
 
+class FakeLayout:
+    """Records the UILayout calls a draw function makes: containers (row, column, box, split) return a child that records
+    its own calls, everything else is logged as (name, args, kwargs). Attributes like `alignment` are plain attributes."""
+    CONTAINERS = ("row", "column", "box", "split")
+
+    def __init__(self, kind="layout", **kwargs):
+        self.kind, self.kwargs, self.children, self.calls = kind, kwargs, [], []
+        self.alignment, self.enabled = 'EXPAND', True
+
+    def __getattr__(self, name):
+        if name.startswith("__"):
+            raise AttributeError(name)
+
+        def call(*args, **kwargs):
+            if name in self.CONTAINERS:
+                child = FakeLayout(name, **kwargs)
+                self.children.append(child)
+                return child
+            self.calls.append((name, args, kwargs))
+            return types.SimpleNamespace() if name == "operator" else None
+        return call
+
+    def walk(self):
+        yield self
+        for child in self.children:
+            yield from child.walk()
+
+    def named(self, name):
+        """The recorded calls of `name` on this node."""
+        return [c for c in self.calls if c[0] == name]
+
+
 class ModelPickerTests(unittest.TestCase):
+    def draw_dialog(self):
+        """Run the dialog's draw against a FakeLayout; returns the root."""
+        root = FakeLayout()
+        self.picker.SCENARIO_OT_pick_model.draw(types.SimpleNamespace(layout=root), bpy.context)
+        return root
+
+    @staticmethod
+    def enum_rows(root):
+        """[(alignment, [values]) for each row holding prop_enum buttons], in draw order."""
+        return [(node.alignment, [c[1][2] for c in node.named("prop_enum")]) for node in root.walk() if node.named("prop_enum")]
+
     def setUp(self):
         reset_scene()
         self.picker = picker_module()
@@ -92,6 +136,7 @@ class ModelPickerTests(unittest.TestCase):
         for name in ("scenario_picker_items", "scenario_picker_index", "scenario_picker_query", "scenario_picker_modality", "scenario_picker_category"):
             self.assertTrue(hasattr(wm, name), name)
         self.assertFalse(hasattr(wm, "scenario_picker_chip"))
+        self.assertEqual(self.picker.SCENARIO_OT_pick_model.bl_label, "Choose a model")
 
     def test_prepare_opens_the_lane_modality_without_loras_and_highlights_current(self):
         scene = bpy.context.scene
@@ -184,6 +229,35 @@ class ModelPickerTests(unittest.TestCase):
         wm.scenario_picker_query = "nothing-matches-this"
         self.assertEqual(len(wm.scenario_picker_items), 0)
         self.assertEqual(bpy.ops.scenario.pick_model(lane="image"), {'CANCELLED'})
+
+    def test_dialog_draw_centres_compact_tabs_and_wraps_chips(self):
+        self.picker.prepare(bpy.context, "image")
+        wm = bpy.context.window_manager
+        root = self.draw_dialog()
+        self.assertEqual(root.calls[0][0], "separator")  # breathing room under the title
+        rows = self.enum_rows(root)
+        self.assertTrue(all(alignment == 'CENTER' for alignment, _ in rows), rows)  # compact buttons, group centred
+        self.assertEqual(rows[0][1], ["image", "video", "audio", "3d"])  # the tabs, one prop_enum each
+        self.assertEqual([values for _, values in rows[1:]], [["all", "generate", "edit", "expand"], ["upscale", "vectorize", "remove_background", "tools"]])  # 8 chips: two rows
+        self.assertFalse(any(c[2].get("expand") for node in root.walk() for c in node.named("prop")))  # no full-width enum row left
+        self.assertEqual([c[1][1] for c in root.named("prop")], ["scenario_picker_query"])  # search stays full width on the root
+        self.assertEqual([c[1][0] for c in root.named("template_list")], ["SCENARIO_UL_models"])
+        self.assertEqual([child.kind for child in root.children if child.kind == "box"], ["box"])  # the highlighted model's box
+        self.assertGreaterEqual(len(root.named("separator")), 2)  # top and between the groups
+        wm.scenario_picker_modality = 'audio'
+        self.assertEqual([values for _, values in self.enum_rows(self.draw_dialog())[1:]], [["all", "speech", "music", "sfx", "tools"]])  # 5 chips: one row
+        wm.scenario_picker_modality = '3d'
+        self.assertEqual([len(values) for _, values in self.enum_rows(self.draw_dialog())[1:]], [5, 4])  # 9 chips: two balanced rows
+        self.assertEqual([len(r) for r in self.picker.chip_rows(range(6))], [6])
+        self.assertEqual([len(r) for r in self.picker.chip_rows(range(7))], [4, 3])
+
+    def test_dialog_draw_material_lane_shows_a_centred_header_without_tabs(self):
+        self.picker.prepare(bpy.context, "material")
+        root = self.draw_dialog()
+        self.assertEqual(self.enum_rows(root), [])
+        headers = [(node.alignment, c[1], c[2]) for node in root.walk() for c in node.named("label") if "PATINA" in c[2].get("text", "")]
+        self.assertEqual(headers, [('CENTER', (), {"text": "Materials: PATINA models", "icon": 'MATERIAL'})])
+        self.assertEqual([c[1][1] for c in root.named("prop")], ["scenario_picker_query"])
 
     def test_helpers_do_not_touch_the_network(self):
         record = self.runtime.state.records["model_openai-gpt-image-2"]

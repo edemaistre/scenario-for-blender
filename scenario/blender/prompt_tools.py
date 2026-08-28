@@ -215,23 +215,52 @@ def _icon_kwargs(name):
         return {"icon": {"dice": 'LIGHT_SUN', "sparkles": 'FILE_REFRESH', "translate": 'WORLD_DATA'}.get(name, 'QUESTION')}
 
 
-def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
-    """The prompt field with its pencil and the three prompt tools (dice, sparkles, translate).
-    Rewrite and Translate need a prompt to work on."""
-    row = layout.row(align=True)
+def _wrap(text, width):
+    words, lines, current = text.split(), [], ""
+    for word in words:
+        if len(current) + len(word) + 1 > width and current:
+            lines.append(current)
+            current = word
+        else:
+            current = (current + " " + word).strip()
+    if current:
+        lines.append(current)
+    return lines
+
+
+def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None, wrap_width=44, max_lines=3):
+    """The prompt as a box of its own, like Scenario's: a header, the full-width field, the long prompt wrapped
+    underneath so it stays readable, and the three prompt tools (dice, sparkles, translate) as a row of equal
+    buttons. Rewrite and Translate need a prompt to work on."""
+    box = layout.box()
+    header = box.row(align=True)
+    header.label(text=text or "Prompt", icon='TEXT')
+    header.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL', emboss=False).lane = lane
+    field = box.row(align=True)
     if placeholder:
-        row.prop(lane_state, "prompt", text=text, placeholder=placeholder)
+        field.prop(lane_state, "prompt", text="", placeholder=placeholder)
     else:
-        row.prop(lane_state, "prompt", text=text)
-    row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
-    op = row.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", **_icon_kwargs("dice"))
+        field.prop(lane_state, "prompt", text="")
+    prompt = lane_state.prompt.strip()
+    if len(prompt) > wrap_width:
+        col = box.column(align=True)
+        col.scale_y = 0.85
+        lines = _wrap(prompt, wrap_width)
+        for line in lines[:max_lines]:
+            col.label(text=line)
+        if len(lines) > max_lines:
+            col.label(text="…")
+    tools = box.row(align=True)
+    tools.alignment = 'CENTER'  # icon buttons keep a fixed width in Blender: centre them and make them larger
+    tools.scale_x, tools.scale_y = 1.8, 1.3
+    op = tools.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", **_icon_kwargs("dice"))
     op.lane, op.mode = lane, 'GENERATE'
-    sub = row.row(align=True)
-    sub.enabled = bool(lane_state.prompt.strip())
+    sub = tools.row(align=True)
+    sub.enabled = bool(prompt)
     op = sub.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", **_icon_kwargs("sparkles"))
     op.lane, op.mode = lane, 'REWRITE'
     sub.operator(SCENARIO_OT_prompt_translate.bl_idname, text="", **_icon_kwargs("translate")).lane = lane
-    return row
+    return box
 
 
 CLASSES = (SCENARIO_OT_prompt_spark, SCENARIO_OT_prompt_translate)
