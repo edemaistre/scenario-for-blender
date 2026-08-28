@@ -63,10 +63,13 @@ class SCENARIO_OT_generate(bpy.types.Operator):
         return _network_poll(cls, context)
 
     def execute(self, context):
+        lane = self.lane
+        if lane == "3d" and context.scene.scenario.three_d_mode == 'EDIT':
+            lane = "edit3d"  # the 3D tab in Edit mode drives the edit3d lane
         try:
-            rec = generation.submit_generation(context, self.lane)
+            rec = generation.submit_generation(context, lane)
         except ScenarioError as err:
-            context.scene.scenario.lane_state(self.lane).last_error = err.reason
+            context.scene.scenario.lane_state(lane).last_error = err.reason
             self.report({'ERROR'}, err.reason)
             return {'CANCELLED'}
         self.report({'INFO'}, f"Generating with {rec.meta.get('model_name', rec.model_id)}")
@@ -372,6 +375,143 @@ class SCENARIO_OT_clear_first_frame(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SCENARIO_OT_copy_text(bpy.types.Operator):
+    bl_idname = "scenario.copy_text"
+    bl_label = "Copy"
+    bl_description = "Copy to the clipboard"
+    text: StringProperty()
+    what: StringProperty(default="text")
+
+    def execute(self, context):
+        context.window_manager.clipboard = self.text
+        self.report({'INFO'}, f"Copied {self.what}")
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_toggle_result(bpy.types.Operator):
+    bl_idname = "scenario.toggle_result"
+    bl_label = "Collapse or expand"
+    bl_options = {'INTERNAL'}
+    local_id: StringProperty()
+
+    def execute(self, context):
+        for rec in runtime.state.jobs_view:
+            if rec.local_id == self.local_id:
+                rec.meta["collapsed"] = not rec.meta.get("collapsed", False)
+                break
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_result_details(bpy.types.Operator):
+    bl_idname = "scenario.result_details"
+    bl_label = "Generation details"
+    bl_description = "Everything about this generation: model, prompt, settings, references, asset ids, files"
+    local_id: StringProperty()
+
+    def _rec(self):
+        return next((r for r in runtime.state.jobs_view if r.local_id == self.local_id), None)
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=620)
+
+    def draw(self, context):
+        import json
+
+        rec = self._rec()
+        layout = self.layout
+        if rec is None:
+            layout.label(text="This generation is no longer in the session list", icon='ERROR')
+            return
+        col = layout.column(align=True)
+        col.label(text=f"{rec.meta.get('model_name') or rec.model_id}  ({rec.kind}, {rec.status}{', %g CU' % rec.cu_cost if rec.cu_cost is not None else ''})", icon='INFO')
+        col.label(text=f"Model id: {rec.model_id}")
+        if rec.job_id:
+            row = col.row(align=True)
+            row.label(text=f"Job: {rec.job_id}")
+            op = row.operator("scenario.copy_text", text="", icon='COPYDOWN')
+            op.text, op.what = rec.job_id, "job id"
+        for key, label in (("prompt", "Prompt"), ("spark_look", "Prompt Spark look"), ("look", "Look")):
+            value = rec.meta.get(key)
+            if value:
+                box = layout.box()
+                box.label(text=label, icon='TEXT')
+                for line in _wrap(str(value), 88):
+                    box.label(text=line)
+        settings = {k: v for k, v in rec.body.items() if not (isinstance(v, str) and v.startswith("asset_")) and not (isinstance(v, list) and v and str(v[0]).startswith("asset_"))}
+        prompt_keys = {"prompt", "textStylePrompt", "instruction"}
+        settings = {k: v for k, v in settings.items() if k not in prompt_keys}
+        if settings:
+            box = layout.box()
+            box.label(text="Settings sent", icon='PREFERENCES')
+            for key, value in settings.items():
+                box.label(text=f"{key}: {json.dumps(value) if not isinstance(value, str) else value}"[:96])
+        refs = {k: v for k, v in rec.body.items() if (isinstance(v, str) and v.startswith("asset_")) or (isinstance(v, list) and v and str(v[0]).startswith("asset_"))}
+        inputs = rec.meta.get("inputs") or []
+        if refs or inputs:
+            box = layout.box()
+            box.label(text="References", icon='IMAGE_REFERENCE')
+            for key, value in refs.items():
+                for asset_id in (value if isinstance(value, list) else [value]):
+                    row = box.row(align=True)
+                    row.label(text=f"{key}: {asset_id}")
+                    op = row.operator("scenario.copy_text", text="", icon='COPYDOWN')
+                    op.text, op.what = asset_id, "asset id"
+            for path in inputs:
+                box.label(text=os.path.basename(path), icon='FILE')
+        if rec.asset_ids:
+            box = layout.box()
+            box.label(text="Result assets", icon='OUTLINER_OB_IMAGE')
+            for asset_id in rec.asset_ids:
+                row = box.row(align=True)
+                row.label(text=f"{asset_id}  {rec.asset_types.get(asset_id, '')}")
+                op = row.operator("scenario.copy_text", text="", icon='COPYDOWN')
+                op.text, op.what = asset_id, "asset id"
+        if rec.files:
+            box = layout.box()
+            box.label(text="Files", icon='FILE_FOLDER')
+            for path in rec.files:
+                box.label(text=os.path.basename(path))
+        if rec.error:
+            layout.label(text=rec.error[:110], icon='ERROR')
+        errors = rec.meta.get("download_errors") or {}
+        for asset_id, reason in list(errors.items())[:4]:
+            layout.label(text=f"{asset_id}: {str(reason)[:80]}", icon='ERROR')
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
+def _wrap(text, width):
+    words, lines, current = text.split(), [], ""
+    for word in words:
+        if len(current) + len(word) + 1 > width and current:
+            lines.append(current)
+            current = word
+        else:
+            current = (current + " " + word).strip()
+    if current:
+        lines.append(current)
+    return lines[:12]
+
+
+class SCENARIO_OT_add_sound_strip(bpy.types.Operator):
+    bl_idname = "scenario.add_sound_strip"
+    bl_label = "Add to sequencer"
+    bl_description = "Add this audio file as a sound strip at the current frame"
+    bl_options = {'REGISTER', 'UNDO'}
+    filepath: StringProperty()
+
+    def execute(self, context):
+        from . import apply_audio
+
+        if not os.path.exists(self.filepath):
+            self.report({'ERROR'}, "File not found")
+            return {'CANCELLED'}
+        strip = apply_audio.add_to_sequencer(context, self.filepath)
+        self.report({'INFO'}, f"Sound strip {strip.name} added on channel {strip.channel}")
+        return {'FINISHED'}
+
+
 class SCENARIO_OT_select_result_objects(bpy.types.Operator):
     bl_idname = "scenario.select_result_objects"
     bl_label = "Select in scene"
@@ -459,7 +599,8 @@ class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_use_first_frame, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_use_first_frame, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects,
+           SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

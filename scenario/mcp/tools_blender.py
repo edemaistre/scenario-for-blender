@@ -109,9 +109,11 @@ def camera_path(args):
     scene = context.scene
     props = scene.scenario_shot
     if args.get("preset"):
-        if args["preset"] not in shot_plan.PRESETS:
+        resolve = getattr(shot_plan, "resolve_preset", None)
+        preset = resolve(args["preset"]) if resolve else args["preset"]
+        if preset not in shot_plan.PRESETS or (resolve and args["preset"] not in shot_plan.PRESETS and args["preset"] not in getattr(shot_plan, "PRESET_ALIASES", {})):
             raise ValueError(f"preset must be one of {sorted(shot_plan.PRESETS)}")
-        props.preset = args["preset"]
+        props.preset = preset
     if args.get("duration") is not None:
         props.duration = float(args["duration"])
     if args.get("focal") is not None:

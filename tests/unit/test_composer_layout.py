@@ -57,7 +57,7 @@ def test_pill_placement_and_hit_testing():
 
 
 def test_scale_multiplies_every_size_and_fits_small_regions():
-    hi = cl.pill_placement(1600, 900, expanded=True, scale=2.0)
+    hi = cl.pill_placement(1800, 900, expanded=True, scale=2.0)
     assert hi.card_rect.w == cl.CARD_WIDTH * 2
     narrow = cl.pill_placement(500, 400, expanded=True, scale=1.0)
     assert narrow.card_rect.w <= 500 - 2 * cl.MARGIN
@@ -66,7 +66,7 @@ def test_scale_multiplies_every_size_and_fits_small_regions():
 
 def test_prompt_placeholder_and_lane_labels():
     assert cl.LANE_ORDER == ("image", "video", "3d", "material", "render_image", "render_video")
-    assert cl.LANE_LABELS["image"] == "Image" and cl.LANE_LABELS["render_image"] == "Render Img" and cl.LANE_LABELS["render_video"] == "Render Vid"
+    assert cl.LANE_LABELS["image"] == "Image" and cl.LANE_LABELS["render_image"] == "Render Image" and cl.LANE_LABELS["render_video"] == "Render Video"
     assert cl.placeholder_for("image").startswith("Describe")
     assert "Prompt Spark" in cl.placeholder_for("render_image") and "Prompt Spark" in cl.placeholder_for("render_video")
     assert cl.placeholder_for("unknown") == "Type a prompt"

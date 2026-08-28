@@ -18,3 +18,10 @@ Added with 0.6.0 (2026-08-28):
 - **Shot markers are small cameras**, not cone empties: the camera frustum shows the direction and its lens is the zoom level. With Aim at subject on, marker orientations are ignored (Track To wins).
 - **Edit 3D exports the whole selection as one GLB**; multi-object selections come back as one mesh from most providers.
 - **Composer tabs stop at six lanes**: Edit 3D is sidebar-only (its input is the selection, not a prompt).
+
+Added with 0.7.0 (2026-08-29):
+
+- **Audio results have no waveform preview** in Generations (Play and Add to sequencer only); the sequencer strip carries the file name.
+- **Prompt tools price**: Spark and Rewrite use Prompt Spark's model-contextual mode (3.75 CU per click); the Render lanes' empty-look path stays on the generic mode (0.75 CU). A preference could let the user pick.
+- **Video-to-motion, speech-to-text and the standalone Scenario LLM have no lane** (Cartwheel / Uthana video to motion take a video and return FBX motion; a "Motion" mode under 3D is the natural home).
+- **Model categories come from tags and names**; a third-party model with no category tag falls into Generate. The mapping lives in `core/api/model_filter.py` and should be checked when the catalog adds a category.

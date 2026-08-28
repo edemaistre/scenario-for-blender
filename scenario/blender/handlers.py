@@ -5,11 +5,12 @@ import logging
 
 import bpy
 
-from . import apply_3d, apply_image, apply_material, apply_video, generation, props, runtime
+from . import apply_3d, apply_audio, apply_image, apply_material, apply_video, generation, props, runtime
 
 log = logging.getLogger("scenario.handlers")
 
-RESULT_HANDLERS = {"image": apply_image.on_image_result, "material": apply_material.on_material_result, "3d": apply_3d.on_3d_result, "video": apply_video.on_video_result}
+RESULT_HANDLERS = {"image": apply_image.on_image_result, "material": apply_material.on_material_result, "3d": apply_3d.on_3d_result, "video": apply_video.on_video_result,
+                   "audio": apply_audio.on_audio_result}
 
 
 def dispatch(event):
@@ -30,6 +31,13 @@ def dispatch(event):
         from . import history
 
         history.on_history_event(payload)
+    elif name == "prompt":
+        try:
+            from . import prompt_tools
+
+            prompt_tools.on_prompt_event(payload)
+        except ImportError:
+            runtime.set_message("Prompt tools are not installed")
     elif name == "error":
         runtime.set_message(str(payload))
 

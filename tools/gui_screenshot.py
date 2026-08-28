@@ -50,6 +50,19 @@ def _prepare():
             bpy.context.scene.scenario.edit3d_task = 'RETEXTURE'
         if ACTION == "generations":
             bpy.ops.scenario.history_refresh()
+        if ACTION == "edit_mode":
+            cube = next((o for o in bpy.context.scene.objects if o.type == 'MESH'), None)
+            if cube is not None:
+                for o in bpy.context.selected_objects:
+                    o.select_set(False)
+                cube.select_set(True)
+                bpy.context.view_layer.objects.active = cube
+            bpy.context.scene.scenario.three_d_mode = 'EDIT'
+        if ACTION == "picker":
+            # open the model picker dialog over the viewport
+            region = next(r for r in area.regions if r.type == 'WINDOW')
+            with bpy.context.temp_override(window=window, area=area, region=region):
+                bpy.ops.scenario.pick_model('INVOKE_DEFAULT', lane=LANE)
         if ACTION == "composer":
             import importlib
             name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))

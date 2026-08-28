@@ -47,11 +47,12 @@ def test_render_video_lane_needs_a_video_input():
 def test_edit3d_lane_and_tasks():
     assert ids(catalog.models_for_lane("edit3d", RECORDS)) == ["model_meshy-7-retexture", "model_tripo-retopology", "model_tencent-uv-unwrapping"]
     assert ids(catalog.edit3d_models("RETEXTURE", RECORDS)) == ["model_meshy-7-retexture"]
-    assert ids(catalog.edit3d_models("RETOPO", RECORDS)) == ["model_tripo-retopology"]
+    assert ids(catalog.edit3d_models("REMESH", RECORDS)) == ["model_tripo-retopology"]
     assert ids(catalog.edit3d_models("UV", RECORDS)) == ["model_tencent-uv-unwrapping"]
     assert ids(catalog.edit3d_models("RIG", RECORDS)) == []
     assert len(catalog.edit3d_models("ALL", RECORDS)) == 3
-    assert catalog.edit3d_task("RETOPO")[1] == "Retopology"
+    assert "model_rodin-hyper3d-bang" in catalog.edit3d_task("PARTS")[3] and "model_rodin-hyper3d-bang" in catalog.edit3d_task("RETEXTURE")[3]
+    assert catalog.edit3d_task("REMESH")[1] == "Remesh"
     assert catalog.edit3d_task("nope")[0] == "ALL"
 
 
@@ -66,3 +67,22 @@ def test_mesh_param_and_tagged_models():
 def test_every_curated_edit3d_model_belongs_to_a_task():
     tasked = {m for task in catalog.EDIT3D_TASKS for m in task[3]}
     assert set(catalog.DEFAULT_MODELS["edit3d"]) <= tasked
+
+
+def test_loras_are_excluded_from_every_lane():
+    lora = catalog.ModelRecord.from_api({"id": "model_lora1", "name": "Cartoon Backgrounds 2.0", "type": "flux.1-lora", "capabilities": ["txt2img", "img2img"], "tags": ["sc:scenario"], "status": "trained"})
+    trained = catalog.ModelRecord.from_api({"id": "model_lora2", "name": "Neo3D Realism", "type": "custom", "capabilities": ["txt2img"], "parentModelId": "model_flux", "status": "trained"})
+    assert catalog.is_lora(lora) and catalog.is_lora(trained)
+    assert not catalog.is_lora(RECORDS[0])
+    got = ids(catalog.models_for_lane("image", RECORDS + [lora, trained]))
+    assert "model_lora1" not in got and "model_lora2" not in got
+    assert "model_lora1" not in ids(catalog.models_for_lane("render_image", RECORDS + [lora]))
+
+
+def test_audio_lane_lists_speech_music_and_sfx_models():
+    music = rec("model_elevenlabs-music-v2", "ElevenLabs Music v2", ["txt2audio"])
+    cover = rec("model_minimax-music-cover", "Minimax Music Cover", ["audio2audio"])
+    got = ids(catalog.models_for_lane("audio", RECORDS + [music, cover]))
+    assert got == ["model_elevenlabs-music-v2", "model_minimax-music-cover"]
+    assert "model_google-gemini-3-1-flash" not in got
+    assert catalog.DEFAULT_MODELS["render_image"][0] == "model_openai-gpt-image-2"

@@ -165,13 +165,20 @@ def draw_composer():
     gpu.state.blend_set('ALPHA')
     try:
         if not state.expanded:
+            # the collapsed composer shares the card's language: same fill, same corner radius, same field and button styles
             r = layout.pill_rect
-            rect(r.x, r.y, r.w, r.h, CARD, r.h / 2)
+            rect(r.x, r.y, r.w, r.h, CARD, 12 * scale)
+            gen_w = 96 * scale
+            inset = 6 * scale
+            field_rect = cl.Rect(r.x + inset, r.y + inset, r.w - gen_w - 3 * inset, r.h - 2 * inset)
+            rect(field_rect.x, field_rect.y, field_rect.w, field_rect.h, FIELD, 6 * scale)
             label = lane_state.prompt or cl.placeholder_for(lane)
-            text(r.x + 16 * scale, r.y + (r.h - font_px) / 2 + 2 * scale, font_px, label, TEXT if lane_state.prompt else MUTED, max_width=r.w - 120 * scale)
-            gen_w = 84 * scale
-            rect(r.right - gen_w - 6 * scale, r.y + 6 * scale, gen_w, r.h - 12 * scale, ACCENT if lane_state.prompt else ACCENT_DIM, (r.h - 12 * scale) / 2)
-            text(r.right - gen_w + 6 * scale, r.y + (r.h - font_px) / 2 + 2 * scale, font_px, "Generate", TEXT, max_width=gen_w - 12 * scale)
+            text(field_rect.x + 10 * scale, r.y + (r.h - font_px) / 2 + 2 * scale, font_px, label, TEXT if lane_state.prompt else MUTED, max_width=field_rect.w - 20 * scale)
+            gx = r.right - inset - gen_w
+            rect(gx, r.y + inset, gen_w, r.h - 2 * inset, ACCENT if lane_state.prompt else ACCENT_DIM, 6 * scale)
+            blf.size(FONT, font_px)
+            tw = blf.dimensions(FONT, "Generate")[0]
+            text(gx + max(4 * scale, (gen_w - tw) / 2), r.y + (r.h - font_px) / 2 + 2 * scale, font_px, "Generate", TEXT, max_width=gen_w - 8 * scale)
             return
         card = layout.card_rect
         rect(card.x, card.y, card.w, card.h, CARD, 12 * scale)

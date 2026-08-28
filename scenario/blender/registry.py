@@ -14,9 +14,16 @@ _log_handler = None
 
 
 def _modules():
-    from . import props, shot_planner, operators, model_picker, panels, popover, composer  # noqa: F401
+    from . import props, shot_planner, operators, prompt_tools, model_picker, panels, popover, composer  # noqa: F401
 
-    return [props, shot_planner, operators, model_picker, panels, popover, composer]
+    modules = [props, shot_planner, operators, prompt_tools, model_picker, panels, popover, composer]
+    try:
+        from . import icons  # Scenario's modality icons; optional so a build without the PNGs still loads
+
+        modules.insert(0, icons)
+    except ImportError:
+        pass
+    return modules
 
 
 def _configure_logging():

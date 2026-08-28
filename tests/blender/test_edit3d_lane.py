@@ -32,7 +32,7 @@ class Edit3DLaneTests(unittest.TestCase):
     def test_task_tabs_filter_the_models(self):
         self.scene.scenario.edit3d_task = 'RETEXTURE'
         self.assertEqual([i[0] for i in self.runtime.enum_items(("models", "edit3d"))], ["model_meshy-7-retexture"])
-        self.scene.scenario.edit3d_task = 'RETOPO'
+        self.scene.scenario.edit3d_task = 'REMESH'
         self.assertEqual([i[0] for i in self.runtime.enum_items(("models", "edit3d"))], ["model_tripo-retopology"])
         self.scene.scenario.edit3d_task = 'ALL'
         self.assertEqual(len(self.runtime.enum_items(("models", "edit3d"))), 3)
@@ -49,7 +49,7 @@ class Edit3DLaneTests(unittest.TestCase):
         self.assertEqual(request.body.get("textStylePrompt"), "rusty iron plates")
 
     def test_request_without_a_mesh_selected_is_refused(self):
-        self.scene.scenario.edit3d_task = 'RETOPO'
+        self.scene.scenario.edit3d_task = 'REMESH'
         lane = self.scene.scenario.lane_state("edit3d")
         lane.model_id = "model_tripo-retopology"
         self.cube.select_set(False)

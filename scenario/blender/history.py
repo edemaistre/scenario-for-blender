@@ -10,13 +10,13 @@ from ..core.api.errors import ScenarioError
 MAX_PROMPT_LOOKUPS = 30
 _prompt_texts = {}  # asset_id -> prompt text, lives for the session
 
-KIND_BY_LANE = {"image": "image", "video": "video", "3d": "3d", "material": "material", "render_image": "image", "render_video": "video", "edit3d": "3d"}
+KIND_BY_LANE = {"image": "image", "video": "video", "3d": "3d", "material": "material", "audio": "audio", "render_image": "image", "render_video": "video", "edit3d": "3d"}
 
 
 def _kinds():
     """model_id -> kind, most specific lane first so Patina (also txt2img) reads as material."""
     kinds = {}
-    for lane in ("material", "3d", "edit3d", "video", "render_video", "image", "render_image"):
+    for lane in ("material", "3d", "edit3d", "audio", "video", "render_video", "image", "render_image"):
         kind = KIND_BY_LANE.get(lane)
         for record in runtime.state.lane_models.get(lane, []):
             kinds.setdefault(record.id, kind)

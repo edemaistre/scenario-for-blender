@@ -60,8 +60,9 @@ def _process():
         generation.request_catalog()
     now = props.clock()
     for scene in bpy.data.scenes:
+        visible = props.active_lane(scene)
         for lane in props.GENERATION_LANES:
-            if lane != scene.scenario.lane:
+            if lane != visible:
                 continue  # only the visible lane is priced; the others are quoted when shown
             lane_state = scene.scenario.lane_state(lane)
             if lane_state.estimate_state == 'PENDING' and lane_state.estimate_dirty_at and now - lane_state.estimate_dirty_at >= ESTIMATE_DEBOUNCE:

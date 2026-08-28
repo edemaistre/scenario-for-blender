@@ -48,4 +48,6 @@ def test_output_filename_is_readable_and_unique():
     when = dt.datetime(2026, 8, 28, 9, 30, 5)
     name = config.output_filename("image", "model_patina-material", "job_KWxxsnSdVXDFZRMsoCvLTmKY", 2, "png", when=when)
     assert name == "20260828_093005_patina-material_soCvLTmKY_02.png"
+    with_asset = config.output_filename("3d", "model_hitem-3d-split", "job_x", 0, "glb", when=when, asset_id="asset_ccpDR7Ga1Q2w")
+    assert with_asset == "20260828_093005_hitem-3d-split_asset_ccpDR7Ga1Q2w_00.glb"
     assert config.slug("model_Google Gemini 3.1 🍌", limit=12) == "google-gemin"

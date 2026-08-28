@@ -202,7 +202,7 @@ class JobManager:
         errors = {}
         for index, asset_id, asset in records:
             ext = config.ext_for_mime(asset.get("mimeType"))
-            dest = out_dir / config.output_filename(rec.kind, rec.model_id, rec.job_id, index, ext, when=now)
+            dest = out_dir / config.output_filename(rec.kind, rec.model_id, rec.job_id, index, ext, when=now, asset_id=asset_id)
             url = asset.get("url")
             if not url:
                 errors[asset_id] = "no url"

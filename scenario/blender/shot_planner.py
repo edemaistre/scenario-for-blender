@@ -22,7 +22,8 @@ FALLBACK_BOX = ((-1.0, -1.0, 0.0), (1.0, 1.0, 2.0))
 
 
 def _preset_items(self, context):
-    return [(name, label, description) for name, (label, description, _) in shot_plan.PRESETS.items()]
+    """Grouped moves; None entries are separators in the dropdown (Blender ignores them in an expanded row)."""
+    return shot_plan.preset_items()
 
 
 class ScenarioShotProps(bpy.types.PropertyGroup):
@@ -30,7 +31,7 @@ class ScenarioShotProps(bpy.types.PropertyGroup):
     duration: FloatProperty(name="Seconds", default=shot_plan.DEFAULT_DURATION, min=shot_plan.MIN_DURATION, max=shot_plan.MAX_DURATION, description="Length of the shot")
     focal: FloatProperty(name="Lens", default=shot_plan.DEFAULT_FOCAL, min=8.0, max=400.0, subtype='NONE', description="Focal length in mm (the zoom level) for presets and new markers")
     aim_at_subject: BoolProperty(name="Aim at subject", default=True, description="Keep the camera pointed at the subject along the whole path")
-    description: StringProperty(name="Shot", description="Describe the shot: slow orbit, push in closer, drone flyover, pan left to right, 8s, 50mm...")
+    description: StringProperty(name="Shot", description="Describe the shot: slow orbit, ellipse 2, dolly in closer, truck left, crane up, top down, zoom in, 8s, 50mm...")
     use_selection: BoolProperty(name="Frame selection", default=False, description="Frame the selected objects instead of every visible mesh")
 
 
@@ -413,7 +414,7 @@ class SCENARIO_OT_shot_from_description(bpy.types.Operator):
         plan = shot_plan.plan_from_text(props.description)
         props.preset, props.duration, props.focal = plan["preset"], plan["duration"], plan["focal"]
         cam, keys, last = build_path(context)
-        label = shot_plan.PRESETS[plan["preset"]][0]
+        label = shot_plan.PRESETS[shot_plan.resolve_preset(plan["preset"])][0]
         self.report({'INFO'}, f"{label}, {plan['duration']:g} s at {plan['focal']:g} mm: {keys} keyframes over {last} frames")
         return {'FINISHED'}
 
@@ -445,7 +446,7 @@ def draw_shot_planner(layout, context):
         box.label(text="Add a second marker for a marker path, or use the move above", icon='INFO')
     row = box.row(align=True)
     row.scale_y = 1.3
-    row.operator(SCENARIO_OT_shot_build_path.bl_idname, text="Build camera path" if len(markers) >= 2 else f"Build {shot_plan.PRESETS[props.preset][0].lower()} path", icon='ANIM')
+    row.operator(SCENARIO_OT_shot_build_path.bl_idname, text="Build camera path" if len(markers) >= 2 else f"Build {shot_plan.PRESETS[shot_plan.resolve_preset(props.preset)][0].lower()} path", icon='ANIM')
     row.operator(SCENARIO_OT_shot_preview.bl_idname, text="", icon='PLAY')
     cam = shot_camera(scene)
     if cam is not None:

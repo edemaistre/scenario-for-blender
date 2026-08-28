@@ -9,22 +9,23 @@ from bpy.props import BoolProperty, CollectionProperty, EnumProperty, FloatPrope
 from . import runtime
 from ..core.api.catalog import EDIT3D_TASKS
 
-# Generation lanes only. Jobs, Generations and Agents (MCP) are separate panels, not tabs: the tabs answer
-# "what do I want to generate", the panels answer "what is running" and "what came back".
+# Lane tabs. Edit 3D lives under the 3D tab (its "Edit" mode); Jobs, Generations and Agents are panels, not tabs.
 LANE_ITEMS = [
     ('image', "Image", "Text and reference images to images"),
     ('video', "Video", "Text, images or a Blender playblast to video"),
-    ('3d', "3D", "Text or images to 3D models"),
+    ('3d', "3D", "Text or images to 3D models; Edit mode runs Scenario's 3D tools on the selected mesh"),
     ('material', "Materials", "PBR materials with Patina"),
+    ('audio', "Audio", "Speech, music and sound effects; results can go on the sequencer"),
     ('render_image', "Render Image", "Render the viewport or the camera view as a finished still: capture + optional style images + look prompt"),
     ('render_video', "Render Video", "Render a playblast of the timeline as a finished clip: captured video + optional images + look prompt"),
-    ('edit3d', "Edit 3D", "Retexture, remesh, rig, animate, unwrap or split the selected mesh with Scenario's 3D tools"),
 ]
-GENERATION_LANES = ("image", "video", "3d", "material", "render_image", "render_video", "edit3d")
-LANE_ATTR = {"image": "image", "video": "video", "3d": "three_d", "material": "material", "render_image": "render_image", "render_video": "render_video", "edit3d": "edit3d"}
+TAB_ICON = {"image": "image", "video": "video", "3d": "3d", "material": "image", "audio": "audio", "render_image": "image", "render_video": "video"}
+# Every lane a request can be built for (the tabs plus edit3d, reached through the 3D tab's Edit mode).
+GENERATION_LANES = ("image", "video", "3d", "material", "audio", "render_image", "render_video", "edit3d")
+LANE_ATTR = {"image": "image", "video": "video", "3d": "three_d", "material": "material", "audio": "audio", "render_image": "render_image", "render_video": "render_video", "edit3d": "edit3d"}
 ATTR_LANE = {attr: lane for lane, attr in LANE_ATTR.items()}
 REFERENCE_SOURCES = [
-    ('FILE', "File", "An image or video file on disk"),
+    ('FILE', "File", "An image, video or audio file on disk"),
     ('VIEWPORT', "Viewport still", "Capture the active 3D viewport as an image at generate time"),
     ('CAMERA', "Camera still", "Render the scene camera view as an image at generate time"),
     ('VIEWPORT_CLIP', "Viewport clip", "Playblast the active viewport over the timeline at generate time"),
@@ -37,9 +38,12 @@ CAPTURE_SOURCES = ('VIEWPORT', 'CAMERA', 'VIEWPORT_CLIP', 'CAMERA_CLIP')
 CLIP_SOURCES = ('VIEWPORT_CLIP', 'CAMERA_CLIP')
 ADDABLE_SOURCES = [item for item in REFERENCE_SOURCES if item[0] not in ('ASSET', 'MESH')]  # asset ids come from the MCP tools, the mesh from the selection
 EDIT3D_TASK_ITEMS = [(task_id, label, description) for task_id, label, description, _models in EDIT3D_TASKS]
+THREE_D_MODES = [('TEXT', "Text", "Describe the object"), ('IMAGE', "Image", "One reference image"), ('MULTI', "Multi-view", "Several views of the same object"),
+                 ('EDIT', "Edit", "Remesh, retexture, unwrap, rig, animate or split the selected mesh")]
 
 
 _T0 = time.monotonic()
+_lane_items_cache = []
 
 
 def clock():
@@ -62,6 +66,32 @@ def lane_of(lane_state):
         return lane_state.lane or "image"
     attr = path.rsplit(".", 1)[-1]
     return ATTR_LANE.get(attr, lane_state.lane or "image")
+
+
+def active_lane(scene):
+    """The lane the visible form builds requests for: the 3D tab in Edit mode drives the edit3d lane."""
+    lane = scene.scenario.lane
+    if lane == "3d" and scene.scenario.three_d_mode == 'EDIT':
+        return "edit3d"
+    return lane
+
+
+def _lane_items(self, context):
+    """Lane tabs with Scenario's modality icons when the icon set is loaded (kept alive in a module list for Blender)."""
+    global _lane_items_cache
+    try:
+        from . import icons
+
+        icon_for = icons.icon
+    except ImportError:
+        icon_for = None
+    items = []
+    for index, (ident, name, desc) in enumerate(LANE_ITEMS):
+        value = icon_for(TAB_ICON.get(ident, "image")) if icon_for else 0
+        items.append((ident, name, desc, value, index) if value else (ident, name, desc))
+    if items != _lane_items_cache:
+        _lane_items_cache = items
+    return _lane_items_cache
 
 
 def _param_items(self, context):
@@ -135,7 +165,10 @@ def _on_prompt_update(self, context):
 def _on_mode_change(self, context):
     from . import generation
 
-    generation.refresh_3d_models(context)
+    if self.three_d_mode == 'EDIT':
+        generation.refresh_edit3d_models(context)
+    else:
+        generation.refresh_3d_models(context)
 
 
 def _on_task_change(self, context):
@@ -175,13 +208,14 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
 
 
 class ScenarioSceneProps(bpy.types.PropertyGroup):
-    lane: EnumProperty(name="Lane", items=LANE_ITEMS, default='image')
-    three_d_mode: EnumProperty(name="Input", items=[('TEXT', "Text", "Describe the object"), ('IMAGE', "Image", "One reference image"), ('MULTI', "Multi-view", "Several views of the same object")], default='TEXT', update=_on_mode_change)
+    lane: EnumProperty(name="Lane", items=_lane_items)
+    three_d_mode: EnumProperty(name="Input", items=THREE_D_MODES, default='TEXT', update=_on_mode_change)
     edit3d_task: EnumProperty(name="Task", items=EDIT3D_TASK_ITEMS, default='RETEXTURE', update=_on_task_change)
     image: PointerProperty(type=ScenarioLaneState)
     video: PointerProperty(type=ScenarioLaneState)
     three_d: PointerProperty(type=ScenarioLaneState)
     material: PointerProperty(type=ScenarioLaneState)
+    audio: PointerProperty(type=ScenarioLaneState)
     render_image: PointerProperty(type=ScenarioLaneState)
     render_video: PointerProperty(type=ScenarioLaneState)
     edit3d: PointerProperty(type=ScenarioLaneState)

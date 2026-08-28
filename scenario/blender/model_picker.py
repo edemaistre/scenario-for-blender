@@ -1,9 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Model picker: a searchable dialog with chips, thumbnails and the description of the highlighted model.
+"""Model picker: Scenario's "Choose a Model" dialog inside Blender.
 
-The native EnumProperty dropdown stays available as a fallback (a small icon-only button); the dialog is the
-default way to choose among the hundreds of catalog models, like "Choose a Model" in the Scenario web app."""
+Modality tabs (Image, Video, Audio, 3D) with Scenario's icons, the category chips of the web app per tab (Generate,
+Edit, Upscale... / Speech, Music, SFX... / Splat, Remesh, Retexture...), a search field, the list with thumbnails and
+the description of the highlighted model. LoRAs and deprecated models never show. Picking a model from another tab
+than the lane's moves the scene to that modality's lane. The native dropdown stays as a small fallback button."""
 import logging
 import textwrap
 import threading
@@ -11,17 +13,19 @@ import threading
 import bpy
 from bpy.props import CollectionProperty, EnumProperty, IntProperty, StringProperty
 
-from . import generation, runtime
+from . import generation, icons, runtime
 from ..core.api import model_filter
 from ..core.api.assets import download_file
+from ..core.api.catalog import PATINA_MODELS
 
 log = logging.getLogger("scenario.picker")
 
 THUMB_LIMIT = 40           # thumbnails fetched per refilter, the rows a user can scroll to before typing again
 RECENT_FILE = "recent_models.json"
-_ctx = {"lane": "", "records": [], "current": ""}
+_ctx = {"lane": "", "records": [], "current": "", "material_only": False}
 _pending_thumbs = set()
 _pending_lock = threading.Lock()
+_enum_cache = {}           # keeps enum item tuples alive for Blender
 
 
 # -- thumbnails ---------------------------------------------------------------
@@ -72,22 +76,60 @@ def thumbnail_icon(model_id):
     return previews[key].icon_id
 
 
-# -- list state on the window manager -------------------------------------------
+# -- taxonomy helpers -----------------------------------------------------------------
+def modality_for_lane(lane):
+    return model_filter.LANE_MODALITY.get(lane, "image")
+
+
+def candidate_records(modality):
+    """Every visible catalog model of a modality (LoRAs and deprecated out), plus the lane lists (curated first)."""
+    records = [r for r in runtime.state.records.values() if model_filter.visible(r) and model_filter.modality_of(r) == modality]
+    seen = {r.id for r in records}
+    for lane, lane_modality in model_filter.LANE_MODALITY.items():
+        if lane_modality != modality:
+            continue
+        for record in runtime.state.lane_models.get(lane) or []:
+            if record.id not in seen and model_filter.visible(record):
+                records.append(record)
+                seen.add(record.id)
+    return records
+
+
 def _recent():
     return model_filter.RecentModels(runtime.paths().state_dir / RECENT_FILE)
 
 
-def candidate_records(lane):
-    records = list(runtime.state.lane_models.get(lane) or [])
-    if not records:
-        records = [r for r in runtime.state.records.values() if lane in r.lanes]
-    return records
+def _modality_items(self, context):
+    key = "modalities"
+    items = _enum_cache.get(key)
+    if items is None:
+        items = []
+        for index, (ident, label, icon_name) in enumerate(model_filter.MODALITIES):
+            value = icons.icon(icon_name)
+            items.append((ident, label, f"{label} models", value if value else icons.builtin(icon_name), index))
+        _enum_cache[key] = items
+    return items
+
+
+def _category_items(self, context):
+    wm = getattr(context, "window_manager", None) or bpy.context.window_manager
+    modality = getattr(wm, "scenario_picker_modality", "image") or "image"
+    key = ("categories", modality)
+    items = _enum_cache.get(key)
+    if items is None:
+        items = [(ident, label, f"{label} models", 'NONE', index) for index, (ident, label) in enumerate(model_filter.category_items(modality))]
+        _enum_cache[key] = items
+    return items
 
 
 def refilter(wm):
-    """Rebuild the picker rows from the current query and chip; keeps the highlighted model when it survives."""
-    lane = _ctx["lane"]
-    filtered = model_filter.filter_records(_ctx["records"], wm.scenario_picker_query, wm.scenario_picker_chip, _recent().ids(lane))
+    """Rebuild the picker rows from the tab, chip and query; keeps the highlighted model when it survives."""
+    modality = wm.scenario_picker_modality
+    category = wm.scenario_picker_category
+    if _ctx["material_only"]:
+        filtered = [r for r in _ctx["records"] if model_filter.matches(r, wm.scenario_picker_query)]
+    else:
+        filtered = model_filter.filter_records(_ctx["records"], modality, category, wm.scenario_picker_query, _recent().ids(_ctx["lane"]))
     highlighted = _ctx["current"]
     items = wm.scenario_picker_items
     if 0 <= wm.scenario_picker_index < len(items):
@@ -98,7 +140,7 @@ def refilter(wm):
         item = items.add()
         item.model_id, item.name = record.id, record.name
         item.description = record.short_description or ""
-        item.icon_name = model_filter.modality_icon(record)
+        item.modality = model_filter.modality_of(record) or "image"
         if record.id == highlighted:
             index = position
     wm.scenario_picker_index = index
@@ -107,20 +149,35 @@ def refilter(wm):
     return filtered
 
 
+def _on_modality_change(self, context):
+    _ctx["records"] = candidate_records(self.scenario_picker_modality)
+    _enum_cache.pop(("categories", self.scenario_picker_modality), None)
+    self.scenario_picker_category = 'all'  # its update refilters
+
+
 def _on_filter_change(self, context):
     refilter(self)
 
 
 def prepare(context, lane):
-    """Load the lane's models into the picker rows and highlight the current choice."""
+    """Open the picker on the lane's modality tab with the lane's model highlighted."""
     scene = context.scene
     lane = lane or scene.scenario.lane
     lane_state = scene.scenario.lane_state(lane)
-    _ctx["lane"] = lane
-    _ctx["records"] = candidate_records(lane)
-    _ctx["current"] = (lane_state.model_key or lane_state.model_id) if lane_state is not None else ""
     wm = context.window_manager
+    _ctx["lane"] = lane
+    _ctx["current"] = (lane_state.model_key or lane_state.model_id) if lane_state is not None else ""
+    _ctx["material_only"] = lane == "material"
+    modality = modality_for_lane(lane)
+    if _ctx["material_only"]:
+        _ctx["records"] = [r for r in runtime.state.records.values() if r.id in PATINA_MODELS] or list(runtime.state.lane_models.get("material") or [])
+    else:
+        _ctx["records"] = candidate_records(modality)
     wm.scenario_picker_index = -1
+    if wm.scenario_picker_modality != modality:
+        wm.scenario_picker_modality = modality  # update: records + category reset + refilter
+    elif wm.scenario_picker_category != 'all':
+        wm.scenario_picker_category = 'all'
     if wm.scenario_picker_query:
         wm.scenario_picker_query = ""  # update callback refilters
     else:
@@ -128,20 +185,78 @@ def prepare(context, lane):
     return wm.scenario_picker_items
 
 
+def _target_lane(scene, record, lane):
+    """The lane a chosen model belongs to: the current lane when the modality matches, else the modality's base lane
+    (3D-to-3D models go to the Edit 3D lane / mode)."""
+    modality = model_filter.modality_of(record)
+    caps = set(record.capabilities)
+    if modality == "3d" and "3d23d" in caps and "txt23d" not in caps and "img23d" not in caps:
+        return "edit3d"
+    if modality_for_lane(lane) == modality and not (lane == "edit3d" and "3d23d" not in caps):
+        return lane
+    return model_filter.BASE_LANE.get(modality, lane)
+
+
+def _enum_has(struct, prop_name, value):
+    try:
+        items = {item.identifier for item in struct.bl_rna.properties[prop_name].enum_items}
+    except (KeyError, AttributeError):
+        return False
+    if items:
+        return value in items
+    # a dynamic enum (items callback, like the lane tabs with their icons) reports no RNA items: probe with an assignment
+    try:
+        current = getattr(struct, prop_name)
+        setattr(struct, prop_name, value)
+        ok = getattr(struct, prop_name) == value
+        if ok and current != value:
+            setattr(struct, prop_name, current)
+        return ok
+    except TypeError:
+        return False
+
+
+def _show_lane(scene, target, record):
+    """Make the target lane visible: switch the tab; for 3D pick the input mode the model needs."""
+    scenario = scene.scenario
+    if _enum_has(scenario, "lane", target):
+        if scenario.lane != target:
+            scenario.lane = target
+    elif target == "edit3d" and _enum_has(scenario, "lane", "3d"):
+        scenario.lane = "3d"
+        if _enum_has(scenario, "three_d_mode", 'EDIT'):
+            scenario.three_d_mode = 'EDIT'
+    if target == "3d":
+        caps = set(record.capabilities)
+        if "txt23d" in caps and "img23d" not in caps:
+            mode = 'TEXT'
+        elif any(h in (record.id + record.name).lower() for h in ("multi", "multiview")):
+            mode = 'MULTI'
+        else:
+            mode = 'IMAGE'
+        if _enum_has(scenario, "three_d_mode", mode) and scenario.three_d_mode != mode:
+            scenario.three_d_mode = mode
+
+
 def apply_choice(context, lane, index=None):
-    """Make the highlighted (or `index`) row the lane's model. Returns the model id, or None when nothing applied."""
+    """Make the highlighted (or `index`) row the model of the lane it belongs to. Returns (model_id, lane) or (None, None)."""
     wm = context.window_manager
     items = wm.scenario_picker_items
     index = wm.scenario_picker_index if index is None else index
     if not (0 <= index < len(items)):
-        return None
+        return None, None
     model_id = items[index].model_id
+    record = next((r for r in _ctx["records"] if r.id == model_id), None) or runtime.state.records.get(model_id)
     lane = lane or _ctx["lane"] or context.scene.scenario.lane
-    lane_state = context.scene.scenario.lane_state(lane)
+    scene = context.scene
+    target = _target_lane(scene, record, lane) if record is not None else lane
+    lane_state = scene.scenario.lane_state(target) or scene.scenario.lane_state(lane)
     if lane_state is None:
-        return None
+        return None, None
+    if record is not None:
+        _show_lane(scene, target, record)
     lane_state.model_key = model_id
-    valid = [item[0] for item in runtime.enum_items(("models", lane))]
+    valid = [item[0] for item in runtime.enum_items(("models", target))]
     if model_id in valid:
         if lane_state.model_id != model_id:
             lane_state.model_id = model_id  # the update callback runs on_model_changed
@@ -149,9 +264,11 @@ def apply_choice(context, lane, index=None):
             generation.on_model_changed(context, lane_state)
     else:
         generation.request_model(model_id)
-        runtime.set_message(f"{model_id} is not in this lane's list yet")
+        runtime.set_message(f"{record.name if record else model_id} chosen; its list entry appears once the schema is loaded")
     _recent().touch(lane, model_id)
-    return model_id
+    if target != lane:
+        _recent().touch(target, model_id)
+    return model_id, target
 
 
 def highlighted_record():
@@ -163,12 +280,17 @@ def highlighted_record():
     return None
 
 
+def category_labels(record):
+    labels = dict(model_filter.category_items(model_filter.modality_of(record)))
+    return ", ".join(labels.get(c, c) for c in sorted(model_filter.categories_of(record)))
+
+
 # -- Blender classes ----------------------------------------------------------------
 class ScenarioPickerItem(bpy.types.PropertyGroup):
     model_id: StringProperty()
     name: StringProperty()
     description: StringProperty()
-    icon_name: StringProperty(default='QUESTION')
+    modality: StringProperty(default="image")
 
 
 class SCENARIO_UL_models(bpy.types.UIList):
@@ -180,7 +302,7 @@ class SCENARIO_UL_models(bpy.types.UIList):
         if icon_id:
             row.template_icon(icon_value=icon_id, scale=1.0)
         else:
-            row.label(text="", icon=item.icon_name or 'QUESTION')
+            row.label(text="", **icons.kwargs(item.modality))
         row.label(text=item.name)
         if item.description:
             muted = row.row(align=True)
@@ -195,19 +317,23 @@ class SCENARIO_UL_models(bpy.types.UIList):
 class SCENARIO_OT_pick_model(bpy.types.Operator):
     bl_idname = "scenario.pick_model"
     bl_label = "Choose a model"
-    bl_description = "Search the Scenario catalog and pick the model for this lane"
+    bl_description = "Search the Scenario catalog by modality and category and pick the model"
     bl_options = {'INTERNAL'}
     lane: StringProperty()
 
     def invoke(self, context, event):
         prepare(context, self.lane)
-        return context.window_manager.invoke_props_dialog(self, width=560)
+        return context.window_manager.invoke_props_dialog(self, width=620)
 
     def draw(self, context):
         wm = context.window_manager
         layout = self.layout
+        if not _ctx["material_only"]:
+            layout.row(align=True).prop(wm, "scenario_picker_modality", expand=True)
+            layout.row(align=True).prop(wm, "scenario_picker_category", expand=True)
+        else:
+            layout.label(text="Materials: PATINA models", icon='MATERIAL')
         layout.prop(wm, "scenario_picker_query", text="", icon='VIEWZOOM', placeholder="Search models")
-        layout.row(align=True).prop(wm, "scenario_picker_chip", expand=True)
         layout.template_list("SCENARIO_UL_models", "", wm, "scenario_picker_items", wm, "scenario_picker_index", rows=10)
         if not wm.scenario_picker_items:
             layout.label(text="No model matches" if _ctx["records"] else "Models are still loading", icon='INFO')
@@ -220,7 +346,10 @@ class SCENARIO_OT_pick_model(bpy.types.Operator):
         if icon_id:
             row.template_icon(icon_value=icon_id, scale=5.0)
         col = row.column(align=True)
-        col.label(text=record.name, icon=model_filter.modality_icon(record))
+        col.label(text=record.name, **icons.kwargs(model_filter.modality_of(record) or "image"))
+        cats = category_labels(record)
+        if cats:
+            col.label(text=cats)
         for line in textwrap.wrap(record.short_description or "", 70)[:3]:
             col.label(text=line)
         muted = col.row()
@@ -228,12 +357,13 @@ class SCENARIO_OT_pick_model(bpy.types.Operator):
         muted.label(text=record.id)
 
     def execute(self, context):
-        model_id = apply_choice(context, self.lane)
+        model_id, target = apply_choice(context, self.lane)
         if model_id is None:
             self.report({'WARNING'}, "No model highlighted")
             return {'CANCELLED'}
         record = runtime.state.records.get(model_id)
-        self.report({'INFO'}, f"Model: {record.name if record else model_id}")
+        where = "" if target == (self.lane or target) else f" (in {target.replace('_', ' ')})"
+        self.report({'INFO'}, f"Model: {record.name if record else model_id}{where}")
         return {'FINISHED'}
 
 
@@ -244,10 +374,12 @@ def draw_model_row(layout, lane_state, lane):
     row = split.row(align=True)
     record = runtime.state.records.get(lane_state.model_id)
     if record is not None:
-        label, icon = record.name, model_filter.modality_icon(record)
+        label = record.name
+        icon_kwargs = icons.kwargs(model_filter.modality_of(record) or modality_for_lane(lane))
     else:
-        label, icon = ("Choose a model..." if runtime.state.catalog_loaded else "Loading models..."), 'VIEWZOOM'
-    op = row.operator("scenario.pick_model", text=label, icon=icon)
+        label = "Choose a model..." if runtime.state.catalog_loaded else "Loading models..."
+        icon_kwargs = {"icon": 'VIEWZOOM'}
+    op = row.operator("scenario.pick_model", text=label, **icon_kwargs)
     op.lane = lane
     row.prop(lane_state, "model_id", text="", icon_only=True)
 
@@ -258,18 +390,24 @@ CLASSES = (ScenarioPickerItem, SCENARIO_UL_models, SCENARIO_OT_pick_model)
 def register():
     for cls in CLASSES:
         bpy.utils.register_class(cls)
+    _enum_cache.clear()
     wm = bpy.types.WindowManager
     wm.scenario_picker_items = CollectionProperty(type=ScenarioPickerItem)
     wm.scenario_picker_index = IntProperty(default=0)
     wm.scenario_picker_query = StringProperty(name="Search", description="Filter models by name, description, tag or id",
                                               options={'TEXTEDIT_UPDATE'}, update=_on_filter_change)
-    wm.scenario_picker_chip = EnumProperty(name="Filter", items=model_filter.FILTERS, default='all', update=_on_filter_change)
+    wm.scenario_picker_modality = EnumProperty(name="Modality", items=_modality_items, update=_on_modality_change)
+    wm.scenario_picker_category = EnumProperty(name="Category", items=_category_items, update=_on_filter_change)
 
 
 def unregister():
     wm = bpy.types.WindowManager
-    for name in ("scenario_picker_chip", "scenario_picker_query", "scenario_picker_index", "scenario_picker_items"):
+    for name in ("scenario_picker_category", "scenario_picker_modality", "scenario_picker_query", "scenario_picker_index", "scenario_picker_items"):
         if hasattr(wm, name):
             delattr(wm, name)
     for cls in reversed(CLASSES):
-        bpy.utils.unregister_class(cls)
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            pass  # already unregistered (tests swap the module in place)
+    _enum_cache.clear()

@@ -8,11 +8,13 @@ import bpy
 
 from . import generation, params_ui, props, runtime
 
-KIND_ICON = {"image": 'IMAGE_DATA', "video": 'FILE_MOVIE', "3d": 'MESH_DATA', "material": 'MATERIAL'}
-GENERATE_LANES = ("image", "video", "3d", "material")
+KIND_ICON = {"image": 'IMAGE_DATA', "video": 'FILE_MOVIE', "3d": 'MESH_DATA', "material": 'MATERIAL', "audio": 'SPEAKER'}
+GENERATE_LANES = ("image", "video", "3d", "material", "audio")
 SOURCE_ICON = {'FILE': 'FILE_IMAGE', 'VIEWPORT': 'RESTRICT_VIEW_OFF', 'CAMERA': 'CAMERA_DATA', 'VIEWPORT_CLIP': 'RENDER_ANIMATION', 'CAMERA_CLIP': 'RENDER_ANIMATION',
                'RENDER': 'RENDER_RESULT', 'ASSET': 'URL', 'MESH': 'MESH_DATA'}
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+MESH_EXTS = (".glb", ".gltf", ".fbx", ".obj")
+AUDIO_EXTS = (".mp3", ".wav", ".ogg", ".m4a", ".flac")
 
 
 def draw_account_strip(layout, context):
@@ -57,6 +59,20 @@ def draw_model_row(layout, lane_state, lane):
         layout.label(text=record.short_description[:70], icon='INFO')
 
 
+def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
+    """Prompt with the pencil and the Spark / Rewrite / Translate buttons (plain prompt when prompt_tools is missing)."""
+    try:
+        from . import prompt_tools
+
+        prompt_tools.draw_prompt_row(layout, lane_state, lane, text=text, placeholder=placeholder)
+    except ImportError:
+        row = layout.row(align=True)
+        if text:
+            row.label(text=text)
+        row.prop(lane_state, "prompt", text="")
+        row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
+
+
 def draw_reference_row(box, lane_state, index, ref):
     row = box.row(align=True)
     path = bpy.path.abspath(ref.filepath) if ref.filepath else ""
@@ -83,7 +99,8 @@ def draw_references(layout, lane_state, schema, title_for=None, fixed_first=None
         header = box.row()
         count = len(refs.get(spec.name, [])) + (1 if spec.name in fixed_first else 0)
         label = title_for.get(spec.name) or (spec.label + (" (required)" if spec.required_always else ""))
-        icon = 'IMAGE_DATA' if (spec.kind or "image") == "image" else ('FILE_MOVIE' if spec.kind == "video" else ('MESH_DATA' if spec.kind == "3d" else 'FILE'))
+        kind = spec.kind or "image"
+        icon = {'image': 'IMAGE_DATA', 'video': 'FILE_MOVIE', '3d': 'MESH_DATA', 'audio': 'SPEAKER'}.get(kind, 'FILE')
         header.label(text=f"{label}  {count}" + (f"/{spec.max_length}" if spec.max_length else ""), icon=icon)
         if not (spec.ptype == "file" and spec.name in fixed_first):
             add = header.operator_menu_enum("scenario.add_reference", "source", text="Add", icon='ADD')
@@ -148,14 +165,16 @@ def draw_generate_lane(layout, context, lane):
     lane_state = context.scene.scenario.lane_state(lane)
     if lane == "3d":
         layout.row(align=True).prop(context.scene.scenario, "three_d_mode", expand=True)
+        if context.scene.scenario.three_d_mode == 'EDIT':
+            draw_edit3d_lane(layout, context)
+            return
     draw_model_row(layout, lane_state, lane)
     schema = generation.schema_for(lane_state.model_id)
     if schema is None:
         layout.label(text=lane_state.last_error or "Loading the model description...", icon='ERROR' if lane_state.last_error else 'TIME')
         return
-    row = layout.row(align=True)
-    row.prop(lane_state, "prompt", text="")
-    row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
+    if schema.prompt_name:
+        draw_prompt_row(layout, lane_state, lane)
     draw_references(layout, lane_state, schema)
     params_ui.draw_params(layout, lane_state, schema)
     if lane == "video":
@@ -166,10 +185,13 @@ def draw_generate_lane(layout, context, lane):
             layout.label(text=f"Applies to {len(meshes)} selected mesh(es)", icon='MATERIAL')
         else:
             layout.label(text="Select a mesh to apply the material on arrival", icon='INFO')
+    if lane == "audio":
+        layout.label(text="Results land in the output folder; add them to the sequencer from Generations", icon='INFO')
     draw_generate_row(layout, lane_state, lane)
 
 
 def draw_edit3d_lane(layout, context):
+    """The 3D tab in Edit mode: Scenario's 3D tools on the selected mesh."""
     from . import mesh_export
     from ..core.api.catalog import edit3d_task, mesh_param
 
@@ -183,7 +205,7 @@ def draw_edit3d_lane(layout, context):
         box.label(text="Exported as GLB at generate time; the result lands next to it", icon='INFO')
     else:
         box.label(text="Select the mesh to edit in the viewport", icon='ERROR')
-    grid = layout.grid_flow(columns=4, align=True)
+    grid = layout.grid_flow(columns=3, align=True, even_columns=True)
     grid.prop(scene.scenario, "edit3d_task", expand=True)
     task = edit3d_task(scene.scenario.edit3d_task)
     layout.label(text=task[2], icon='INFO')
@@ -196,14 +218,12 @@ def draw_edit3d_lane(layout, context):
         layout.label(text=lane_state.last_error or "Loading the model description...", icon='ERROR' if lane_state.last_error else 'TIME')
         return
     if schema.prompt_name:
-        row = layout.row(align=True)
-        row.prop(lane_state, "prompt", text="")
-        row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = "edit3d"
+        draw_prompt_row(layout, lane_state, "edit3d")
     record = runtime.state.records.get(lane_state.model_id)
     mesh_name = mesh_param(record) if record is not None else None
     draw_references(layout, lane_state, schema, fixed_first={mesh_name: "Selected mesh (exported at generate time)"} if mesh_name else None)
     params_ui.draw_params(layout, lane_state, schema)
-    draw_generate_row(layout, lane_state, "edit3d")
+    draw_generate_row(layout, lane_state, "3d")  # the operator routes the 3D tab in Edit mode to the edit3d lane
 
 
 def draw_mcp_lane(layout, context):
@@ -232,33 +252,51 @@ def draw_mcp_lane(layout, context):
 
 # -- results ------------------------------------------------------------------
 
-def _draw_inputs(box, rec):
-    inputs = [p for p in (rec.meta.get("inputs") or []) if isinstance(p, str)]
-    if not inputs:
-        return
-    row = box.row(align=True)
-    row.label(text="Inputs:", icon='IMPORT')
-    shown = 0
-    for path in inputs:
-        icon_id = thumbnail(path)
-        if icon_id:
-            row.template_icon(icon_value=icon_id, scale=1.6)
-            shown += 1
-        else:
-            row.label(text="", icon='FILE_MOVIE' if path.lower().endswith((".mp4", ".mov", ".webm")) else ('MESH_DATA' if path.lower().endswith((".glb", ".gltf", ".fbx", ".obj")) else 'FILE'))
-        if shown >= 6:
-            break
+def _short_prompt(rec, limit=40):
+    text = (rec.meta.get("prompt") or rec.meta.get("spark_look") or rec.meta.get("look") or "").strip()
+    if not text:
+        text = rec.meta.get("model_name") or rec.model_id
+    return text if len(text) <= limit else text[:limit - 1] + "…"
+
+
+def _primary_asset(rec):
+    for asset_id in rec.asset_ids:
+        kind = rec.asset_types.get(asset_id, "")
+        if rec.kind == "3d" and "texture" in kind:
+            continue
+        return asset_id
+    return rec.asset_ids[0] if rec.asset_ids else ""
 
 
 def draw_result(layout, rec):
+    """One generation: a header (type icon, prompt start, cost, collapse arrow), then model, asset id and actions.
+    Only the output is shown; the inputs and settings live behind Details."""
+    collapsed = bool(rec.meta.get("collapsed"))
     box = layout.box()
-    title = rec.meta.get("prompt") or rec.meta.get("spark_look") or rec.meta.get("model_name") or rec.model_id
-    header = box.row()
-    header.label(text=title[:56], icon='CHECKMARK' if rec.is_success else 'ERROR')
-    header.label(text=f"{rec.cu_cost:g} CU" if rec.cu_cost is not None else "", icon=KIND_ICON.get(rec.kind, 'FILE'))
+    header = box.row(align=True)
+    toggle = header.operator("scenario.toggle_result", text="", icon='TRIA_RIGHT' if collapsed else 'TRIA_DOWN', emboss=False)
+    toggle.local_id = rec.local_id
+    header.label(text=_short_prompt(rec), icon=KIND_ICON.get(rec.kind, 'FILE'))
+    if not rec.is_success:
+        header.label(text="", icon='ERROR')
+    header.label(text=f"{rec.cu_cost:g} CU" if rec.cu_cost is not None else "")
+    if collapsed:
+        return
+    row = box.row(align=True)
+    row.label(text=rec.meta.get("model_name") or rec.model_id, icon='NODE_MATERIAL')
+    details = row.operator("scenario.result_details", text="", icon='INFO')
+    details.local_id = rec.local_id
+    asset_id = _primary_asset(rec)
+    if asset_id:
+        row = box.row(align=True)
+        op = row.operator("scenario.copy_text", text=asset_id, icon='COPYDOWN')
+        op.text, op.what = asset_id, "asset id"
+        if len(rec.asset_ids) > 1:
+            row.label(text=f"+{len(rec.asset_ids) - 1}")
     if rec.error:
-        box.label(text=rec.error[:70])
-    _draw_inputs(box, rec)
+        box.label(text=("Failed: " if not rec.is_success else "") + rec.error[:70], icon='ERROR')
+    if rec.meta.get("download_errors"):
+        box.label(text=f"{len(rec.meta['download_errors'])} file(s) could not be downloaded", icon='ERROR')
     if rec.kind == "image":
         for path in rec.files[:6]:
             icon_id = thumbnail(path)
@@ -271,9 +309,8 @@ def draw_result(layout, rec):
             col.operator("scenario.add_plane", text="Add as plane").filepath = path
             col.operator("scenario.use_first_frame", text="Use as video first frame", icon='FILE_MOVIE').filepath = path
     elif rec.kind == "3d":
-        primary = rec.meta.get("primary_mesh") or next((p for p in rec.files if p.lower().endswith((".glb", ".gltf", ".fbx", ".obj"))), "")
+        primary = rec.meta.get("primary_mesh") or next((p for p in rec.files if p.lower().endswith(MESH_EXTS)), "")
         if primary:
-            box.label(text=os.path.basename(primary)[-48:], icon='MESH_DATA')
             row = box.row(align=True)
             row.operator("scenario.import_mesh_file", text="Add to scene", icon='IMPORT').filepath = primary
             names = rec.meta.get("objects") or []
@@ -283,19 +320,22 @@ def draw_result(layout, rec):
             row = box.row(align=True)
             row.label(text=os.path.basename(alt)[-40:], icon='FILE_3D')
             row.operator("scenario.import_mesh_file", text="Add").filepath = alt
-        textures = [p for p in rec.files if p.lower().endswith(IMAGE_EXTS)]
-        if textures:
-            box.label(text=f"{len(textures)} texture file(s) on disk", icon='TEXTURE')
     elif rec.kind == "video":
         for path in rec.files[:3]:
             row = box.row(align=True)
             row.operator("scenario.play_video", text="Play", icon='PLAY').filepath = path
             row.operator("scenario.play_video_blender", text="Play in Blender", icon='BLENDER').filepath = path
+    elif rec.kind == "audio":
+        for path in [p for p in rec.files if p.lower().endswith(AUDIO_EXTS)][:4] or rec.files[:2]:
+            row = box.row(align=True)
+            row.operator("scenario.play_video", text="Play", icon='PLAY').filepath = path
+            row.operator("scenario.add_sound_strip", text="Add to sequencer", icon='SEQUENCE').filepath = path
     elif rec.kind == "material":
-        box.label(text="PBR material", icon='MATERIAL')
         mat_name = rec.meta.get("material_name") or f"Scenario {(rec.meta.get('prompt') or rec.model_id).strip()[:40]}"
+        row = box.row(align=True)
+        row.label(text="PBR material", icon='MATERIAL')
         if bpy.data.materials.get(mat_name):
-            box.operator("scenario.retile_material", text="Tiling", icon='UV').material_name = mat_name
+            row.operator("scenario.retile_material", text="Tiling", icon='UV').material_name = mat_name
     elif rec.files:
         box.label(text=os.path.basename(rec.files[0]), icon='FILE')
 
@@ -307,8 +347,11 @@ def draw_history(layout, context):
     for entry in runtime.state.history[:24]:
         box = layout.box()
         header = box.row()
-        header.label(text=(entry.prompt or entry.model_id)[:48], icon=KIND_ICON.get(entry.kind, 'FILE'))
+        header.label(text=(entry.prompt or entry.model_id)[:40], icon=KIND_ICON.get(entry.kind, 'FILE'))
         header.label(text=f"{entry.cu_cost:g} CU" if entry.cu_cost is not None else entry.status)
+        if entry.asset_ids:
+            op = box.row(align=True).operator("scenario.copy_text", text=entry.asset_ids[0], icon='COPYDOWN')
+            op.text, op.what = entry.asset_ids[0], "asset id"
         if entry.local_files and entry.kind == "image":
             icon_id = thumbnail(entry.local_files[0])
             if icon_id:
@@ -336,7 +379,7 @@ class SCENARIO_PT_main(bpy.types.Panel):
         if not draw_account_strip(layout, context):
             return
         scenario = context.scene.scenario
-        grid = layout.grid_flow(columns=4, align=True)
+        grid = layout.grid_flow(columns=3, align=True, even_columns=True)  # three per row so the icon tabs keep their labels
         grid.prop(scenario, "lane", expand=True)
         lane = scenario.lane
         if not runtime.state.catalog_loaded:
@@ -351,8 +394,6 @@ class SCENARIO_PT_main(bpy.types.Panel):
             from . import render_lanes
 
             render_lanes.draw_render_video_lane(layout, context)
-        elif lane == "edit3d":
-            draw_edit3d_lane(layout, context)
         if runtime.state.last_message:
             layout.label(text=runtime.state.last_message[:80])
 
@@ -381,7 +422,7 @@ class SCENARIO_PT_jobs(bpy.types.Panel):
         for rec in active:
             box = layout.box()
             row = box.row(align=True)
-            row.label(text=(rec.meta.get("prompt") or rec.meta.get("model_name") or rec.model_id)[:44], icon=KIND_ICON.get(rec.kind, 'TIME'))
+            row.label(text=_short_prompt(rec, 44), icon=KIND_ICON.get(rec.kind, 'TIME'))
             status = STATUS_TEXT.get(rec.status, rec.status)
             progress = f" {int(rec.progress * 100)}%" if rec.status == "in-progress" else ""
             box.label(text=f"{rec.meta.get('model_name', rec.model_id)}: {status}{progress}", icon='TIME')
@@ -400,14 +441,13 @@ class SCENARIO_PT_generations(bpy.types.Panel):
         row.operator("scenario.open_output_folder", text="Output folder", icon='FILE_FOLDER')
         row.operator("scenario.history_refresh", text="Refresh cloud", icon='FILE_REFRESH')
         row.prop(context.scene.scenario, "show_cloud_history", text="", icon='WORLD')
-        layout.label(text="This session", icon='TIME')
         shown = 0
         for rec in runtime.state.jobs_view:
             if not rec.is_terminal:
                 continue
             draw_result(layout, rec)
             shown += 1
-            if shown >= 8:
+            if shown >= 12:
                 break
         if shown == 0:
             layout.label(text="Nothing generated yet in this session")

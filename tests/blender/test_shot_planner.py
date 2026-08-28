@@ -73,7 +73,7 @@ class ShotPlannerTests(unittest.TestCase):
         bpy.ops.scenario.shot_build_path()
         cam = self.sp.shot_camera(self.scene)
         frames = self._location_keys(cam)
-        self.assertEqual(len(frames), 9)
+        self.assertEqual(len(frames), 13)
         self.assertEqual(frames[-1], round(4.0 * self.fps))
         self.assertEqual(cam["scenario_shot_source"], "orbit")
         target = bpy.data.objects["Shot Target"]
@@ -82,12 +82,12 @@ class ShotPlannerTests(unittest.TestCase):
         first = cam.matrix_world.translation.copy()
         self.scene.frame_set(frames[-1])
         self.assertAlmostEqual((cam.matrix_world.translation - first).length, 0.0, places=3)
-        self.scene.frame_set(frames[4])
+        self.scene.frame_set(frames[6])
         self.assertGreater((cam.matrix_world.translation - first).length, 1.0)
 
     def test_aim_off_keyframes_rotation_and_no_target(self):
         self.props.aim_at_subject = False
-        self.props.preset = 'push_in'
+        self.props.preset = 'dolly_in'
         bpy.ops.scenario.shot_build_path()
         cam = self.sp.shot_camera(self.scene)
         paths = {fc.data_path for fc in self.sp.fcurves_of(cam)}
@@ -103,7 +103,7 @@ class ShotPlannerTests(unittest.TestCase):
     def test_from_description_sets_the_settings_and_builds(self):
         self.props.description = "slow push in closer, 8s at 50mm"
         bpy.ops.scenario.shot_from_description()
-        self.assertEqual(self.props.preset, 'push_in')
+        self.assertEqual(self.props.preset, 'dolly_in')
         self.assertAlmostEqual(self.props.duration, 12.0, places=3)
         self.assertAlmostEqual(self.props.focal, 50.0, places=3)
         cam = self.sp.shot_camera(self.scene)

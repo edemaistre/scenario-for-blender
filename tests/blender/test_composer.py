@@ -74,7 +74,7 @@ class ComposerStateTests(unittest.TestCase):
             self.assertEqual(state.lane_for(scene), lane)
             scene.scenario.lane_state(lane).prompt = "look"
             self.assertEqual(state.sync_from_lane(scene).prompt, "look")
-        for lane in ("edit3d",):  # a generation lane the composer does not show
+        for lane in ("audio",):  # a lane tab the composer does not show
             scene.scenario.lane = lane
             self.assertEqual(state.lane_for(scene), "image")
 

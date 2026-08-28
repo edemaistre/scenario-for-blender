@@ -60,6 +60,24 @@ def first_frame_spec(schema):
     return None
 
 
+def hidden_inputs(schema):
+    """File inputs Render Image does not use: anything that is not an image (Gemini 3.1 also takes a video)."""
+    return {s.name for s in schema.specs if s.is_file and (s.kind or "image") != "image"}
+
+
+def hidden_param_names(schema):
+    """Parameters that only make sense with a hidden input, by name prefix (`video` -> `videoFps`) or by dependency."""
+    hidden = hidden_inputs(schema)
+    out = set()
+    for spec in schema.specs:
+        if spec.is_file or spec.is_prompt:
+            continue
+        lower = spec.name.lower()
+        if any(lower.startswith(h.lower()) for h in hidden) or any(dep in hidden for dep in spec.required_if_defined):
+            out.add(spec.name)
+    return out
+
+
 def capture_source(lane_state, lane):
     base = 'CAMERA' if lane_state.capture_source == 'CAMERA' else 'VIEWPORT'
     return base + ('_CLIP' if lane == "render_video" else '')
@@ -96,6 +114,10 @@ def decorate(scene, lane, lane_state, schema, request, for_estimate):
         prompt = render_prompt.image_prompt(look or render_prompt.DEFAULT_LOOK, style_count)
     if schema.prompt_name:
         request.body[schema.prompt_name] = prompt
+    if lane == "render_image":
+        # parameters that belong to inputs the lane hides (Gemini's video -> videoFps) are not sent either
+        for name in hidden_param_names(schema):
+            request.body.pop(name, None)
     if request.spark is not None and lane == "render_video":
         # a still of the first frame for Prompt Spark to look at (the playblast itself is not an image)
         request.captures.append({"param": None, "source": 'CAMERA' if lane_state.capture_source == 'CAMERA' else 'VIEWPORT', "camera": None, "role": "spark"})
@@ -147,11 +169,10 @@ def _clip_info(scene):
 
 
 def _draw_look(layout, lane_state, lane):
+    from . import panels
+
     box = layout.box()
-    row = box.row(align=True)
-    row.label(text="Look", icon='BRUSH_DATA')
-    row.prop(lane_state, "prompt", text="")
-    row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
+    panels.draw_prompt_row(box, lane_state, lane, text="Look")
     if not lane_state.prompt.strip():
         sub = box.row(align=True)
         sub.prop(lane_state, "spark_enabled", text="")
@@ -181,10 +202,9 @@ def draw_render_image_lane(layout, context):
         layout.label(text="This model takes no image input; pick another one", icon='ERROR')
     else:
         # video or audio inputs of an image model (Gemini's video2img) are not what a render needs: keep the form to images
-        hide = {s.name for s in schema.specs if s.is_file and (s.kind or "image") != "image"}
         panels.draw_references(layout, lane_state, schema, title_for={spec.name: "Style images (the capture is image 1)"},
-                               fixed_first={spec.name: "1. Capture of the view, taken at generate time"}, hide=hide)
-    params_ui.draw_params(layout, lane_state, schema)
+                               fixed_first={spec.name: "1. Capture of the view, taken at generate time"}, hide=hidden_inputs(schema))
+    params_ui.draw_params(layout, lane_state, schema, exclude=hidden_param_names(schema))
     panels.draw_generate_row(layout, lane_state, "render_image")
 
 

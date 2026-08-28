@@ -6,6 +6,27 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.7.0] - 2026-08-29
+
+### Added
+- **Audio lane**: speech, music and sound effects (ElevenLabs Music v2, Lyria 3, ACE-Step 1.5, Minimax Music 3.0, ElevenLabs 3, Gemini 3.1 Flash TTS, ElevenLabs Sound Effects 2, Sonilo, and every txt2audio / audio2audio / video2audio model). Results play from Generations or drop on the sequencer as a sound strip at the current frame.
+- **Prompt tools** next to every prompt: Spark (Prompt Spark writes a prompt for the selected model, 3.75 CU), Rewrite (Prompt Spark improves the current prompt, 3.75 CU), Translate (to English with the Scenario LLM, 0.5 CU). Runs in the background, the prompt field updates when the answer arrives.
+- **Camera movement library**: 20 moves in five groups. Orbits (orbit, orbit high, orbit low, spiral in), Ellipses (three variants), Dolly & truck (dolly in / out, truck left / right, pedestal up / down, zoom in), Crane & arcs (crane, arc left / right, top down), Other (pan, flyover). Every orbit and ellipse returns exactly to its starting point. The Plan field understands the new words (ellipse 2, dolly in, truck left, low angle, top down...).
+- **Model picker with Scenario's taxonomy**: modality tabs (Image, Video, Audio, 3D) with Scenario's icons and the web app's category chips (Image: Generate, Edit, Expand, Upscale, Vectorize, Remove Background, Tools; Video: Generate, Edit, Lipsync, Upscale, Reframe, Remove Background, Tools; Audio: Speech, Music, SFX, Tools; 3D: Generate, Splat, Remesh, Retexture, UV Unwrap, Rigging, Animate, Parts). Picking a model of another modality switches to that lane. The same icons sit on the lane tabs.
+- Generations entries are collapsible (arrow, then only the type icon and the start of the prompt), show the model, the asset id (one click copies it) and a failure marker; a Details dialog (the info button) lists the prompt, the settings sent, the references with their asset ids, the result assets and the files. The inputs strip is gone: only the output thumbnail is shown.
+- Downloaded files carry the Scenario asset id in their name: `20260828_230353_hitem-3d-split_asset_ccpDR7Ga1…_00.glb`.
+
+### Changed
+- **No Scenario LoRAs in any list** (160 trained models: Flux LoRAs, compositions, Kontext LoRAs). The lists hold the third-party models and Scenario's tools.
+- **Edit 3D moved under the 3D tab** as a fourth mode (Text, Image, Multi-view, Edit); the task tabs use Scenario's names (Remesh, Retexture, UV Unwrap, Rigging, Animate, Parts). Rodin Hyper3D Bang! sits in Parts and Retexture; Tripo Stylization and Hitem3D Multicolor in Retexture.
+- GPT Image 2 is the default model of Render Image. Parameters that belong to an input the lane hides (Gemini's video frame rate) are hidden and not sent.
+- Image lane also lists video-to-image models; Video lane also lists audio-to-video models (LTX Audio to Video).
+- Composer: the collapsed pill uses the card's style (same fill, corners, field and button) with a centred Generate; tabs read "Render Image" / "Render Video"; the card is wider.
+- MCP `generate` accepts the `audio` lane; `camera_path` accepts the new preset names (old `push_in` / `pull_back` still resolve).
+
+### Still not reachable from Blender
+- Video-to-motion (Cartwheel, Uthana), speech-to-text and the Scenario LLM as a standalone model (it powers Translate). Everything else in the public catalog (462 live non-LoRA models) appears in at least one lane.
+
 ## [0.6.0] - 2026-08-28
 
 ### Added

@@ -5,11 +5,11 @@ from dataclasses import dataclass, field
 
 MARGIN = 24
 PILL_WIDTH, PILL_HEIGHT = 320, 44
-CARD_WIDTH, CARD_HEIGHT = 720, 150
+CARD_WIDTH, CARD_HEIGHT = 820, 150
 TAB_HEIGHT, ROW_GAP, PAD = 24, 8, 12
 GENERATE_WIDTH, MODEL_WIDTH, COLLAPSE_SIZE, SETTINGS_WIDTH = 190, 200, 20, 84
 LANE_ORDER = ("image", "video", "3d", "material", "render_image", "render_video")
-LANE_LABELS = {"image": "Image", "video": "Video", "3d": "3D", "material": "Materials", "render_image": "Render Img", "render_video": "Render Vid"}
+LANE_LABELS = {"image": "Image", "video": "Video", "3d": "3D", "material": "Materials", "render_image": "Render Image", "render_video": "Render Video"}
 PLACEHOLDERS = {"image": "Describe the image to generate", "video": "Describe the video, or capture the timeline", "3d": "Describe the object",
                 "material": "Describe the material (weathered copper, mossy stone...)",
                 "render_image": "Describe the look to render the viewport with (empty: Prompt Spark writes it)",
