@@ -303,7 +303,47 @@ class SCENARIO_OT_play_video_blender(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+class SCENARIO_OT_render_concept(bpy.types.Operator):
+    bl_idname = "scenario.render_concept"
+    bl_label = "Render concept"
+    bl_description = "Capture the view and restyle it with the concept model"
+
+    @classmethod
+    def poll(cls, context):
+        return runtime.online() and runtime.credentials().valid
+
+    def execute(self, context):
+        from . import render_to_real
+
+        try:
+            render_to_real.submit_concept(context)
+        except ScenarioError as err:
+            self.report({'ERROR'}, err.reason)
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_render_video(bpy.types.Operator):
+    bl_idname = "scenario.render_video"
+    bl_label = "Playblast and Generate"
+    bl_description = "Playblast the timeline and send it with the concept image to Seedance 2.0"
+
+    @classmethod
+    def poll(cls, context):
+        return runtime.online() and runtime.credentials().valid
+
+    def execute(self, context):
+        from . import render_to_real
+
+        try:
+            render_to_real.submit_video(context)
+        except ScenarioError as err:
+            self.report({'ERROR'}, err.reason)
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+
+CLASSES = (SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

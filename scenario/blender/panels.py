@@ -7,7 +7,7 @@ import bpy
 
 from . import generation, params_ui, props, runtime
 
-LANE_PLACEHOLDER = {"render": "Render-to-real arrives in P2", "mcp": "MCP server arrives in P3"}
+LANE_PLACEHOLDER = {"mcp": "MCP server arrives in P3"}
 KIND_ICON = {"image": 'IMAGE_DATA', "video": 'FILE_MOVIE', "3d": 'MESH_DATA', "material": 'MATERIAL'}
 GENERATE_LANES = ("image", "video", "3d", "material")
 
@@ -157,6 +157,13 @@ class SCENARIO_PT_main(bpy.types.Panel):
             draw_generate_lane(layout, context, lane)
         elif lane == "history":
             draw_history(layout, context)
+        elif lane == "render":
+            from . import render_to_real
+
+            if not runtime.state.catalog_loaded:
+                layout.label(text="Loading models...", icon='TIME')
+            else:
+                render_to_real.draw_render_lane(layout, context)
         else:
             layout.label(text=LANE_PLACEHOLDER.get(lane, ""), icon='INFO')
         if runtime.state.last_message:
