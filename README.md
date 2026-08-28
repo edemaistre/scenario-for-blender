@@ -36,6 +36,10 @@ Quick start: download `scenario-<version>.zip` from the releases (or run `./tool
 2. Blender > Edit > Preferences > Add-ons > Scenario: paste an API key and secret (Scenario portal > Team > API Keys, Project or Team scope), press Test connection.
 3. In the 3D viewport press N, open the Scenario tab (or the Scenario button in the viewport header), pick a model, type a prompt, read the CU price on Generate, generate.
 
+## 3D results: one mesh per job
+
+Providers return several variants of one result (Meshy: GLB + OBJ + texture PNGs; Rodin with `material=All`: a shaded GLB and a PBR GLB). The add-on imports one primary mesh (glTF first, then the variant with the most PBR textures), switches the viewport to Material Preview so textures show, and lists the other mesh files in Results with an Import button. Rodin defaults to `PBR`. Root causes and the fix are in `CHANGELOG.md` 0.5.1.
+
 ## Floating composer
 
 A pill at the bottom of every 3D viewport shows the current prompt and a Generate button; click it to expand lane tabs, an editable prompt (Enter generates, Esc blurs, Ctrl/Cmd+V pastes), the model chip (opens the N-panel) and the live CU quote. It shares its state with the N-panel. If drawing ever fails repeatedly the composer switches itself off; re-enable it in Preferences.
