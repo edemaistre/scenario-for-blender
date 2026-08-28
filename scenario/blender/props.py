@@ -98,6 +98,12 @@ def _on_prompt_update(self, context):
     mark_estimate_dirty(self)
 
 
+def _on_mode_change(self, context):
+    from . import generation
+
+    generation.refresh_3d_models(context)
+
+
 class ScenarioLaneState(bpy.types.PropertyGroup):
     lane: StringProperty()
     model_id: EnumProperty(name="Model", items=_model_items, update=_on_model_change)
@@ -115,6 +121,7 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
 
 class ScenarioSceneProps(bpy.types.PropertyGroup):
     lane: EnumProperty(name="Lane", items=LANE_ITEMS, default='image')
+    three_d_mode: EnumProperty(name="Input", items=[('TEXT', "Text", "Describe the object"), ('IMAGE', "Image", "One reference image"), ('MULTI', "Multi-view", "Several views of the same object")], default='TEXT', update=_on_mode_change)
     image: PointerProperty(type=ScenarioLaneState)
     video: PointerProperty(type=ScenarioLaneState)
     three_d: PointerProperty(type=ScenarioLaneState)

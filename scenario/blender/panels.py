@@ -7,7 +7,8 @@ import bpy
 
 from . import generation, params_ui, props, runtime
 
-LANE_PLACEHOLDER = {"video": "Video lane arrives in P2", "render": "Render-to-real arrives in P2", "mcp": "MCP server arrives in P3", "history": "Generations history arrives in P1"}
+LANE_PLACEHOLDER = {"video": "Video lane arrives in P2", "render": "Render-to-real arrives in P2", "mcp": "MCP server arrives in P3"}
+KIND_ICON = {"image": 'IMAGE_DATA', "video": 'FILE_MOVIE', "3d": 'MESH_DATA', "material": 'MATERIAL'}
 GENERATE_LANES = ("image", "3d", "material")
 
 
@@ -62,6 +63,8 @@ def draw_generate_lane(layout, context, lane):
     if not runtime.state.catalog_loaded:
         layout.label(text="Loading models...", icon='TIME')
         return
+    if lane == "3d":
+        layout.row(align=True).prop(context.scene.scenario, "three_d_mode", expand=True)
     layout.prop(lane_state, "model_id", text="Model")
     record = runtime.state.records.get(lane_state.model_id)
     if record is not None and record.short_description:
@@ -90,6 +93,31 @@ def draw_generate_lane(layout, context, lane):
         layout.label(text=lane_state.last_error[:80], icon='ERROR')
 
 
+def draw_history(layout, context):
+    row = layout.row(align=True)
+    row.operator("scenario.history_refresh", icon='FILE_REFRESH')
+    row.operator("scenario.open_output_folder", text="", icon='FILE_FOLDER')
+    if not runtime.state.history:
+        layout.label(text="Press Refresh to list this project's generations")
+        return
+    for entry in runtime.state.history[:24]:
+        box = layout.box()
+        header = box.row()
+        header.label(text=(entry.prompt or entry.model_id)[:48], icon=KIND_ICON.get(entry.kind, 'FILE'))
+        header.label(text=f"{entry.cu_cost:g} CU" if entry.cu_cost is not None else entry.status)
+        if entry.local_files and entry.kind == "image":
+            icon_id = _thumbnail(entry.local_files[0])
+            if icon_id:
+                box.template_icon(icon_value=icon_id, scale=3.0)
+        if entry.is_success:
+            op = box.operator("scenario.import_result", text="Import into scene" if not entry.local_files else "Bring into scene again", icon='IMPORT')
+            op.job_id, op.kind, op.model_id, op.prompt = entry.job_id, entry.kind, entry.model_id, entry.prompt
+        else:
+            box.label(text=entry.status, icon='ERROR' if entry.status in ("failure", "failed", "canceled") else 'TIME')
+    if runtime.state.history_token:
+        layout.operator("scenario.history_older", icon='TRIA_DOWN')
+
+
 class SCENARIO_PT_main(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -106,6 +134,8 @@ class SCENARIO_PT_main(bpy.types.Panel):
         lane = scenario.lane
         if lane in GENERATE_LANES:
             draw_generate_lane(layout, context, lane)
+        elif lane == "history":
+            draw_history(layout, context)
         else:
             layout.label(text=LANE_PLACEHOLDER.get(lane, ""), icon='INFO')
         if runtime.state.last_message:
