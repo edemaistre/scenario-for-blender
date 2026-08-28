@@ -1,6 +1,11 @@
 # Scenario for Blender
 
-A Blender 4.2+ extension bringing Scenario's image, video, 3D and PBR material generation into the viewport, with a local MCP server so agents (Claude Code, Cursor, Claude Desktop) can build and generate in the open scene.
+**Status: experimental, v0.5.0 (2026-08-28).** A Blender 4.2+ extension that brings [Scenario](https://scenario.com) image, video, 3D and PBR material generation into the viewport, with a local MCP server so agents (Claude Code, Cursor, Claude Desktop, Codex) can build and generate in the open scene. Pure Python, no bundled wheels, GPL-3.0-or-later. You need a Scenario account and an API key (Pro plan or above).
+
+Quick start: download `scenario-<version>.zip` from the releases (or run `./tools/build.sh`), drag it onto Blender, paste your key in Preferences > Add-ons > Scenario, press N in the 3D viewport and open the Scenario tab. Details, tests and the agent setup are below; the design lives in `docs/superpowers/specs/`, the delivery plans in `docs/superpowers/plans/`, and the clean-room research that shaped it in `research/`.
+
+---
+
 
 **How to resume:** `claude --resume f634b620-910d-4c24-aeef-bc9232faeca7` (2026-08-28: research, design, P0 skeleton)
 
@@ -63,6 +68,7 @@ Credits spent on this project so far: about 207 CU (185 CU of probes and smokes,
 
 Verified live (2026-08-28): REST Basic auth, model records carry UI schema, `?dryRun=true` cost preview, Patina returns 6 typed map assets, multipart upload flow, GLB asset shape, Blender 5.1.1 Python 3.13.9 with gltf/fbx/obj importers and `render.opengl`, OAuth dynamic registration on mcp.scenario.com. Assumed: Patina smoothness semantics (pixels suggest dark = rough), normal-map convention, Blender 4.2/4.5 behaviour (only 5.1.1 installed here).
 
-## Provenance
+## Licence and provenance
 
+GPL-3.0-or-later (see `LICENSE`), the licence Blender requires for add-ons that use `bpy`. 
 [redacted]'s GPL source was read for behaviour only (specs in `research/`), no code copied. The MCP bridge follows the Blender Lab `blender_mcp` protocol shape, rewritten.
