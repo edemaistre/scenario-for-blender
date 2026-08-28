@@ -11,9 +11,9 @@ log = logging.getLogger("scenario")
 
 
 def _modules():
-    from . import props, operators, panels  # noqa: F401
+    from . import props, operators, panels, popover  # noqa: F401
 
-    return [props, operators, panels]
+    return [props, operators, panels, popover]
 
 
 def register():
