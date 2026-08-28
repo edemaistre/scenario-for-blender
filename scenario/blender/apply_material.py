@@ -106,6 +106,7 @@ def on_material_result(rec):
     prompt = (rec.meta.get("prompt") or rec.model_id).strip()
     plan = mp.plan_material(f"Scenario {prompt[:40]}", mp.roles_from_record(rec))
     mat = build_material(plan)
+    rec.meta["material_name"] = mat.name
     names = rec.meta.get("target_objects") or []
     targets = [bpy.data.objects.get(n) for n in names if bpy.data.objects.get(n) is not None]
     if not targets:

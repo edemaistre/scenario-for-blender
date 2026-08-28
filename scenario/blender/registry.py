@@ -10,21 +10,31 @@ from .. import prefs
 log = logging.getLogger("scenario")
 
 
+_log_handler = None
+
+
 def _modules():
     from . import props, operators, panels, popover, composer  # noqa: F401
 
     return [props, operators, panels, popover, composer]
 
 
+def _configure_logging():
+    global _log_handler
+    if _log_handler is not None:
+        return
+    _log_handler = logging.StreamHandler()
+    _log_handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+    log.addHandler(_log_handler)
+    log.setLevel(logging.INFO)
+    log.propagate = False
+
+
 def register():
-    logging.basicConfig(level=logging.INFO)
+    _configure_logging()
     for cls in prefs.CLASSES:
         bpy.utils.register_class(cls)
-    try:
-        modules = _modules()
-    except ImportError:
-        modules = []
-    for module in modules:
+    for module in _modules():
         module.register()
     from . import mcp_service, pump
 
@@ -51,13 +61,13 @@ def unregister():
         runtime.state.cli_handle = None
     mcp_service.stop()
     pump.stop()
-    try:
-        modules = _modules()
-    except ImportError:
-        modules = []
-    for module in reversed(modules):
+    for module in reversed(_modules()):
         module.unregister()
     for cls in reversed(prefs.CLASSES):
         bpy.utils.unregister_class(cls)
     runtime.shutdown()
     log.info("Scenario for Blender unregistered")
+    global _log_handler
+    if _log_handler is not None:
+        log.removeHandler(_log_handler)
+        _log_handler = None

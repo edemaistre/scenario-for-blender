@@ -4,6 +4,7 @@
 import logging
 import os
 import pathlib
+import threading
 
 import bpy
 
@@ -27,6 +28,8 @@ class RuntimeState:
         self.lane_models = {}      # lane -> list[ModelRecord]
         self.catalog_loaded = False
         self.catalog_loading = False
+        self.catalog_error = ""
+        self.catalog_credentials = None
         self.account_label = ""
         self.last_message = ""
         self.enum_cache = {}       # key -> list of (id, name, desc) tuples kept alive for EnumProperty
@@ -85,18 +88,30 @@ def make_client():
     return ScenarioClient(creds.key, creds.secret, user_agent=f"ScenarioBlender/{__version__}")
 
 
+_MAIN_THREAD = threading.main_thread()
+
+
+def on_main_thread():
+    return threading.current_thread() is _MAIN_THREAD
+
+
 def ensure_manager():
+    p = paths()
     if state.manager is None:
-        p = paths()
         registry = JobRegistry(p.registry_file).load()
         state.manager = JobManager(make_client, registry, p)
-        state.manager.resume()
+        if online():
+            state.manager.resume()
+    else:
+        state.manager.paths = p  # the output folder preference may have changed
     return state.manager
 
 
 def ensure_catalog():
-    if state.catalog is None:
+    creds = credentials()
+    if state.catalog is None or state.catalog_credentials != (creds.key, creds.secret):
         state.catalog = Catalog(make_client(), paths().cache_dir)
+        state.catalog_credentials = (creds.key, creds.secret)
     return state.catalog
 
 

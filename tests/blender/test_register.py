@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
+import pathlib
 import unittest
 
 import bpy
@@ -10,7 +11,9 @@ from helpers import addon, addon_name, submodule
 class RegisterTests(unittest.TestCase):
     def test_extension_enabled_and_prefs_have_defaults(self):
         mod = addon()
-        self.assertEqual(mod.__version__, "0.1.0")
+        import re
+        manifest = re.search(r'^version = "([^"]+)"', (pathlib.Path(mod.__file__).parent / "blender_manifest.toml").read_text(), re.M).group(1)
+        self.assertEqual(mod.__version__, manifest)
         prefs = bpy.context.preferences.addons[addon_name()].preferences
         self.assertEqual(prefs.output_dir, "~/Downloads/Scenario")
         self.assertEqual(prefs.mcp_port, 9876)

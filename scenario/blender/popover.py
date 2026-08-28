@@ -3,7 +3,7 @@
 """A native floating composer: a header button opening a popover with model, prompt and Generate."""
 import bpy
 
-from . import panels, runtime
+from . import panels, props, runtime
 
 
 class SCENARIO_PT_popover(bpy.types.Panel):
@@ -20,8 +20,13 @@ class SCENARIO_PT_popover(bpy.types.Panel):
             layout.label(text="Add your API key in Preferences", icon='ERROR')
             return
         row = layout.row(align=True)
-        row.prop(scenario, "lane", text="")
+        for value in panels.GENERATE_LANES:
+            label = next(name for ident, name, _ in props.LANE_ITEMS if ident == value)
+            op = row.operator("scenario.set_lane", text=label, depress=(scenario.lane == value))
+            op.lane = value
         lane = scenario.lane if scenario.lane in panels.GENERATE_LANES else "image"
+        if scenario.lane not in panels.GENERATE_LANES:
+            layout.label(text="Driving the Image lane; other tabs live in the N-panel", icon='INFO')
         lane_state = scenario.lane_state(lane)
         if not runtime.state.catalog_loaded:
             layout.label(text="Loading models...", icon='TIME')

@@ -50,9 +50,14 @@ def _process():
     changed = False
     if manager is not None:
         for event in manager.drain():
-            handlers.dispatch(event)
             changed = True
-    if not runtime.state.catalog_loaded and not runtime.state.catalog_loading and runtime.credentials().valid:
+            try:
+                handlers.dispatch(event)
+            except Exception:  # one bad event must not drop the rest of the batch
+                log.exception("event %s failed", event[0] if event else event)
+        if manager.resume_pending and runtime.credentials().valid and runtime.online():
+            manager.retry_resume()
+    if not runtime.state.catalog_loaded and not runtime.state.catalog_loading and not runtime.state.catalog_error and runtime.credentials().valid:
         generation.request_catalog()
     now = time.time()
     for scene in bpy.data.scenes:

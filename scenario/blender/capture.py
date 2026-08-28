@@ -97,6 +97,12 @@ def is_video_output(render):
 
 
 def _view3d(context):
+    area = getattr(context, "area", None)
+    if area is not None and area.type == 'VIEW_3D' and getattr(context, "window", None) is not None:
+        region = getattr(context, "region", None)
+        if region is None or region.type != 'WINDOW':
+            region = next((r for r in area.regions if r.type == 'WINDOW'), None)
+        return context.window, area, region
     for window in context.window_manager.windows:
         for area in window.screen.areas:
             if area.type == 'VIEW_3D':

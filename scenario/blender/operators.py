@@ -73,13 +73,28 @@ class SCENARIO_OT_generate(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def _network_poll(cls, context):
+    return runtime.online() and runtime.credentials().valid
+
+
+class SCENARIO_OT_set_lane(bpy.types.Operator):
+    bl_idname = "scenario.set_lane"
+    bl_label = "Lane"
+    bl_options = {'INTERNAL'}
+    lane: StringProperty()
+
+    def execute(self, context):
+        context.scene.scenario.lane = self.lane
+        return {'FINISHED'}
+
+
 class SCENARIO_OT_add_reference(bpy.types.Operator):
     bl_idname = "scenario.add_reference"
     bl_label = "Add reference"
     bl_description = "Attach a file, the render result or a viewport capture to this parameter"
     lane: StringProperty()
     param_name: StringProperty()
-    source: EnumProperty(items=props.REFERENCE_SOURCES, default='FILE')
+    source: EnumProperty(items=props.ADDABLE_SOURCES, default='FILE')
     filepath: StringProperty(subtype='FILE_PATH')
     filter_glob: StringProperty(default="*.png;*.jpg;*.jpeg;*.webp;*.mp4;*.mov;*.webm;*.glb;*.fbx;*.obj", options={'HIDDEN'})
 
@@ -165,11 +180,12 @@ class SCENARIO_OT_apply_texture(bpy.types.Operator):
     bl_idname = "scenario.apply_texture"
     bl_label = "Apply as texture"
     bl_description = "Create a material with this image as Base Color on the active mesh"
+    bl_options = {'REGISTER', 'UNDO'}
     filepath: StringProperty()
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH'
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     def execute(self, context):
         apply_image.apply_as_texture(context.active_object, apply_image.load_image(self.filepath))
@@ -179,8 +195,13 @@ class SCENARIO_OT_apply_texture(bpy.types.Operator):
 class SCENARIO_OT_add_plane(bpy.types.Operator):
     bl_idname = "scenario.add_plane"
     bl_label = "Add as plane"
-    bl_description = "Add a view-facing plane at the 3D cursor with this image"
+    bl_description = "Add a view-facing plane at the 3D cursor with this image (Object Mode)"
+    bl_options = {'REGISTER', 'UNDO'}
     filepath: StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
 
     def execute(self, context):
         apply_image.add_as_plane(context, apply_image.load_image(self.filepath))
@@ -209,6 +230,7 @@ class SCENARIO_OT_retile_material(bpy.types.Operator):
     bl_idname = "scenario.retile_material"
     bl_label = "Set material tiling"
     bl_description = "Scale the UV mapping of a Scenario material"
+    bl_options = {'REGISTER', 'UNDO'}
     material_name: StringProperty()
     scale: FloatProperty(name="Tiling", default=1.0, min=0.01, max=100.0)
 
@@ -230,6 +252,10 @@ class SCENARIO_OT_history_refresh(bpy.types.Operator):
     bl_idname = "scenario.history_refresh"
     bl_label = "Refresh generations"
 
+    @classmethod
+    def poll(cls, context):
+        return _network_poll(cls, context)
+
     def execute(self, context):
         from . import history
 
@@ -240,6 +266,10 @@ class SCENARIO_OT_history_refresh(bpy.types.Operator):
 class SCENARIO_OT_history_older(bpy.types.Operator):
     bl_idname = "scenario.history_older"
     bl_label = "Load older"
+
+    @classmethod
+    def poll(cls, context):
+        return _network_poll(cls, context)
 
     def execute(self, context):
         from . import history
@@ -256,6 +286,10 @@ class SCENARIO_OT_import_result(bpy.types.Operator):
     model_id: StringProperty()
     prompt: StringProperty()
 
+    @classmethod
+    def poll(cls, context):
+        return _network_poll(cls, context) and context.mode == 'OBJECT'
+
     def execute(self, context):
         from . import handlers
         from ..core.jobs.records import JobRecord
@@ -263,7 +297,7 @@ class SCENARIO_OT_import_result(bpy.types.Operator):
         manager = runtime.ensure_manager()
         existing = next((r for r in manager.registry.all() if r.job_id == self.job_id and r.files), None)
         if existing is not None:
-            existing.meta.setdefault("target_objects", [o.name for o in context.selected_objects if o.type == 'MESH'])
+            existing.meta["target_objects"] = [o.name for o in context.selected_objects if o.type == 'MESH']
             handlers.dispatch(("job_done", existing))
             return {'FINISHED'}
         rec = JobRecord.new(lane=self.kind, kind=self.kind, model_id=self.model_id, body={}, meta={"prompt": self.prompt, "model_name": self.model_id})
@@ -271,7 +305,11 @@ class SCENARIO_OT_import_result(bpy.types.Operator):
         rec.meta["target_objects"] = [o.name for o in context.selected_objects if o.type == 'MESH']
         manager.registry.add(rec)
         manager.registry.save()
-        manager._spawn(manager._poll_job, rec)
+        try:
+            manager.track(rec)
+        except ScenarioError as err:
+            self.report({'ERROR'}, err.reason)
+            return {'CANCELLED'}
         runtime.state.jobs_view.insert(0, rec)
         self.report({'INFO'}, "Downloading generation")
         return {'FINISHED'}
@@ -384,7 +422,7 @@ class SCENARIO_OT_mcp_copy(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+CLASSES = (SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

@@ -16,6 +16,12 @@ def dispatch(event):
     name, payload = event
     if name == "catalog":
         generation.set_catalog(payload["records"], payload["detailed"])
+    elif name == "catalog_failed":
+        runtime.state.catalog_loading = False
+        runtime.state.catalog_error = str(payload)
+        runtime.set_message(f"Could not load models: {payload}")
+    elif name == "models":
+        generation.set_models(payload["detailed"], payload["failed"])
     elif name == "estimate":
         _on_estimate(payload)
     elif name in ("job", "job_done", "job_failed"):
