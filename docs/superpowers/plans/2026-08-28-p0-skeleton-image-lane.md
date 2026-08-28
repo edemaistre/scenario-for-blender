@@ -43,7 +43,7 @@
 - [ ] **Step 1: Create the branch and the failing unit test**
 
 ```bash
-cd "/Users/emmanuel/Developer/pro/2026-02-05 Blender Plugin" && git checkout -b p0-skeleton-image-lane
+cd "/Users/emmanuel/Developer/pro/2026-08-28 Scenario For Blender" && git checkout -b p0-skeleton-image-lane
 ```
 
 `tests/unit/conftest.py`:
@@ -86,7 +86,7 @@ addopts = -q
 
 - [ ] **Step 2: Run the test to see it fail**
 
-Run: `cd "/Users/emmanuel/Developer/pro/2026-02-05 Blender Plugin" && python3 -m pytest tests/unit/test_package.py -v`
+Run: `cd "/Users/emmanuel/Developer/pro/2026-08-28 Scenario For Blender" && python3 -m pytest tests/unit/test_package.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'scenario'` (install pytest first if missing: `python3 -m pip install --user pytest`).
 
 - [ ] **Step 3: Create the package**
