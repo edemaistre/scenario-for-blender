@@ -31,10 +31,21 @@ A Blender 4.2+ extension bringing Scenario's image, video, 3D and PBR material g
 2. Blender > Edit > Preferences > Add-ons > Scenario: paste an API key and secret (Scenario portal > Team > API Keys, Project or Team scope), press Test connection.
 3. In the 3D viewport press N, open the Scenario tab (or the Scenario button in the viewport header), pick a model, type a prompt, read the CU price on Generate, generate.
 
+## Agents (MCP)
+
+The add-on runs a local MCP server (default `http://127.0.0.1:9876/mcp`, bearer token shown in the MCP tab, new token per Blender session). Copy a setup from the MCP tab:
+
+- Claude Code: `claude mcp add --transport http scenario-blender http://127.0.0.1:9876/mcp --header "Authorization: Bearer <token>"`
+- Cursor: paste the `mcp.json` snippet.
+- Claude Desktop: stdio snippet running `scenario/mcp/stdio_shim.py` with Blender's Python.
+- Headless: `blender --background scene.blend --command scenario-mcp --port 9876 --token <token>`.
+
+Agents get scene tools (summary, object detail, select, set frame, screenshots, quick renders, gated Python) and Scenario tools (models, schema, cost, generate, job status, import into scene, capture a reference from the viewport, history). Verified 2026-08-28: curl from another process listed 16 tools and read the scene.
+
 ## Tests
 
 - `make test`: unit tests (pytest, no Blender).
-- `make test-blender`: integration tests inside Blender 5.1.1 headless (requires `./tools/install_dev.sh` first).
+- `make test-blender`: integration tests inside Blender 5.1.1 headless (requires `./tools/install_dev.sh` first), including the MCP server over real HTTP.
 - `SCENARIO_SMOKE=1 python3 tests/smoke/smoke_image.py`, `smoke_material.py`, `smoke_video.py`: one real generation each through the core (about 9, 7 and 76 CU; the video smoke aborts if its dry run exceeds 150 CU).
 - GUI check: `blender tools/blank.blend --python tools/gui_screenshot.py -- out.png image 10`, screenshots reviewed under `~/Developer/scratch/playwright-screenshots/scenario-blender/`.
 
