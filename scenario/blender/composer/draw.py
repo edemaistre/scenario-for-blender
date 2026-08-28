@@ -122,6 +122,34 @@ def _minus_button(cr, scale, hovered):
     rect(cr.x + cr.w * 0.25, cr.y + (cr.h - bar_h) / 2, cr.w * 0.5, bar_h, TEXT, 0)
 
 
+def _grip(gr, scale, hovered):
+    """Three short diagonal bars in the bottom-right corner: the resize handle of the expanded card."""
+    shader = _shader_get()
+    color = TEXT if hovered else MUTED
+    lines = []
+    for i in range(3):
+        d = (4 + 4 * i) * scale
+        lines.append((gr.right - d, gr.y + 2 * scale))
+        lines.append((gr.right - 2 * scale, gr.y + d))
+    batch = batch_for_shader(shader, 'LINES', {"pos": lines})
+    gpu.state.line_width_set(max(1.0, 1.5 * scale))
+    shader.uniform_float("color", color)
+    batch.draw(shader)
+    gpu.state.line_width_set(1.0)
+
+
+def status_note(lane_state):
+    """The line shown next to the model chip: a quote problem, the lane's error, else the add-on's temporary message."""
+    if lane_state.estimate_state in ('ERROR', 'UNAVAILABLE') and lane_state.estimate_error:
+        return lane_state.estimate_error
+    if lane_state.last_error:
+        return lane_state.last_error
+    visible = getattr(runtime, "message_visible", None)
+    if callable(visible):
+        return visible() or ""
+    return runtime.state.last_message or ""
+
+
 def _prompt_field(pr, field, focused, lane, scale):
     rect(pr.x, pr.y, pr.w, pr.h, FIELD, 6 * scale)
     font_px, start, end, x0 = prompt_metrics(pr, field, scale)
@@ -157,7 +185,8 @@ def draw_composer():
     if state is None:
         return
     scale = ui_scale(context)
-    layout = cl.pill_placement(region.width, region.height, state.expanded, scale)
+    layout = cl.pill_placement(region.width, region.height, state.expanded, scale,
+                               offset=state.offset, width=state.width if state.expanded else None)
     state.layout = layout
     lane_state = state.sync_from_lane(scene) if not state.focused else scene.scenario.lane_state(state.lane_for(scene))
     lane = state.lane_for(scene)
@@ -204,7 +233,9 @@ def draw_composer():
         blf.size(FONT, font_px)
         tw = blf.dimensions(FONT, label)[0]
         text(gr.x + max(8 * scale, (gr.w - tw) / 2), gr.y + (gr.h - font_px) / 2 + 2 * scale, font_px, label, TEXT, max_width=gr.w - 12 * scale)
-        note = lane_state.estimate_error if lane_state.estimate_state in ('ERROR', 'UNAVAILABLE') else (lane_state.last_error or runtime.state.last_message)
+        if layout.resize_rect is not None:
+            _grip(layout.resize_rect, scale, hovered=(state.hover == ("resize",)) or state.drag_mode == "resize")
+        note = status_note(lane_state)
         if note and gr.x - note_x > 40 * scale:
             text(note_x, mr.y + (mr.h - font_px) / 2 + 2 * scale, int(11 * scale), note, MUTED, max_width=gr.x - note_x - 10 * scale)
     finally:

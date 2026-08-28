@@ -88,6 +88,7 @@ def _network_poll(cls, context):
 class SCENARIO_OT_set_lane(bpy.types.Operator):
     bl_idname = "scenario.set_lane"
     bl_label = "Lane"
+    bl_description = "Switch the Scenario tab to this lane"
     bl_options = {'INTERNAL'}
     lane: StringProperty()
 
@@ -128,6 +129,7 @@ class SCENARIO_OT_add_reference(bpy.types.Operator):
 class SCENARIO_OT_remove_reference(bpy.types.Operator):
     bl_idname = "scenario.remove_reference"
     bl_label = "Remove reference"
+    bl_description = "Remove this reference from the form"
     lane: StringProperty()
     index: IntProperty()
 
@@ -142,6 +144,7 @@ class SCENARIO_OT_remove_reference(bpy.types.Operator):
 class SCENARIO_OT_toggle_multi(bpy.types.Operator):
     bl_idname = "scenario.toggle_multi"
     bl_label = "Toggle option"
+    bl_description = "Toggle this option in the list parameter"
     lane: StringProperty()
     param_name: StringProperty()
     value: StringProperty()
@@ -165,6 +168,7 @@ class SCENARIO_OT_toggle_multi(bpy.types.Operator):
 class SCENARIO_OT_open_output_folder(bpy.types.Operator):
     bl_idname = "scenario.open_output_folder"
     bl_label = "Open output folder"
+    bl_description = "Open the folder where generations are saved"
 
     def execute(self, context):
         path = runtime.paths().output_dir
@@ -176,6 +180,7 @@ class SCENARIO_OT_open_output_folder(bpy.types.Operator):
 class SCENARIO_OT_show_image(bpy.types.Operator):
     bl_idname = "scenario.show_image"
     bl_label = "Show image"
+    bl_description = "Open this image in an Image Editor"
     filepath: StringProperty()
 
     def execute(self, context):
@@ -219,6 +224,7 @@ class SCENARIO_OT_add_plane(bpy.types.Operator):
 class SCENARIO_OT_expand_prompt(bpy.types.Operator):
     bl_idname = "scenario.expand_prompt"
     bl_label = "Edit prompt"
+    bl_description = "Edit the prompt in a wider field"
     lane: StringProperty()
     prompt: StringProperty(name="Prompt")
 
@@ -259,6 +265,7 @@ class SCENARIO_OT_retile_material(bpy.types.Operator):
 class SCENARIO_OT_history_refresh(bpy.types.Operator):
     bl_idname = "scenario.history_refresh"
     bl_label = "Refresh generations"
+    bl_description = "Reload the project's generations from Scenario"
 
     @classmethod
     def poll(cls, context):
@@ -274,6 +281,7 @@ class SCENARIO_OT_history_refresh(bpy.types.Operator):
 class SCENARIO_OT_history_older(bpy.types.Operator):
     bl_idname = "scenario.history_older"
     bl_label = "Load older"
+    bl_description = "Load the previous page of the project's generations"
 
     @classmethod
     def poll(cls, context):
@@ -367,6 +375,7 @@ class SCENARIO_OT_use_first_frame(bpy.types.Operator):
 class SCENARIO_OT_clear_first_frame(bpy.types.Operator):
     bl_idname = "scenario.clear_first_frame"
     bl_label = "Clear first frame"
+    bl_description = "Forget the first frame; the clip starts from the playblast alone"
 
     def execute(self, context):
         lane_state = context.scene.scenario.lane_state("render_video")
@@ -391,6 +400,7 @@ class SCENARIO_OT_copy_text(bpy.types.Operator):
 class SCENARIO_OT_toggle_result(bpy.types.Operator):
     bl_idname = "scenario.toggle_result"
     bl_label = "Collapse or expand"
+    bl_description = "Collapse or expand this generation"
     bl_options = {'INTERNAL'}
     local_id: StringProperty()
 
@@ -422,8 +432,19 @@ class SCENARIO_OT_result_details(bpy.types.Operator):
         if rec is None:
             layout.label(text="This generation is no longer in the session list", icon='ERROR')
             return
+        from . import panels
+
+        header = layout.box()
+        row = header.row(align=True)
+        row.label(text=panels._short_prompt(rec, 60), icon=panels.KIND_ICON.get(rec.kind, 'FILE'))
+        row.label(text=f"{rec.cu_cost:g} CU" if rec.cu_cost is not None else rec.status)
+        row = header.row(align=True)
+        row.label(text=rec.meta.get('model_name') or rec.model_id, icon='NODE_MATERIAL')
+        row.label(text=rec.status, icon='CHECKMARK' if rec.is_success else 'ERROR')
+        if rec.meta.get("prompt"):
+            op = row.operator("scenario.copy_text", text="", icon='COPYDOWN')
+            op.text, op.what = rec.meta["prompt"], "prompt"
         col = layout.column(align=True)
-        col.label(text=f"{rec.meta.get('model_name') or rec.model_id}  ({rec.kind}, {rec.status}{', %g CU' % rec.cu_cost if rec.cu_cost is not None else ''})", icon='INFO')
         col.label(text=f"Model id: {rec.model_id}")
         if rec.job_id:
             row = col.row(align=True)
@@ -512,33 +533,72 @@ class SCENARIO_OT_add_sound_strip(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def _job_objects(local_id, names):
+    """Objects of a generation: by the job tag stamped on import, else by the names recorded at import time."""
+    from . import apply_3d
+
+    found = apply_3d.objects_of_job(local_id) if local_id else []
+    if not found:
+        found = [bpy.data.objects[n] for n in (n for n in names.split("|") if n) if n in bpy.data.objects]
+    return found
+
+
 class SCENARIO_OT_select_result_objects(bpy.types.Operator):
     bl_idname = "scenario.select_result_objects"
     bl_label = "Select in scene"
-    bl_description = "Select the objects this generation created"
+    bl_description = "Select the objects this generation created (then move, hide or delete them like any object)"
     names: StringProperty(description="Object names separated by |")
+    local_id: StringProperty()
 
     @classmethod
     def poll(cls, context):
         return context.mode == 'OBJECT'
 
     def execute(self, context):
-        wanted = [n for n in self.names.split("|") if n]
-        found = [bpy.data.objects[n] for n in wanted if n in bpy.data.objects]
+        found = _job_objects(self.local_id, self.names)
         if not found:
-            self.report({'WARNING'}, "Those objects are no longer in the file")
+            self.report({'WARNING'}, "Those objects are no longer in the file (use Add to scene to import them again)")
             return {'CANCELLED'}
         for obj in context.selected_objects:
             obj.select_set(False)
         for obj in found:
             obj.select_set(True)
         context.view_layer.objects.active = found[0]
+        self.report({'INFO'}, f"Selected {len(found)} object(s)")
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_delete_result_objects(bpy.types.Operator):
+    bl_idname = "scenario.delete_result_objects"
+    bl_label = "Delete from scene"
+    bl_description = "Delete the objects this generation created (the files stay in the output folder)"
+    bl_options = {'REGISTER', 'UNDO'}
+    names: StringProperty(description="Object names separated by |")
+    local_id: StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def invoke(self, context, event):
+        count = len(_job_objects(self.local_id, self.names))
+        if count == 0:
+            self.report({'WARNING'}, "Those objects are no longer in the file")
+            return {'CANCELLED'}
+        return context.window_manager.invoke_confirm(self, event, title=f"Delete {count} object(s) of this generation?", confirm_text="Delete")
+
+    def execute(self, context):
+        found = _job_objects(self.local_id, self.names)
+        for obj in found:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        self.report({'INFO'}, f"Deleted {len(found)} object(s)")
         return {'FINISHED'}
 
 
 class SCENARIO_OT_mcp_start(bpy.types.Operator):
     bl_idname = "scenario.mcp_start"
     bl_label = "Start MCP server"
+    bl_description = "Start the local MCP server so agents can connect to this Blender"
 
     def execute(self, context):
         from . import mcp_service
@@ -554,6 +614,7 @@ class SCENARIO_OT_mcp_start(bpy.types.Operator):
 class SCENARIO_OT_mcp_stop(bpy.types.Operator):
     bl_idname = "scenario.mcp_stop"
     bl_label = "Stop MCP server"
+    bl_description = "Stop the local MCP server"
 
     def execute(self, context):
         from . import mcp_service
@@ -580,9 +641,10 @@ class SCENARIO_OT_mcp_copy(bpy.types.Operator):
 class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
     bl_idname = "scenario.import_mesh_file"
     bl_label = "Import mesh file"
-    bl_description = "Import this mesh variant at the 3D cursor"
+    bl_description = "Import this mesh at the 3D cursor"
     bl_options = {'REGISTER', 'UNDO'}
     filepath: StringProperty()
+    local_id: StringProperty(description="Generation the objects belong to (for Select and Delete)")
 
     @classmethod
     def poll(cls, context):
@@ -594,13 +656,17 @@ class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
         if not os.path.exists(self.filepath):
             self.report({'ERROR'}, "File not found")
             return {'CANCELLED'}
-        objects = apply_3d.import_model(context, self.filepath, at_cursor=True)
+        objects = apply_3d.import_model(context, self.filepath, at_cursor=True, local_id=self.local_id)
+        if self.local_id:
+            for rec in runtime.state.jobs_view:
+                if rec.local_id == self.local_id:
+                    rec.meta["objects"] = list(rec.meta.get("objects") or []) + [o.name for o in objects]
         self.report({'INFO'}, f"Imported {len(objects)} object(s)")
         return {'FINISHED'}
 
 
 CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_use_first_frame, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects,
-           SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+           SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_delete_result_objects, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

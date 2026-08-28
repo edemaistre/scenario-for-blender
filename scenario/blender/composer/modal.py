@@ -11,7 +11,8 @@ def _layout(context, state):
     from .draw import ui_scale
 
     region = context.region
-    return cl.pill_placement(region.width, region.height, state.expanded, ui_scale(context))
+    return cl.pill_placement(region.width, region.height, state.expanded, ui_scale(context),
+                             offset=state.offset, width=state.width if state.expanded else None)
 
 
 def _redraw(context):
@@ -29,6 +30,25 @@ def _caret_index(context, state, layout, px):
     from .draw import caret_index_at, ui_scale
 
     return caret_index_at(px, layout.prompt_rect, state.field, ui_scale(context))
+
+
+def _cursor(context, name):
+    window = getattr(context, "window", None)
+    if window is None:
+        return
+    try:
+        if name is None:
+            window.cursor_modal_restore()
+        else:
+            window.cursor_modal_set(name)
+    except (AttributeError, TypeError, RuntimeError):
+        pass
+
+
+def _save_layout():
+    from . import save_layout
+
+    save_layout()
 
 
 class SCENARIO_OT_composer_modal(bpy.types.Operator):
@@ -63,8 +83,47 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
         if state is not None:
             state.hover = None
             state.dragging = False
+            if state.drag_mode is not None:
+                state.cancel_drag()
+                _cursor(context, None)
         _redraw(context)
         return {'FINISHED'}
+
+    # -- placement drags -------------------------------------------------------
+    def _drag_move(self, context, state, event):
+        """Mouse moved while the button is held on the card background, the pill or the grip."""
+        start = state.drag_start
+        dx = event.mouse_region_x - start["mouse"][0]
+        dy = event.mouse_region_y - start["mouse"][1]
+        scale = _layout(context, state).scale
+        if state.drag_mode == "pending":
+            if abs(dx) < cl.DRAG_THRESHOLD * scale and abs(dy) < cl.DRAG_THRESHOLD * scale:
+                return
+            state.drag_mode = "move"
+            _cursor(context, 'SCROLL_XY')
+        state.moved = True
+        region = context.region
+        if state.drag_mode == "move":
+            state.offset = (start["offset"][0] + dx, start["offset"][1] + dy)
+        elif state.drag_mode == "resize":
+            base = start["width"] or cl.CARD_WIDTH * scale
+            state.width = cl.clamp_width(base + dx, region.width, scale, expanded=True)
+        _redraw(context)
+
+    def _drag_release(self, context, state, scene):
+        kind, mode, moved = state.end_drag()
+        _cursor(context, None)
+        if mode in ("move", "resize") and moved:
+            # keep the placement inside the region as the layout clamps it, then remember it
+            layout = _layout(context, state)
+            base_x = (context.region.width - layout.pill_rect.w) / 2
+            base_y = cl.MARGIN * layout.scale
+            state.offset = (layout.pill_rect.x - base_x, layout.pill_rect.y - base_y)
+            _save_layout()
+        elif kind == "expand" and not moved:
+            state.expanded = True
+            state.sync_from_lane(scene)
+        _redraw(context)
 
     def modal(self, context, event):
         state = runtime.state.composer
@@ -72,6 +131,20 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
             return self._finish(context)
         scene = context.scene
         layout = _layout(context, state)
+        if state.drag_mode is not None:
+            if event.type == 'MOUSEMOVE':
+                state.mouse = (event.mouse_region_x, event.mouse_region_y)
+                self._drag_move(context, state, event)
+                return {'RUNNING_MODAL'}
+            if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+                self._drag_release(context, state, scene)
+                return {'RUNNING_MODAL'}
+            if event.type == 'ESC' and event.value == 'PRESS':
+                state.cancel_drag()
+                _cursor(context, None)
+                _redraw(context)
+                return {'RUNNING_MODAL'}
+            return {'RUNNING_MODAL'}
         if event.type == 'MOUSEMOVE':
             state.mouse = (event.mouse_region_x, event.mouse_region_y)
             if state.dragging and state.focused and layout.prompt_rect is not None:
@@ -99,6 +172,12 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
                 state.field.select_word_at(_caret_index(context, state, layout, event.mouse_region_x))
                 state.dragging = False
                 _redraw(context)
+            elif hit in (("drag",), ("resize",)):
+                # double-click on the card background puts the composer back at its default place and size
+                state.cancel_drag()
+                state.reset_layout()
+                _save_layout()
+                _redraw(context)
             return {'RUNNING_MODAL'}
         if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
             hit = layout.hit(event.mouse_region_x, event.mouse_region_y)
@@ -108,8 +187,16 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
                 return self._finish(context)
             kind = hit[0]
             if kind == "expand":
-                state.expanded = True
-                state.sync_from_lane(scene)
+                # a click expands the pill; a move beyond the threshold drags it instead (decided on release)
+                state.begin_drag((event.mouse_region_x, event.mouse_region_y), "expand")
+            elif kind == "drag":
+                if state.focused:
+                    state.focused = False
+                    state.commit_to_lane(scene)
+                state.begin_drag((event.mouse_region_x, event.mouse_region_y), "drag")
+            elif kind == "resize":
+                state.begin_drag((event.mouse_region_x, event.mouse_region_y), "resize")
+                _cursor(context, 'MOVE_X')
             elif kind == "collapse":
                 state.focused = False
                 state.commit_to_lane(scene)

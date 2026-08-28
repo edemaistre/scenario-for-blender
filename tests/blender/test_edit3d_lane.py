@@ -83,3 +83,32 @@ class Edit3DLaneTests(unittest.TestCase):
         self.assertEqual(catalog.mesh_param(rec("model_meshy-7-retexture")), "model")
         self.assertEqual(catalog.mesh_param(rec("model_tripo-retopology")), "model")
         self.assertIsNone(catalog.mesh_param(rec("model_meshy-7-txt23d")))
+
+
+class ResultObjectTagTests(unittest.TestCase):
+    def setUp(self):
+        reset_scene()
+        self.runtime = submodule("blender.runtime")
+        self.runtime.state.reset()
+
+    def test_imported_objects_carry_the_job_tag_and_can_be_selected_and_deleted(self):
+        mesh_export = submodule("blender.mesh_export")
+        apply_3d = submodule("blender.apply_3d")
+        records = submodule("core.jobs.records")
+        bpy.ops.mesh.primitive_cube_add(size=1.0)
+        cube = bpy.context.active_object
+        path = mesh_export.export_glb(bpy.context, [cube])
+        job = records.JobRecord.new(lane="3d", kind="3d", model_id="model_meshy-7-txt23d", body={}, meta={"prompt": "a crate"})
+        job.files = [path]
+        job.status = "success"
+        self.runtime.state.jobs_view.insert(0, job)
+        objects = apply_3d.on_3d_result(job)
+        self.assertTrue(objects)
+        self.assertEqual(sorted(o.name for o in apply_3d.objects_of_job(job.local_id)), sorted(o.name for o in objects))
+        for obj in objects:
+            obj.name = "renamed " + obj.name  # the tag survives renames
+        bpy.ops.scenario.select_result_objects(names="", local_id=job.local_id)
+        self.assertEqual(sorted(o.name for o in bpy.context.selected_objects), sorted(o.name for o in objects))
+        bpy.ops.scenario.delete_result_objects(names="", local_id=job.local_id)
+        self.assertEqual(apply_3d.objects_of_job(job.local_id), [])
+        self.assertIn(cube.name, bpy.data.objects)

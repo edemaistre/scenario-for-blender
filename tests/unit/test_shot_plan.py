@@ -230,3 +230,20 @@ def test_unknown_preset_falls_back_to_orbit():
 ])
 def test_plan_from_text(text, expected):
     assert sp.plan_from_text(text) == expected
+
+
+def test_is_closed_marker_waypoints_and_close_loop():
+    lo, hi = (-1.0, -1.0, 0.0), (1.0, 1.0, 2.0)
+    for name in sp.CLOSED_PRESETS:
+        assert sp.is_closed(name)
+        full = sp.preset_waypoints(name, lo, hi)
+        markers = sp.marker_waypoints(name, lo, hi)
+        assert len(markers) == len(full) - 1, name  # the closing duplicate is not a marker
+        assert sp.distance(markers[0].position, markers[-1].position) > 1e-6
+        closed = sp.close_loop(markers)
+        assert len(closed) == len(markers) + 1
+        assert closed[-1].position == closed[0].position and closed[-1].focal == closed[0].focal and closed[-1].hold == 0.0
+        assert sp.close_loop(closed) == closed  # already closed: nothing appended
+    assert not sp.is_closed("dolly_in") and not sp.is_closed("push_in")
+    assert len(sp.marker_waypoints("dolly_in", lo, hi)) == len(sp.preset_waypoints("dolly_in", lo, hi))
+    assert sp.close_loop([sp.Waypoint((0, 0, 0))]) == [sp.Waypoint((0, 0, 0))]

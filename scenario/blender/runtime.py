@@ -32,6 +32,7 @@ class RuntimeState:
         self.catalog_credentials = None
         self.account_label = ""
         self.last_message = ""
+        self.message_at = 0.0
         self.enum_cache = {}       # key -> list of (id, name, desc) tuples kept alive for EnumProperty
         self.previews = None       # bpy.utils.previews collection, created lazily
         self.jobs_view = []        # JobRecord list shown in the panel (active + recent)
@@ -123,9 +124,25 @@ def set_enum_items(key, items):
     state.enum_cache[key] = [tuple(item) for item in items] or [("NONE", "None available", "")]
 
 
+MESSAGE_TTL = 8.0  # seconds a status line stays on screen; older ones read as if they were current
+
+
 def set_message(text):
+    import time
+
     state.last_message = text
+    state.message_at = time.monotonic()
     log.info(text)
+
+
+def message_visible(ttl=MESSAGE_TTL):
+    """The last status line while it is fresh, else an empty string."""
+    import time
+
+    at = getattr(state, "message_at", 0.0)
+    if not state.last_message or not at or time.monotonic() - at > ttl:
+        return ""
+    return state.last_message
 
 
 def previews():

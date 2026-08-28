@@ -43,11 +43,29 @@ def _world_bbox(objects):
     return (tuple(min(p[i] for p in points) for i in range(3)), tuple(max(p[i] for p in points) for i in range(3)))
 
 
-def import_model(context, path, at_cursor=True, collection_name="Scenario"):
+JOB_TAG = "scenario_job"
+
+
+def tag_objects(objects, local_id):
+    """Stamp the objects with the job that created them, so Select and Delete find them after renames."""
+    for obj in objects:
+        try:
+            obj[JOB_TAG] = local_id
+        except (TypeError, AttributeError):
+            pass
+
+
+def objects_of_job(local_id):
+    return [o for o in bpy.data.objects if o.get(JOB_TAG) == local_id]
+
+
+def import_model(context, path, at_cursor=True, collection_name="Scenario", local_id=""):
     kind = placement.importer_for(path)
     before = set(bpy.data.objects.keys())
     _run_importer(kind, path)
     new_objects = [o for o in bpy.data.objects if o.name not in before]
+    if local_id:
+        tag_objects(new_objects, local_id)
     scene = context.scene
     coll = ensure_collection(scene, collection_name)
     for obj in new_objects:
@@ -110,7 +128,7 @@ def on_3d_result(rec):
         return []
     prompt = (rec.meta.get("prompt") or "").strip()
     source = bpy.data.objects.get(rec.meta.get("source_object") or "")
-    objects = import_model(bpy.context, primary, at_cursor=source is None)
+    objects = import_model(bpy.context, primary, at_cursor=source is None, local_id=rec.local_id)
     if source is not None:
         place_next_to(bpy.context, objects, source)
     meshes = [o for o in objects if o.type == 'MESH']

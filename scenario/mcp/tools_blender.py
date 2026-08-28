@@ -126,6 +126,8 @@ def camera_path(args):
     waypoints = args.get("waypoints") or []
     if waypoints:
         shot_planner.clear_markers(scene)
+        if hasattr(props, "closed_loop"):
+            props.closed_loop = bool(args.get("closed_loop", False))  # explicit waypoints are an open path unless asked
         for wp in waypoints:
             position = wp.get("position")
             if not position or len(position) != 3:

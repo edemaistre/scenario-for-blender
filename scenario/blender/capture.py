@@ -111,12 +111,57 @@ def _view3d(context):
     return None, None, None
 
 
+class _CameraView:
+    """Look through the scene camera in the active viewport for the duration of a capture, then restore the view.
+
+    `render.opengl(view_context=False)` renders with the scene's Workbench settings: flat grey whatever the viewport
+    shows, which is why "Camera clip" came out as clay even with Grey clay capture off. Capturing the viewport in
+    camera view keeps its shading (Material Preview, Rendered) and still frames exactly what the camera sees."""
+
+    def __init__(self, area):
+        self.space = area.spaces.active if area is not None else None
+        self.saved = None
+
+    def __enter__(self):
+        r3d = getattr(self.space, "region_3d", None)
+        if r3d is not None:
+            self.saved = (r3d.view_perspective, r3d.view_matrix.copy(), r3d.view_distance, r3d.view_location.copy(), r3d.view_rotation.copy(), getattr(r3d, "view_camera_zoom", 0.0), getattr(r3d, "view_camera_offset", (0.0, 0.0))[:])
+            r3d.view_perspective = 'CAMERA'
+            try:
+                r3d.view_camera_zoom = 29.0  # the camera frame fills the region; render.opengl crops to the camera anyway
+                r3d.view_camera_offset = (0.0, 0.0)
+            except (AttributeError, TypeError):
+                pass
+        return self
+
+    def __exit__(self, *exc):
+        r3d = getattr(self.space, "region_3d", None)
+        if r3d is not None and self.saved is not None:
+            perspective, matrix, distance, location, rotation, zoom, offset = self.saved
+            r3d.view_perspective = perspective
+            if perspective != 'CAMERA':
+                r3d.view_location = location
+                r3d.view_rotation = rotation
+                r3d.view_distance = distance
+            try:
+                r3d.view_camera_zoom = zoom
+                r3d.view_camera_offset = offset
+            except (AttributeError, TypeError):
+                pass
+        return False
+
+
 def _default_runner(kind, context, scene):
     window, area, region = _view3d(context)
     if window is None:
         raise RuntimeError("No 3D viewport available for the capture")
     with context.temp_override(window=window, area=area, region=region, scene=scene):
-        bpy.ops.render.opengl(animation=(kind == "animation"), view_context=_view_context["value"], write_still=(kind == "still"))
+        if _view_context["value"]:
+            bpy.ops.render.opengl(animation=(kind == "animation"), view_context=True, write_still=(kind == "still"))
+        else:
+            # camera source: capture through the viewport in camera view so materials and lighting come along
+            with _CameraView(area):
+                bpy.ops.render.opengl(animation=(kind == "animation"), view_context=True, write_still=(kind == "still"))
 
 
 class _Overlays:

@@ -4,10 +4,11 @@
 
 Markers are small camera objects named "Shot 1", "Shot 2"... in the "Scenario Shots" collection: the frustum shows
 where the shot looks and its lens IS the zoom level, so a marker selected in the viewport reads like a storyboard
-frame. The planner turns markers (or a preset around the subject) into a keyframed "Scenario Shot Camera" that
-the playblast then records. bpy only on the main thread; the maths live in core.scene.shot_plan."""
+frame. A move from the library places markers (editable like any object); Build camera path always keyframes the
+"Scenario Shot Camera" through the markers, closing the loop for orbits and ellipses. bpy only on the main thread;
+the maths live in core.scene.shot_plan."""
 import bpy
-from bpy.props import BoolProperty, EnumProperty, FloatProperty, PointerProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty
 from mathutils import Euler, Vector
 
 from ..core.scene import shot_plan
@@ -27,12 +28,16 @@ def _preset_items(self, context):
 
 
 class ScenarioShotProps(bpy.types.PropertyGroup):
-    preset: EnumProperty(name="Move", items=_preset_items, description="Camera move built around the subject when there are fewer than two markers")
-    duration: FloatProperty(name="Seconds", default=shot_plan.DEFAULT_DURATION, min=shot_plan.MIN_DURATION, max=shot_plan.MAX_DURATION, description="Length of the shot")
-    focal: FloatProperty(name="Lens", default=shot_plan.DEFAULT_FOCAL, min=8.0, max=400.0, subtype='NONE', description="Focal length in mm (the zoom level) for presets and new markers")
+    preset: EnumProperty(name="Move", items=_preset_items, description="Camera move from the library; Place markers turns it into editable Shot markers around the subject")
+    duration: FloatProperty(name="Duration (s)", default=shot_plan.DEFAULT_DURATION, min=shot_plan.MIN_DURATION, max=shot_plan.MAX_DURATION, description="Length of the shot in seconds; the frame range follows it")
+    focal: FloatProperty(name="Focal (mm)", default=shot_plan.DEFAULT_FOCAL, min=8.0, max=400.0, subtype='NONE', description="Focal length in mm (the zoom level) for placed markers and new markers")
+    start_frame: IntProperty(name="Start frame", default=1, min=0, description="First frame of the shot; the scene frame range starts here")
     aim_at_subject: BoolProperty(name="Aim at subject", default=True, description="Keep the camera pointed at the subject along the whole path")
+    closed_loop: BoolProperty(name="Closed loop", default=False, description="End the path exactly where it starts (set automatically for orbits and ellipses)")
     description: StringProperty(name="Shot", description="Describe the shot: slow orbit, ellipse 2, dolly in closer, truck left, crane up, top down, zoom in, 8s, 50mm...")
     use_selection: BoolProperty(name="Frame selection", default=False, description="Frame the selected objects instead of every visible mesh")
+    markers_source: StringProperty(description="The move the markers were placed from, or 'markers' when placed by hand")
+    previous_camera: StringProperty(description="The scene camera before the shot camera took over, restored by Clear path")
 
 
 # -- scene helpers -------------------------------------------------------------
@@ -93,7 +98,8 @@ def _look_at_euler(position, target):
     return direction.to_track_quat('-Z', 'Y').to_euler()
 
 
-def add_marker(context, location, rotation=None, focal=None, hold=0.0):
+def add_marker(context, location, rotation=None, focal=None, hold=0.0, look_at=None):
+    """Add the next numbered marker. A hand-placed marker (no `look_at`) marks the set as custom."""
     scene = context.scene
     props = scene.scenario_shot
     coll = shots_collection(scene)
@@ -103,13 +109,18 @@ def add_marker(context, location, rotation=None, focal=None, hold=0.0):
     cam_data.display_size = 0.35
     marker = bpy.data.objects.new(f"{MARKER_PREFIX}{index}", cam_data)
     marker.location = Vector(location)
-    marker.rotation_euler = Euler(rotation) if rotation is not None else _look_at_euler(location, subject_centre(context, props.use_selection))
+    if rotation is not None:
+        marker.rotation_euler = Euler(rotation)
+    else:
+        marker.rotation_euler = _look_at_euler(location, look_at if look_at is not None else subject_centre(context, props.use_selection))
     marker.show_name = True
     marker.hide_render = True
     marker[PROP_INDEX] = index
     marker[PROP_FOCAL] = float(cam_data.lens)
     marker[PROP_HOLD] = float(hold)
     coll.objects.link(marker)
+    if look_at is None:
+        props.markers_source = "markers"
     return marker
 
 
@@ -131,6 +142,26 @@ def remove_marker(marker):
 def clear_markers(scene):
     for marker in marker_objects(scene):
         remove_marker(marker)
+    scene.scenario_shot.markers_source = ""
+
+
+def place_markers(context):
+    """Replace the markers by the chosen move around the subject: one editable Shot marker per waypoint.
+
+    Closed moves keep their loop through the `closed_loop` flag instead of a duplicate marker."""
+    scene = context.scene
+    props = scene.scenario_shot
+    preset = shot_plan.resolve_preset(props.preset)
+    clear_markers(scene)
+    bbox = subject_bbox(context, props.use_selection)
+    centre = tuple((a + b) / 2.0 for a, b in zip(*bbox))
+    markers = []
+    for wp in shot_plan.marker_waypoints(preset, bbox[0], bbox[1], props.focal):
+        markers.append(add_marker(context, wp.position, focal=wp.focal, hold=wp.hold, look_at=wp.look_at or centre))
+    props.closed_loop = shot_plan.is_closed(preset)
+    props.markers_source = preset
+    context.view_layer.update()  # matrix_world of the new markers is identity until the depsgraph runs
+    return markers
 
 
 def _view3d(context):
@@ -214,19 +245,35 @@ def _smooth(datablock):
             key.easing = 'AUTO'
 
 
-def build_path(context):
-    """Keyframe the shot camera from the markers (2 or more) or from the preset around the subject.
-
-    Returns (camera, keyframe_count, last_frame)."""
-    scene = context.scene
+def frame_range(scene):
+    """(start, end, fps) the shot settings imply: `duration` seconds from `start_frame` at the scene fps."""
     props = scene.scenario_shot
     fps = scene.render.fps / (scene.render.fps_base or 1.0)
+    total = max(2, int(round(props.duration * fps)))
+    start = int(props.start_frame)
+    return start, start + total - 1, fps
+
+
+def build_path(context):
+    """Keyframe the shot camera through the markers (placed first from the move when there are fewer than two),
+    closing the loop when `closed_loop` is on. Returns (camera, keyframe_count, last_frame)."""
+    scene = context.scene
+    props = scene.scenario_shot
+    markers = marker_objects(scene)
+    if len(markers) < 2:
+        markers = place_markers(context)
+    renumber_markers(scene)
+    context.view_layer.update()  # markers moved by hand or just placed: read their world matrices after the depsgraph ran
     bbox = subject_bbox(context, props.use_selection)
     centre = tuple((a + b) / 2.0 for a, b in zip(*bbox))
-    markers = marker_objects(scene)
-    from_markers = len(markers) >= 2
-    waypoints = waypoints_from_markers(markers) if from_markers else shot_plan.preset_waypoints(props.preset, bbox[0], bbox[1], props.focal)
-    schedule = shot_plan.frame_schedule(waypoints, props.duration, fps)
+    waypoints = waypoints_from_markers(markers)
+    if props.closed_loop:
+        waypoints = shot_plan.close_loop(waypoints)
+    start, end, fps = frame_range(scene)
+    schedule = [(frame + start - 1, index) for frame, index in shot_plan.frame_schedule(waypoints, props.duration, fps)]
+    current = scene.camera
+    if current is not None and current.name != CAMERA_NAME:
+        props.previous_camera = current.name
     cam = _ensure_camera(scene)
     aim = bool(props.aim_at_subject)
     focals = {round(wp.focal, 3) for wp in waypoints}
@@ -254,21 +301,67 @@ def build_path(context):
         _remove_target()
     _smooth(cam)
     _smooth(cam.data)
-    last_frame = schedule[-1][0] if schedule else 1
-    cam["scenario_shot_frames"] = int(last_frame)
-    cam["scenario_shot_source"] = "markers" if from_markers else props.preset
+    last_frame = schedule[-1][0] if schedule else end
+    cam["scenario_shot_frames"] = int(last_frame - start + 1)
+    cam["scenario_shot_source"] = props.markers_source or "markers"
     scene.camera = cam
-    scene.frame_start = 1
+    scene.frame_start = start
     scene.frame_end = int(last_frame)
     scene.use_preview_range = False
-    scene.frame_set(1)
+    scene.frame_set(start)
     return cam, len(schedule), int(last_frame)
+
+
+def clear_path(context):
+    """Remove the shot camera, its target and every marker; give the scene its previous camera back."""
+    scene = context.scene
+    props = scene.scenario_shot
+    clear_markers(scene)
+    _remove_target()
+    cam = shot_camera(scene)
+    if cam is not None:
+        data = cam.data
+        bpy.data.objects.remove(cam, do_unlink=True)
+        if data is not None and data.users == 0:
+            bpy.data.cameras.remove(data)
+    previous = bpy.data.objects.get(props.previous_camera) if props.previous_camera else None
+    if previous is not None and previous.type == 'CAMERA':
+        scene.camera = previous
+    elif scene.camera is None:
+        scene.camera = next((o for o in scene.objects if o.type == 'CAMERA'), None)
+    props.previous_camera = ""
+    coll = bpy.data.collections.get(SHOTS_COLLECTION)
+    if coll is not None and not coll.objects:
+        bpy.data.collections.remove(coll)
+
+
+def path_summary(scene):
+    """'Scenario Shot Camera, 12 markers' or '' when nothing has been built or placed."""
+    cam = shot_camera(scene)
+    count = len(marker_objects(scene))
+    if cam is None and count == 0:
+        return ""
+    parts = [cam.name] if cam is not None else []
+    if count:
+        parts.append(f"{count} marker{'s' if count != 1 else ''}")
+    return ", ".join(parts)
 
 
 # -- operators -----------------------------------------------------------------
 
 def _object_mode(context):
     return context.mode == 'OBJECT'
+
+
+def _confirm(operator, context, event, message):
+    """Ask before erasing; in --background (no window) the operator simply runs."""
+    if bpy.app.background or event is None or context.window is None:
+        return operator.execute(context)
+    wm = context.window_manager
+    try:
+        return wm.invoke_confirm(operator, event, message=message, title="Scenario camera path", confirm_text="Replace")
+    except TypeError:  # Blender < 4.1 has no message/title arguments
+        return wm.invoke_confirm(operator, event)
 
 
 class SCENARIO_OT_shot_add_marker(bpy.types.Operator):
@@ -317,6 +410,7 @@ class SCENARIO_OT_shot_add_marker_from_view(bpy.types.Operator):
 class SCENARIO_OT_shot_remove_last_marker(bpy.types.Operator):
     bl_idname = "scenario.shot_remove_last_marker"
     bl_label = "Remove last shot marker"
+    bl_description = "Remove the marker with the highest number"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -339,6 +433,9 @@ class SCENARIO_OT_shot_clear_markers(bpy.types.Operator):
     def poll(cls, context):
         return _object_mode(context) and bool(marker_objects(context.scene))
 
+    def invoke(self, context, event):
+        return _confirm(self, context, event, f"Remove the {len(marker_objects(context.scene))} shot markers?")
+
     def execute(self, context):
         clear_markers(context.scene)
         return {'FINISHED'}
@@ -359,19 +456,67 @@ class SCENARIO_OT_shot_renumber(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SCENARIO_OT_shot_build_path(bpy.types.Operator):
-    bl_idname = "scenario.shot_build_path"
-    bl_label = "Build camera path"
-    bl_description = "Keyframe the shot camera through the markers (or the chosen move around the subject) and make it the scene camera"
+class SCENARIO_OT_shot_place_markers(bpy.types.Operator):
+    bl_idname = "scenario.shot_place_markers"
+    bl_label = "Place markers"
+    bl_description = "Replace the markers by the chosen move around the subject, one editable Shot marker per waypoint; move or renumber them, then build"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
         return _object_mode(context)
 
+    def invoke(self, context, event):
+        existing = path_summary(context.scene)
+        if existing:
+            return _confirm(self, context, event, f"Replace the existing markers ({existing})?")
+        return self.execute(context)
+
+    def execute(self, context):
+        markers = place_markers(context)
+        props = context.scene.scenario_shot
+        label = shot_plan.PRESETS[shot_plan.resolve_preset(props.preset)][0]
+        self.report({'INFO'}, f"{label}: {len(markers)} markers placed" + (" (closed loop)" if props.closed_loop else ""))
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_shot_build_path(bpy.types.Operator):
+    bl_idname = "scenario.shot_build_path"
+    bl_label = "Build camera path"
+    bl_description = "Keyframe the shot camera through the markers (placed from the move when there are fewer than two), set the frame range and make it the scene camera"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return _object_mode(context)
+
+    def invoke(self, context, event):
+        if shot_camera(context.scene) is not None:
+            return _confirm(self, context, event, f"Replace the existing camera path ({path_summary(context.scene)})?")
+        return self.execute(context)
+
     def execute(self, context):
         cam, keys, last = build_path(context)
-        self.report({'INFO'}, f"{cam.name}: {keys} keyframes over {last} frames")
+        self.report({'INFO'}, f"{cam.name}: {keys} keyframes, frames {context.scene.frame_start} to {last}")
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_shot_clear_path(bpy.types.Operator):
+    bl_idname = "scenario.shot_clear_path"
+    bl_label = "Clear path"
+    bl_description = "Delete the shot camera, its target and every marker, and give the scene its previous camera back"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        return _object_mode(context) and bool(path_summary(context.scene))
+
+    def invoke(self, context, event):
+        return _confirm(self, context, event, f"Delete the camera path ({path_summary(context.scene)})?")
+
+    def execute(self, context):
+        clear_path(context)
+        self.report({'INFO'}, "Camera path removed")
         return {'FINISHED'}
 
 
@@ -402,20 +547,27 @@ class SCENARIO_OT_shot_preview(bpy.types.Operator):
 class SCENARIO_OT_shot_from_description(bpy.types.Operator):
     bl_idname = "scenario.shot_from_description"
     bl_label = "Plan"
-    bl_description = "Read the shot description (move, seconds, lens) into the settings and build the camera path"
+    bl_description = "Read the shot description (move, seconds, lens) into the settings, place the markers and build the camera path"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
         return _object_mode(context)
 
+    def invoke(self, context, event):
+        existing = path_summary(context.scene)
+        if existing:
+            return _confirm(self, context, event, f"Replace the existing camera path ({existing})?")
+        return self.execute(context)
+
     def execute(self, context):
         props = context.scene.scenario_shot
         plan = shot_plan.plan_from_text(props.description)
         props.preset, props.duration, props.focal = plan["preset"], plan["duration"], plan["focal"]
+        place_markers(context)
         cam, keys, last = build_path(context)
         label = shot_plan.PRESETS[shot_plan.resolve_preset(plan["preset"])][0]
-        self.report({'INFO'}, f"{label}, {plan['duration']:g} s at {plan['focal']:g} mm: {keys} keyframes over {last} frames")
+        self.report({'INFO'}, f"{label}, {plan['duration']:g} s at {plan['focal']:g} mm: {keys} keyframes, frames {context.scene.frame_start} to {last}")
         return {'FINISHED'}
 
 
@@ -431,32 +583,46 @@ def draw_shot_planner(layout, context):
     row.operator(SCENARIO_OT_shot_from_description.bl_idname, text="Plan", icon='OUTLINER_OB_CAMERA')
     row = box.row(align=True)
     row.prop(props, "preset", text="")
-    row.prop(props, "duration", text="s")
-    row.prop(props, "focal", text="mm")
+    row.operator(SCENARIO_OT_shot_place_markers.bl_idname, text="Place markers", icon='PINNED')
+    col = box.column(align=True)
+    col.prop(props, "duration")
+    col.prop(props, "focal")
+    col.prop(props, "start_frame")
+    start, end, fps = frame_range(scene)
+    box.label(text=f"Frames {start} to {end} at {fps:g} fps", icon='TIME')
     row = box.row(align=True)
     row.prop(props, "aim_at_subject")
     row.prop(props, "use_selection")
+    row.prop(props, "closed_loop")
     markers = marker_objects(scene)
     row = box.row(align=True)
     row.label(text=f"Markers  {len(markers)}", icon='PINNED')
     row.operator(SCENARIO_OT_shot_add_marker.bl_idname, text="At cursor", icon='ADD')
     row.operator(SCENARIO_OT_shot_add_marker_from_view.bl_idname, text="From view", icon='VIEW_CAMERA')
+    row.operator(SCENARIO_OT_shot_remove_last_marker.bl_idname, text="", icon='REMOVE')
     row.operator(SCENARIO_OT_shot_clear_markers.bl_idname, text="", icon='X')
     if markers and len(markers) < 2:
-        box.label(text="Add a second marker for a marker path, or use the move above", icon='INFO')
+        box.label(text="Add a second marker, or Place markers from the move above", icon='INFO')
+    elif not markers:
+        box.label(text="Build places the markers of the move first; edit them, then build again", icon='INFO')
     row = box.row(align=True)
     row.scale_y = 1.3
-    row.operator(SCENARIO_OT_shot_build_path.bl_idname, text="Build camera path" if len(markers) >= 2 else f"Build {shot_plan.PRESETS[shot_plan.resolve_preset(props.preset)][0].lower()} path", icon='ANIM')
+    row.operator(SCENARIO_OT_shot_build_path.bl_idname, text="Build camera path", icon='ANIM')
     row.operator(SCENARIO_OT_shot_preview.bl_idname, text="", icon='PLAY')
     cam = shot_camera(scene)
+    if cam is not None or markers:
+        row = box.row(align=True)
+        row.operator(SCENARIO_OT_shot_clear_path.bl_idname, text="Clear path", icon='TRASH')
     if cam is not None:
-        frames = int(cam.get("scenario_shot_frames", scene.frame_end))
-        box.label(text=f"Camera: {cam.name}, {frames} frames", icon='CHECKMARK')
+        frames = int(cam.get("scenario_shot_frames", scene.frame_end - scene.frame_start + 1))
+        source = str(cam.get("scenario_shot_source", "markers"))
+        label = shot_plan.PRESETS[source][0] if source in shot_plan.PRESETS else "markers"
+        box.label(text=f"{cam.name}: {frames} frames from {label}" + (", closed loop" if props.closed_loop else ""), icon='CHECKMARK')
 
 
 CLASSES = (ScenarioShotProps, SCENARIO_OT_shot_add_marker, SCENARIO_OT_shot_add_marker_from_view, SCENARIO_OT_shot_remove_last_marker,
-           SCENARIO_OT_shot_clear_markers, SCENARIO_OT_shot_renumber, SCENARIO_OT_shot_build_path, SCENARIO_OT_shot_preview,
-           SCENARIO_OT_shot_from_description)
+           SCENARIO_OT_shot_clear_markers, SCENARIO_OT_shot_renumber, SCENARIO_OT_shot_place_markers, SCENARIO_OT_shot_build_path,
+           SCENARIO_OT_shot_clear_path, SCENARIO_OT_shot_preview, SCENARIO_OT_shot_from_description)
 
 
 def register():

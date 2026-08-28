@@ -1,10 +1,13 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Prompt tools next to every prompt field: Spark (write), Rewrite, Translate.
+"""Prompt tools next to every prompt field, like the Scenario web app: a dice (generate a new prompt), sparkles
+(rewrite your prompt), translate (to English).
 
-Spark and Rewrite call Prompt Spark in model-contextual mode (3.75 CU); Translate uses the Scenario LLM (0.5 CU).
-The API call runs on a worker thread through the job manager; the result comes back as a ("prompt", payload) event
-that the pump hands to `on_prompt_event`, which writes the text into the lane's prompt."""
+Generate and Rewrite call Prompt Spark with the lane's model (model-contextual when the model supports it, up to
+3.75 CU, otherwise the generic 0.75 CU answer). When Prompt Spark answers with nothing usable (some models return
+`asset_` ids that resolve to no text), the Scenario LLM writes the prompt instead (0.5 CU). Translate always uses the
+Scenario LLM. The API call runs on a worker thread through the job manager; the result comes back as a
+("prompt", payload) event that the pump hands to `on_prompt_event`, which writes the text into the lane's prompt."""
 import logging
 
 import bpy
@@ -19,15 +22,26 @@ log = logging.getLogger("scenario.prompt_tools")
 
 SPARK_COST = 3.75
 TRANSLATE_COST = 0.5
+# Blender appends the final period to descriptions itself, hence none at the end.
+TOOLTIP_GENERATE = f"Generate a new prompt. Prompt Spark, up to {SPARK_COST:g} CU"
+TOOLTIP_REWRITE = f"Rewrite your prompt. Prompt Spark, up to {SPARK_COST:g} CU"
+TOOLTIP_TRANSLATE = f"Translate to English. Scenario LLM, {TRANSLATE_COST:g} CU"
 MODE_ITEMS = [
-    ('GENERATE', "Write", f"Prompt Spark writes a prompt for this model, from your text when there is one ({SPARK_COST:g} CU)"),
-    ('REWRITE', "Rewrite", f"Prompt Spark rewrites your prompt for this model ({SPARK_COST:g} CU)"),
+    ('GENERATE', "Generate a new prompt", TOOLTIP_GENERATE),
+    ('REWRITE', "Rewrite your prompt", TOOLTIP_REWRITE),
 ]
 MESSAGES = {
     'GENERATE': "Prompt written by Prompt Spark",
     'REWRITE': "Prompt rewritten by Prompt Spark",
     'TRANSLATE': "Prompt translated to English",
 }
+LLM_FALLBACK_MESSAGE = "Prompt written by the Scenario LLM (Prompt Spark had no answer for this model)"
+LLM_GENERATE = ("Write one generation prompt for the AI model \"{name}\"{about}. {intent}"
+                "Describe the subject, the style, the materials, the lighting and the composition the way that model expects. "
+                "One paragraph, no title, no preamble, no quotes: return only the prompt.")
+LLM_REWRITE = ("Rewrite the user's prompt for the AI model \"{name}\"{about}. Keep the subject and the intent, make it precise "
+               "and complete for that model (style, materials, lighting, composition), remove filler. "
+               "One paragraph, no title, no preamble, no quotes: return only the rewritten prompt.")
 
 
 def _poll(context):
@@ -43,6 +57,29 @@ def _lane_states(lane):
             yield lane_state
 
 
+def _model_context(model_id):
+    """Name and short description of the lane's model, read on the main thread for the LLM fallback."""
+    record = runtime.state.records.get(model_id) if model_id else None
+    if record is None:
+        return model_id or "the selected model", ""
+    about = f" ({record.short_description.strip()})" if record.short_description else ""
+    return record.name, about
+
+
+def fallback_instruction(mode, model_name, about, intent):
+    """The Scenario LLM instruction used when Prompt Spark has no usable answer."""
+    if mode == 'REWRITE':
+        return LLM_REWRITE.format(name=model_name, about=about)
+    wish = f"The user's idea: {intent.strip()}. " if intent and intent.strip() else ""
+    return LLM_GENERATE.format(name=model_name, about=about, intent=wish)
+
+
+def usable_text(text):
+    """A prompt we accept into the field: non-empty and never an `asset_` id."""
+    text = (text or "").strip()
+    return text if text and not spark_api.is_asset_ref(text) else ""
+
+
 def _start(context, lane, worker, message):
     """Resolve the client on the main thread, then run `worker(manager, client)` on a job-manager thread."""
     lane_state = context.scene.scenario.lane_state(lane)
@@ -56,20 +93,40 @@ def _start(context, lane, worker, message):
 
 def on_prompt_event(payload):
     """Write a prompt produced off-thread into every scene's lane state (main thread, called by the pump)."""
-    lane, text = payload.get("lane"), (payload.get("text") or "").strip()
+    lane, text = payload.get("lane"), usable_text(payload.get("text"))
     if not lane or not text:
         return
     for lane_state in _lane_states(lane):
         lane_state.prompt = text
-    runtime.set_message(MESSAGES.get(payload.get("mode"), "Prompt updated"))
+    if payload.get("source") == "llm" and payload.get("mode") != 'TRANSLATE':
+        runtime.set_message(LLM_FALLBACK_MESSAGE)
+    else:
+        runtime.set_message(MESSAGES.get(payload.get("mode"), "Prompt updated"))
+
+
+def spark_or_llm(client, mode, intent, model_id, instruction):
+    """Prompt Spark first; the Scenario LLM when Spark has nothing usable. Returns (text, source). Raises on total failure."""
+    try:
+        prompts = spark_api.spark(client, prompt=intent, model_id=model_id, num_results=1)
+        text = usable_text(prompts[0])
+        if text:
+            return text, "spark"
+        spark_error = ValueError(spark_api.NO_PROMPT)
+    except (ScenarioError, ValueError) as err:
+        spark_error = err
+    log.info("Prompt Spark gave nothing usable (%s); asking the Scenario LLM", getattr(spark_error, "reason", spark_error))
+    text = usable_text(llm.run_text(client, instruction, text_inputs=[intent] if intent else ()))
+    if not text:
+        raise ValueError("The Scenario LLM returned no usable prompt")
+    return text, "llm"
 
 
 class SCENARIO_OT_prompt_spark(bpy.types.Operator):
     bl_idname = "scenario.prompt_spark"
     bl_label = "Prompt Spark"
-    bl_description = f"Prompt Spark writes or rewrites the prompt for the selected model ({SPARK_COST:g} CU)"
-    lane: StringProperty(default="image")
-    mode: EnumProperty(items=MODE_ITEMS, default='GENERATE')
+    bl_description = TOOLTIP_GENERATE
+    lane: StringProperty(default="image", description="Lane whose prompt is written")
+    mode: EnumProperty(items=MODE_ITEMS, default='GENERATE', description="Write a new prompt or rewrite the current one")
 
     @classmethod
     def poll(cls, context):
@@ -91,14 +148,16 @@ class SCENARIO_OT_prompt_spark(bpy.types.Operator):
         model_id = lane_state.model_id if lane_state.model_id and lane_state.model_id != "NONE" else None
         lane, mode = self.lane, self.mode
         intent = prompt or None
+        model_name, about = _model_context(model_id)
+        instruction = fallback_instruction(mode, model_name, about, intent)
 
         def worker(manager, client):
             try:
-                prompts = spark_api.spark(client, prompt=intent, model_id=model_id, num_results=1)
+                text, source = spark_or_llm(client, mode, intent, model_id, instruction)
             except (ScenarioError, ValueError) as err:
                 manager.events.put(("error", f"Prompt Spark failed: {getattr(err, 'reason', err)}"))
                 return
-            manager.events.put(("prompt", {"lane": lane, "text": prompts[0], "mode": mode}))
+            manager.events.put(("prompt", {"lane": lane, "text": text, "mode": mode, "source": source}))
 
         try:
             _start(context, lane, worker, "Prompt Spark is writing..." if mode == 'GENERATE' else "Prompt Spark is rewriting...")
@@ -110,9 +169,9 @@ class SCENARIO_OT_prompt_spark(bpy.types.Operator):
 
 class SCENARIO_OT_prompt_translate(bpy.types.Operator):
     bl_idname = "scenario.prompt_translate"
-    bl_label = "Translate prompt"
-    bl_description = f"Translate the prompt to English with the Scenario LLM ({TRANSLATE_COST:g} CU)"
-    lane: StringProperty(default="image")
+    bl_label = "Translate to English"
+    bl_description = TOOLTIP_TRANSLATE
+    lane: StringProperty(default="image", description="Lane whose prompt is translated")
 
     @classmethod
     def poll(cls, context):
@@ -131,11 +190,13 @@ class SCENARIO_OT_prompt_translate(bpy.types.Operator):
 
         def worker(manager, client):
             try:
-                text = llm.translate(client, prompt)
+                text = usable_text(llm.translate(client, prompt))
+                if not text:
+                    raise ValueError("The Scenario LLM returned no translation")
             except (ScenarioError, ValueError) as err:
                 manager.events.put(("error", f"Translation failed: {getattr(err, 'reason', err)}"))
                 return
-            manager.events.put(("prompt", {"lane": lane, "text": text, "mode": 'TRANSLATE'}))
+            manager.events.put(("prompt", {"lane": lane, "text": text, "mode": 'TRANSLATE', "source": "llm"}))
 
         try:
             _start(context, lane, worker, "Translating the prompt...")
@@ -145,21 +206,31 @@ class SCENARIO_OT_prompt_translate(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def _icon_kwargs(name):
+    try:
+        from . import icons
+
+        return icons.kwargs(name)
+    except ImportError:
+        return {"icon": {"dice": 'LIGHT_SUN', "sparkles": 'FILE_REFRESH', "translate": 'WORLD_DATA'}.get(name, 'QUESTION')}
+
+
 def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
-    """The prompt field with its pencil and the three prompt tools. Rewrite and Translate need a prompt to work on."""
+    """The prompt field with its pencil and the three prompt tools (dice, sparkles, translate).
+    Rewrite and Translate need a prompt to work on."""
     row = layout.row(align=True)
     if placeholder:
         row.prop(lane_state, "prompt", text=text, placeholder=placeholder)
     else:
         row.prop(lane_state, "prompt", text=text)
     row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
-    op = row.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", icon='LIGHT_SUN')
+    op = row.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", **_icon_kwargs("dice"))
     op.lane, op.mode = lane, 'GENERATE'
     sub = row.row(align=True)
     sub.enabled = bool(lane_state.prompt.strip())
-    op = sub.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", icon='FILE_REFRESH')
+    op = sub.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", **_icon_kwargs("sparkles"))
     op.lane, op.mode = lane, 'REWRITE'
-    sub.operator(SCENARIO_OT_prompt_translate.bl_idname, text="", icon='WORLD_DATA').lane = lane
+    sub.operator(SCENARIO_OT_prompt_translate.bl_idname, text="", **_icon_kwargs("translate")).lane = lane
     return row
 
 

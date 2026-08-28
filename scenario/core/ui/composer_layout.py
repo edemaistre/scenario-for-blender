@@ -8,6 +8,7 @@ PILL_WIDTH, PILL_HEIGHT = 320, 44
 CARD_WIDTH, CARD_HEIGHT = 820, 150
 TAB_HEIGHT, ROW_GAP, PAD = 24, 8, 12
 GENERATE_WIDTH, MODEL_WIDTH, COLLAPSE_SIZE, SETTINGS_WIDTH = 190, 200, 20, 84
+RESIZE_SIZE, MIN_CARD_WIDTH, MIN_PILL_WIDTH, MIN_VISIBLE, DRAG_THRESHOLD = 16, 420, 200, 40, 4
 LANE_ORDER = ("image", "video", "3d", "material", "render_image", "render_video")
 LANE_LABELS = {"image": "Image", "video": "Video", "3d": "3D", "material": "Materials", "render_image": "Render Image", "render_video": "Render Video"}
 PLACEHOLDERS = {"image": "Describe the image to generate", "video": "Describe the video, or capture the timeline", "3d": "Describe the object",
@@ -208,12 +209,16 @@ class Layout:
     generate_rect: Rect = None
     collapse_rect: Rect = None
     settings_rect: Rect = None
+    resize_rect: Rect = None
 
     def hit(self, px, py):
+        """What the pointer is on. `expand` (collapsed pill), `resize` (corner grip), `drag` (empty card area) or a control."""
         if not self.expanded:
             return ("expand",) if self.pill_rect.contains(px, py) else None
         if self.card_rect is None or not self.card_rect.contains(px, py):
             return None
+        if self.resize_rect is not None and self.resize_rect.contains(px, py):
+            return ("resize",)
         if self.collapse_rect.contains(px, py):
             return ("collapse",)
         for lane, rect in self.tab_rects.items():
@@ -227,19 +232,54 @@ class Layout:
             return ("model",)
         if self.settings_rect is not None and self.settings_rect.contains(px, py):
             return ("settings",)
-        return ("card",)
+        return ("drag",)
 
 
-def pill_placement(region_w, region_h, expanded, scale=1.0):
+def _clamp(value, lo, hi):
+    if hi < lo:
+        hi = lo
+    return max(lo, min(hi, value))
+
+
+def clamp_width(width, region_w, scale=1.0, expanded=True):
+    """A card or pill width that fits the region: never narrower than the minimum, never wider than the region minus margins."""
     s = float(scale or 1.0)
     margin = MARGIN * s
+    minimum = (MIN_CARD_WIDTH if expanded else MIN_PILL_WIDTH) * s
+    maximum = max(minimum, region_w - 2 * margin)
+    return _clamp(float(width), minimum, maximum)
+
+
+def clamp_offset(offset, size, region_w, region_h, scale=1.0):
+    """Keep at least MIN_VISIBLE px of a `size`-wide/high box inside the region, given its default bottom-centre position."""
+    s = float(scale or 1.0)
+    w, h = size
+    margin = MARGIN * s
+    keep = MIN_VISIBLE * s
+    base_x, base_y = (region_w - w) / 2, margin
+    ox, oy = offset
+    x = _clamp(base_x + ox, keep - w, region_w - keep)
+    y = _clamp(base_y + oy, keep - h, region_h - keep)
+    return (x - base_x, y - base_y)
+
+
+def pill_placement(region_w, region_h, expanded, scale=1.0, offset=(0.0, 0.0), width=None):
+    """Geometry of the composer. `offset` moves it from its default bottom-centre spot (region pixels), `width`
+    overrides the card (expanded) or pill (collapsed) width; both are clamped so the composer stays reachable."""
+    s = float(scale or 1.0)
+    margin = MARGIN * s
+    offset = tuple(offset or (0.0, 0.0))
     if not expanded:
-        w, h = PILL_WIDTH * s, PILL_HEIGHT * s
-        w = min(w, region_w - 2 * margin)
-        return Layout(False, s, Rect((region_w - w) / 2, margin, w, h))
-    w = min(CARD_WIDTH * s, region_w - 2 * margin)
+        w = clamp_width(width if width else PILL_WIDTH * s, region_w, s, expanded=False)
+        w = min(w, max(MIN_PILL_WIDTH * s, region_w - 2 * margin))
+        h = PILL_HEIGHT * s
+        ox, oy = clamp_offset(offset, (w, h), region_w, region_h, s)
+        return Layout(False, s, Rect((region_w - w) / 2 + ox, margin + oy, w, h))
+    w = clamp_width(width if width else CARD_WIDTH * s, region_w, s, expanded=True)
+    w = min(w, max(MIN_CARD_WIDTH * s, region_w - 2 * margin))
     h = min(CARD_HEIGHT * s, region_h - 2 * margin)
-    x, y = (region_w - w) / 2, margin
+    ox, oy = clamp_offset(offset, (w, h), region_w, region_h, s)
+    x, y = (region_w - w) / 2 + ox, margin + oy
     card = Rect(x, y, w, h)
     pad, gap = PAD * s, ROW_GAP * s
     tab_h = TAB_HEIGHT * s
@@ -264,4 +304,6 @@ def pill_placement(region_w, region_h, expanded, scale=1.0):
     room = generate.x - gap - (model.right + gap)
     if room >= 40 * s:
         settings = Rect(model.right + gap, bottom_y, min(SETTINGS_WIDTH * s, room), row_h)
-    return Layout(True, s, Rect(x, y, w, h), card, tab_rects, prompt, model, generate, collapse, settings)
+    grip = RESIZE_SIZE * s
+    resize = Rect(card.right - grip, card.y, grip, grip)  # bottom-right corner
+    return Layout(True, s, Rect(x, y, w, h), card, tab_rects, prompt, model, generate, collapse, settings, resize)

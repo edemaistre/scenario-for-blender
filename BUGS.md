@@ -25,3 +25,9 @@ Added with 0.7.0 (2026-08-29):
 - **Prompt tools price**: Spark and Rewrite use Prompt Spark's model-contextual mode (3.75 CU per click); the Render lanes' empty-look path stays on the generic mode (0.75 CU). A preference could let the user pick.
 - **Video-to-motion, speech-to-text and the standalone Scenario LLM have no lane** (Cartwheel / Uthana video to motion take a video and return FBX motion; a "Motion" mode under 3D is the natural home).
 - **Model categories come from tags and names**; a third-party model with no category tag falls into Generate. The mapping lives in `core/api/model_filter.py` and should be checked when the catalog adds a category.
+
+Added with 0.8.0 (2026-08-29):
+
+- **Native dialogs and the sidebar cannot take the composer's look**: Blender draws them with the user's theme (colours, corner radius, fonts). The composer is custom gpu/blf drawing. Layouts were aligned (tabs, chips, header rows); colours will differ unless the user picks a matching Blender theme. A fully custom picker would mean re-implementing list scrolling, search and thumbnails in gpu/blf.
+- **Prompt Spark for 3D models** answers with placeholder ids (`asset_cuteLowPolyRobot`) instead of text; the LLM fallback covers it, so Spark and Rewrite on Meshy-style models cost 0.75 + 0.5 CU.
+- **Capture fps** is the scene fps; there is no separate capture frame rate yet (the box shows the fps used).

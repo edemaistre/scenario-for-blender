@@ -218,10 +218,16 @@ def draw_render_video_lane(layout, context):
     row = box.row(align=True)
     row.prop(lane_state, "capture_source", expand=True)
     start, end, seconds = _clip_info(scene)
-    box.label(text=f"Frames {start} to {end}: {seconds:.1f} s at 1280x720")
+    fps = scene.render.fps / (scene.render.fps_base or 1.0)
+    box.label(text=f"Frames {start} to {end}: {seconds:.1f} s at {fps:g} fps, 1280x720")
     row = box.row(align=True)
     row.prop(lane_state, "force_solid")
     row.prop(lane_state, "match_timeline")
+    schema_now = generation.schema_for(lane_state.model_id)
+    if schema_now is not None and lane_state.match_timeline and schema_now.by_name("duration") is not None:
+        _, value, note = generation.timeline_sync_info(scene, lane_state, schema_now)
+        if value is not None:
+            box.label(text=f"Video duration {value:g} s" + (f" ({note}); the clip is cut to match" if note else ", same as the clip"), icon='TIME')
     try:
         from . import shot_planner
 
@@ -258,5 +264,5 @@ def draw_render_video_lane(layout, context):
         if styles is not None:
             titles[styles.name] = "Style images"
         panels.draw_references(layout, lane_state, schema, title_for=titles, fixed_first=fixed, hide=hide)
-    params_ui.draw_params(layout, lane_state, schema)
+    params_ui.draw_params(layout, lane_state, schema, locked={"duration"} if lane_state.match_timeline else ())
     panels.draw_generate_row(layout, lane_state, "render_video")

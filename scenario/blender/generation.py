@@ -344,21 +344,52 @@ def build_request(scene, lane, for_estimate=False):
 
 
 def apply_match_timeline(scene, lane_state, schema):
+    """Drive the model's duration from the timeline: a choice list (Seedance: Auto, 4..15) picks the first value that
+    fits the clip; a numeric range (Minimax H3: 5 to 15 s) takes the clip length rounded up and clamped. The capture is
+    then trimmed or padded to that duration in perform_captures, so the clip and the video always have the same length."""
     spec = schema.by_name("duration")
-    if spec is None or not spec.allowed_values or not lane_state.match_timeline:
+    if spec is None or not lane_state.match_timeline:
         return None
     fps = scene.render.fps / (scene.render.fps_base or 1.0)
     _, _, seconds = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
                                             preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
-    value, note = capture_plan.choose_duration(seconds, spec.allowed_values)
     index = lane_state.params.find("duration")
-    if index >= 0 and value is not None:
-        item = lane_state.params[index]
-        if item.enum_value != str(value):
+    if index < 0:
+        return None
+    item = lane_state.params[index]
+    if spec.allowed_values:
+        value, note = capture_plan.choose_duration(seconds, spec.allowed_values)
+        if value is not None and item.enum_value != str(value):
             item.enum_value = str(value)
-        if not item.enabled:
-            item.enabled = True
+    elif spec.ptype == "number":
+        value, note = capture_plan.clamp_duration(seconds, spec.min, spec.max, integer=spec.is_integer)
+        if spec.is_integer:
+            if item.int_value != int(value):
+                item.int_value = int(value)
+        elif abs(item.float_value - value) > 1e-6:
+            item.float_value = float(value)
+    else:
+        return None
+    if not item.enabled:
+        item.enabled = True
     return value, note, seconds
+
+
+def timeline_sync_info(scene, lane_state, schema):
+    """(clip seconds, model duration, note) for the UI, without touching the form."""
+    spec = schema.by_name("duration") if schema else None
+    fps = scene.render.fps / (scene.render.fps_base or 1.0)
+    _, _, seconds = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
+                                            preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
+    if spec is None:
+        return seconds, None, ""
+    if spec.allowed_values:
+        value, note = capture_plan.choose_duration(seconds, spec.allowed_values)
+    elif spec.ptype == "number":
+        value, note = capture_plan.clamp_duration(seconds, spec.min, spec.max, integer=spec.is_integer)
+    else:
+        return seconds, None, ""
+    return seconds, value, note
 
 
 def perform_captures(context, request, runner=None):
@@ -371,11 +402,13 @@ def perform_captures(context, request, runner=None):
     limit = None
     chosen = request.body.get("duration")
     duration_spec = schema.by_name("duration") if schema else None
-    if isinstance(chosen, int) and chosen > 0:
-        limit = chosen
+    if isinstance(chosen, (int, float)) and chosen > 0:
+        limit = float(chosen)
     elif duration_spec and duration_spec.allowed_values:
         numeric = [int(v) for v in duration_spec.allowed_values if isinstance(v, (int, float)) and int(v) > 0]
         limit = max(numeric) if numeric else None
+    elif duration_spec and duration_spec.ptype == "number" and duration_spec.max:
+        limit = float(duration_spec.max)
     def _add(cap, path):
         if cap.get("param") is None:
             return
@@ -412,9 +445,11 @@ def perform_captures(context, request, runner=None):
                                                     preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
             if limit:
                 start, end = capture_plan.clip_frames_for(limit, fps, start, end)
-            start, end, padded = capture_plan.ensure_min_frames(start, end, fps)
+            # the clip lasts exactly the duration the model was asked for (and never less than Seedance's 4 s)
+            target = max(capture_plan.MIN_CLIP_SECONDS, float(chosen)) if isinstance(chosen, (int, float)) and chosen > 0 else capture_plan.MIN_CLIP_SECONDS
+            start, end, padded = capture_plan.ensure_min_frames(start, end, fps, min_seconds=target)
             if padded:
-                runtime.set_message(f"Clip padded to {capture_plan.MIN_CLIP_SECONDS:g} s (frames {start} to {end}) for the video model")
+                runtime.set_message(f"Clip padded to {target:g} s (frames {start} to {end}) to match the video duration")
             path = capture.new_capture_path("playblast", "mp4")
             info = capture.capture_playblast(context, path, source=base, camera=camera, frame_start=start, frame_end=end, force_solid=force_solid, runner=runner)
             _add(cap, info["path"])

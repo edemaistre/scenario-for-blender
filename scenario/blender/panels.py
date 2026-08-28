@@ -54,9 +54,6 @@ def draw_model_row(layout, lane_state, lane):
         model_picker.draw_model_row(layout, lane_state, lane)
     except ImportError:
         layout.prop(lane_state, "model_id", text="Model")
-    record = runtime.state.records.get(lane_state.model_id)
-    if record is not None and record.short_description:
-        layout.label(text=record.short_description[:70], icon='INFO')
 
 
 def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
@@ -128,9 +125,14 @@ def draw_clip_options(layout, context, lane_state, schema):
     fps = scene.render.fps / (scene.render.fps_base or 1.0)
     start, end, seconds = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
                                                   preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
-    box.label(text=f"Clip: frames {start} to {end}, {seconds:.1f} s at 1280x720")
+    fps_label = f"{fps:g} fps"
+    box.label(text=f"Clip: frames {start} to {end}, {seconds:.1f} s at {fps_label}, 1280x720")
     if schema.by_name("duration") is not None:
         box.prop(lane_state, "match_timeline")
+        if lane_state.match_timeline:
+            _, value, note = generation.timeline_sync_info(context.scene, lane_state, schema)
+            if value is not None:
+                box.label(text=f"Video duration {value:g} s" + (f" ({note}); the clip is cut to match" if note else ", same as the clip"), icon='TIME')
     box.prop(lane_state, "force_solid")
 
 
@@ -176,7 +178,7 @@ def draw_generate_lane(layout, context, lane):
     if schema.prompt_name:
         draw_prompt_row(layout, lane_state, lane)
     draw_references(layout, lane_state, schema)
-    params_ui.draw_params(layout, lane_state, schema)
+    params_ui.draw_params(layout, lane_state, schema, locked={"duration"} if (lane == "video" and lane_state.match_timeline) else ())
     if lane == "video":
         draw_clip_options(layout, context, lane_state, schema)
     if lane == "material":
@@ -312,14 +314,18 @@ def draw_result(layout, rec):
         primary = rec.meta.get("primary_mesh") or next((p for p in rec.files if p.lower().endswith(MESH_EXTS)), "")
         if primary:
             row = box.row(align=True)
-            row.operator("scenario.import_mesh_file", text="Add to scene", icon='IMPORT').filepath = primary
-            names = rec.meta.get("objects") or []
-            if names:
-                row.operator("scenario.select_result_objects", text="Select", icon='RESTRICT_SELECT_OFF').names = "|".join(names)
+            add = row.operator("scenario.import_mesh_file", text="Add to scene", icon='IMPORT')
+            add.filepath, add.local_id = primary, rec.local_id
+            names = "|".join(rec.meta.get("objects") or [])
+            sel = row.operator("scenario.select_result_objects", text="Select", icon='RESTRICT_SELECT_OFF')
+            sel.names, sel.local_id = names, rec.local_id
+            rm = row.operator("scenario.delete_result_objects", text="", icon='TRASH')
+            rm.names, rm.local_id = names, rec.local_id
         for alt in rec.meta.get("mesh_alternates") or []:
             row = box.row(align=True)
             row.label(text=os.path.basename(alt)[-40:], icon='FILE_3D')
-            row.operator("scenario.import_mesh_file", text="Add").filepath = alt
+            add = row.operator("scenario.import_mesh_file", text="Add")
+            add.filepath, add.local_id = alt, rec.local_id
     elif rec.kind == "video":
         for path in rec.files[:3]:
             row = box.row(align=True)
@@ -379,8 +385,11 @@ class SCENARIO_PT_main(bpy.types.Panel):
         if not draw_account_strip(layout, context):
             return
         scenario = context.scene.scenario
-        grid = layout.grid_flow(columns=3, align=True, even_columns=True)  # three per row so the icon tabs keep their labels
-        grid.prop(scenario, "lane", expand=True)
+        col = layout.column(align=True)
+        for row_lanes in (("image", "video", "3d"), ("audio", "material"), ("render_image", "render_video")):
+            row = col.row(align=True)
+            for lane_id in row_lanes:
+                row.prop_enum(scenario, "lane", lane_id)
         lane = scenario.lane
         if not runtime.state.catalog_loaded:
             draw_loading(layout)
@@ -394,8 +403,9 @@ class SCENARIO_PT_main(bpy.types.Panel):
             from . import render_lanes
 
             render_lanes.draw_render_video_lane(layout, context)
-        if runtime.state.last_message:
-            layout.label(text=runtime.state.last_message[:80])
+        message = runtime.message_visible()
+        if message:
+            layout.label(text=message[:80])
 
 
 STATUS_TEXT = {"preparing": "Prompt Spark is writing the look", "submitting": "uploading and submitting", "queued": "queued", "in-progress": "rendering"}

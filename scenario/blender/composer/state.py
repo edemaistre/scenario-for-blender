@@ -17,6 +17,12 @@ class ComposerState:
         self.synced_lane = ""
         self.synced_text = None
         self.layout = None
+        # placement: offset from the default bottom-centre spot (region pixels) and an optional card width
+        self.offset = (0.0, 0.0)
+        self.width = None
+        self.drag_mode = None      # None | "pending" | "move" | "resize"
+        self.drag_start = None     # dict(mouse, offset, width, kind) captured at the press
+        self.moved = False
 
     def lane_for(self, scene):
         """The composer drives the six generation lanes; other tabs (Generations, MCP, 3D tools) fall back to Image."""
@@ -41,3 +47,31 @@ class ComposerState:
             lane_state.prompt = self.field.text
         self.synced_lane, self.synced_text = lane, self.field.text
         return lane_state
+
+    # -- placement ------------------------------------------------------------
+    def begin_drag(self, mouse, kind):
+        """Remember where a press happened so a move beyond the threshold turns into a drag (or a resize)."""
+        self.drag_mode = "resize" if kind == "resize" else "pending"
+        self.drag_start = {"mouse": tuple(mouse), "offset": tuple(self.offset), "width": self.width, "kind": kind}
+        self.moved = False
+
+    def cancel_drag(self):
+        """Escape: put the composer back where it was when the press happened."""
+        if self.drag_start is not None:
+            self.offset = tuple(self.drag_start["offset"])
+            self.width = self.drag_start["width"]
+        self.drag_mode = None
+        self.drag_start = None
+        self.moved = False
+
+    def end_drag(self):
+        kind = self.drag_start["kind"] if self.drag_start else None
+        mode, moved = self.drag_mode, self.moved
+        self.drag_mode = None
+        self.drag_start = None
+        self.moved = False
+        return kind, mode, moved
+
+    def reset_layout(self):
+        self.offset = (0.0, 0.0)
+        self.width = None

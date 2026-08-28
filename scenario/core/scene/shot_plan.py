@@ -354,6 +354,34 @@ def preset_waypoints(name, bbox_min, bbox_max, focal=DEFAULT_FOCAL):
     return fn(bbox_min, bbox_max, focal)
 
 
+def is_closed(name):
+    """True for moves that end where they start (orbits, ellipses)."""
+    return resolve_preset(name) in CLOSED_PRESETS
+
+
+def _same_spot(a, b):
+    return distance(a.position, b.position) < 1e-9
+
+
+def marker_waypoints(name, bbox_min, bbox_max, focal=DEFAULT_FOCAL):
+    """The waypoints to place as editable markers: a closed move loses its closing duplicate (the loop is closed
+    again at build time with `close_loop`), so an orbit gives 12 markers, not 13."""
+    waypoints = preset_waypoints(name, bbox_min, bbox_max, focal)
+    if is_closed(name) and len(waypoints) > 1 and _same_spot(waypoints[0], waypoints[-1]):
+        return waypoints[:-1]
+    return waypoints
+
+
+def close_loop(waypoints):
+    """Append a copy of the first waypoint (same position, aim, focal, no hold) unless the path already ends there."""
+    waypoints = list(waypoints)
+    if len(waypoints) < 2 or _same_spot(waypoints[0], waypoints[-1]):
+        return waypoints
+    first = waypoints[0]
+    waypoints.append(Waypoint(first.position, rotation_euler=first.rotation_euler, look_at=first.look_at, focal=first.focal, hold=0.0))
+    return waypoints
+
+
 def preset_items():
     """(name, label, description) in group order, with None between groups (Blender draws None as a menu separator)."""
     items = []

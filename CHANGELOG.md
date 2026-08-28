@@ -6,6 +6,25 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.8.0] - 2026-08-29
+
+### Added
+- **Movable, resizable composer**: drag the card (or the collapsed pill) anywhere in the viewport, resize the card from its corner grip, double-click the background to reset; the position is remembered in the preferences.
+- **Camera path from editable markers**: a preset now places numbered `Shot` markers around the subject (Place markers), the path is always built from the markers, so a move from the library can be adjusted marker by marker. A `Closed loop` option (on for orbits and ellipses) brings the camera back exactly to its first marker. `Clear path` removes the camera, target and markers; placing or building over an existing path asks for confirmation first. Duration, focal length and start frame are labelled and the resulting frame range is shown.
+- **Delete** next to Select on 3D results: the objects a generation created are stamped with its id on import, so Select and Delete find them after renames and re-imports.
+- Prompt tools with Scenario's icons (dice, sparkles, translate) and their tooltips ("Generate a new prompt", "Rewrite your prompt", "Translate to English").
+
+### Fixed
+- **Camera clip captures were always grey clay**, whatever the viewport showed: rendering "through the camera" used the scene's Workbench settings. Captures now go through the viewport in camera view, so Material Preview and Rendered shading come along; Grey clay capture still forces flat shading when checked.
+- **Video duration and clip length are synchronised** for models with a numeric duration range too (Minimax H3: 5 to 15 s). Match timeline sets the duration from the clip (rounded up, clamped), the duration field is locked while it drives, the clip box states "Video duration 6 s, same as the clip" or the padding/trimming applied, and the playblast is padded or cut to that exact duration.
+- Rewrite / Spark could put an `asset_…` id in the prompt: Prompt Spark answers with asset references for some models. Real text assets are resolved to their text, unusable answers fall back to the Scenario LLM, and an `asset_` string never reaches the prompt field.
+- "Edit prompt (undocumented operator)" and eleven other tooltips: every operator has a description.
+- Status lines ("Submitted to Meshy 7") disappear after eight seconds instead of staying until the next one.
+
+### Changed
+- Lane tabs laid out as Image / Video / 3D, Audio / Materials, Render Image / Render Video. The model description line left the panel (the picker shows it).
+- Generation details opens with the same header as a Generations entry (type icon, prompt, cost, model) and a copy button for the prompt.
+
 ## [0.7.0] - 2026-08-29
 
 ### Added

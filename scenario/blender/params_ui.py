@@ -132,7 +132,8 @@ def collect_file_refs(lane_state, schema):
     return refs
 
 
-def draw_params(layout, lane_state, schema, exclude=()):
+def draw_params(layout, lane_state, schema, exclude=(), locked=()):
+    """`locked` names parameters shown greyed out because something else drives them (duration under Match timeline)."""
     groups = {}
     for spec in schema.specs:
         if not _drawable(spec) or spec.name in exclude:
@@ -150,7 +151,7 @@ def draw_params(layout, lane_state, schema, exclude=()):
             if not spec.required_always:
                 row.prop(item, "enabled", text="")
             sub = row.row(align=True)
-            sub.enabled = item.enabled or spec.required_always
+            sub.enabled = (item.enabled or spec.required_always) and spec.name not in locked
             label = spec.label + (" (cost)" if spec.cost_impact else "")
             if spec.ptype == "boolean":
                 sub.prop(item, "bool_value", text=label)

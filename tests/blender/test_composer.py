@@ -113,3 +113,75 @@ class ComposerDrawHelpersTests(unittest.TestCase):
         blf.size(draw.FONT, font_px)
         mid = x0 + blf.dimensions(draw.FONT, "hello")[0]
         self.assertEqual(draw.caret_index_at(mid, pr, field, 1.0), 5)
+
+
+class ComposerPlacementTests(unittest.TestCase):
+    def setUp(self):
+        reset_scene()
+        self.composer = submodule("blender.composer")
+        self.state_mod = submodule("blender.composer.state")
+        self.runtime = submodule("blender.runtime")
+        self.cl = submodule("core.ui.composer_layout")
+
+    def _prefs(self):
+        prefs = self.runtime.prefs()
+        if prefs is None or not hasattr(prefs, "composer_offset_x"):
+            self.skipTest("composer placement preferences not installed")
+        return prefs
+
+    def test_state_has_placement_fields_and_drag_lifecycle(self):
+        state = self.state_mod.ComposerState()
+        self.assertEqual(state.offset, (0.0, 0.0))
+        self.assertIsNone(state.width)
+        self.assertIsNone(state.drag_mode)
+        state.begin_drag((10, 10), "drag")
+        self.assertEqual(state.drag_mode, "pending")
+        state.drag_mode, state.moved = "move", True
+        state.offset = (40.0, 20.0)
+        kind, mode, moved = state.end_drag()
+        self.assertEqual((kind, mode, moved), ("drag", "move", True))
+        self.assertEqual(state.offset, (40.0, 20.0))
+        state.begin_drag((0, 0), "resize")
+        self.assertEqual(state.drag_mode, "resize")
+        state.width = 900
+        state.cancel_drag()  # Escape restores what the press started from
+        self.assertIsNone(state.width)
+        self.assertIsNone(state.drag_mode)
+        state.offset, state.width = (5.0, 5.0), 700
+        state.reset_layout()
+        self.assertEqual((state.offset, state.width), ((0.0, 0.0), None))
+
+    def test_layout_round_trips_through_preferences(self):
+        prefs = self._prefs()
+        state = self.runtime.state.composer
+        self.assertIsNotNone(state)
+        saved = (prefs.composer_offset_x, prefs.composer_offset_y, prefs.composer_width)
+        try:
+            state.offset, state.width = (33.0, -12.0), 960
+            self.assertTrue(self.composer.save_layout())
+            self.assertEqual((prefs.composer_offset_x, prefs.composer_offset_y, prefs.composer_width), (33.0, -12.0, 960))
+            state.offset, state.width = (0.0, 0.0), None
+            self.assertTrue(self.composer.load_layout())
+            self.assertEqual(state.offset, (33.0, -12.0))
+            self.assertEqual(state.width, 960)
+            prefs.composer_width = 0
+            self.composer.load_layout()
+            self.assertIsNone(state.width)
+            bpy.ops.scenario.composer_reset_layout()
+            self.assertEqual((state.offset, state.width), ((0.0, 0.0), None))
+            self.assertEqual((prefs.composer_offset_x, prefs.composer_offset_y, prefs.composer_width), (0.0, 0.0, 0))
+        finally:
+            prefs.composer_offset_x, prefs.composer_offset_y, prefs.composer_width = saved
+            self.composer.load_layout()
+
+    def test_placement_feeds_the_layout_and_lane_for_still_works(self):
+        state = self.state_mod.ComposerState()
+        state.offset, state.width = (100.0, 50.0), 900
+        layout = self.cl.pill_placement(1600, 900, True, 1.0, offset=state.offset, width=state.width)
+        self.assertEqual(layout.card_rect.w, 900)
+        self.assertEqual(layout.card_rect.y, self.cl.MARGIN + 50.0)
+        scene = bpy.context.scene
+        scene.scenario.lane = "video"
+        self.assertEqual(state.lane_for(scene), "video")
+        draw = submodule("blender.composer.draw")
+        self.assertTrue(callable(draw.status_note))

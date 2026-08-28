@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Draw the five modality icons (image, video, audio, 3d, text) as line art matching the Scenario web app.
+"""Draw the modality icons (image, video, audio, 3d, text) and the prompt-tool icons (dice, sparkles, translate)
+as line art matching the Scenario web app.
 
 Usage: python3 tools/make_icons.py   (needs Pillow; writes scenario/icons/<name>.png at 64 px and <name>_32.png at 32 px)
 
@@ -98,7 +99,63 @@ def icon_text():
     return im
 
 
-ICONS = {"image": icon_image, "video": icon_video, "audio": icon_audio, "3d": icon_3d, "text": icon_text}
+def _star(d, cx, cy, outer, inner, width=W):
+    """Four-point star (concave), outline only."""
+    pts = []
+    for k in range(8):
+        a = math.radians(-90 + 45 * k)
+        r = outer if k % 2 == 0 else inner
+        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    line(d, pts + [pts[0]], width=width)
+
+
+def icon_dice():
+    """Two dice outlines, the back one offset up-right, three dots on the front one (Scenario's 'Generate a new prompt')."""
+    im, d = canvas()
+    m = 10 * SCALE
+    side = 34 * SCALE
+    back = (S - m - side, m, S - m, m + side)
+    front = (m, S - m - side, m + side, S - m)
+    rounded(d, back, 6 * SCALE)
+    # erase the part of the back die hidden by the front one, then draw the front one
+    d.rounded_rectangle(front, radius=6 * SCALE, fill=(0, 0, 0, 0))
+    rounded(d, front, 6 * SCALE)
+    fx0, fy0, fx1, fy1 = front
+    r = 3 * SCALE
+    for fx, fy in ((0.3, 0.3), (0.5, 0.5), (0.7, 0.7)):
+        cx, cy = fx0 + (fx1 - fx0) * fx, fy0 + (fy1 - fy0) * fy
+        d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=STROKE)
+    return im
+
+
+def icon_sparkles():
+    """One large four-point star with two small ones (Scenario's 'Rewrite your prompt')."""
+    im, d = canvas()
+    _star(d, S * 0.44, S * 0.56, 24 * SCALE, 7 * SCALE)
+    _star(d, S * 0.80, S * 0.24, 8 * SCALE, 2.5 * SCALE, width=int(W * 0.8))
+    _star(d, S * 0.84, S * 0.72, 6 * SCALE, 2 * SCALE, width=int(W * 0.8))
+    return im
+
+
+def icon_translate():
+    """A stylised character top-left and a Latin A bottom-right (Scenario's 'Translate to English')."""
+    im, d = canvas()
+    # character: a top bar, a stem, two legs spreading from the stem (reads as 文)
+    cx, top = S * 0.34, S * 0.14
+    line(d, [(cx - 12 * SCALE, top + 8 * SCALE), (cx + 12 * SCALE, top + 8 * SCALE)])
+    line(d, [(cx, top), (cx, top + 8 * SCALE)], width=int(W * 0.9))
+    line(d, [(cx - 11 * SCALE, top + 32 * SCALE), (cx + 2 * SCALE, top + 8 * SCALE)])
+    line(d, [(cx - 6 * SCALE, top + 14 * SCALE), (cx + 11 * SCALE, top + 32 * SCALE)])
+    # A: two legs and a crossbar
+    ax, base = S * 0.70, S * 0.90
+    h = 30 * SCALE
+    line(d, [(ax - 12 * SCALE, base), (ax, base - h), (ax + 12 * SCALE, base)])
+    line(d, [(ax - 7 * SCALE, base - h * 0.38), (ax + 7 * SCALE, base - h * 0.38)])
+    return im
+
+
+ICONS = {"image": icon_image, "video": icon_video, "audio": icon_audio, "3d": icon_3d, "text": icon_text,
+         "dice": icon_dice, "sparkles": icon_sparkles, "translate": icon_translate}
 
 
 def main():

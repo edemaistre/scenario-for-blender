@@ -38,3 +38,11 @@ def test_ensure_min_frames_pads_short_clips():
     assert cp.ensure_min_frames(1, 12, 24) == (1, 96, True)
     assert cp.ensure_min_frames(10, 200, 24) == (10, 200, False)
     assert cp.ensure_min_frames(1, 48, 24, min_seconds=2.0) == (1, 48, False)
+
+
+def test_clamp_duration_for_numeric_ranges():
+    assert cp.clamp_duration(6.0, 5, 15) == (6, "")
+    assert cp.clamp_duration(6.04, 5, 15) == (7, "")
+    assert cp.clamp_duration(2.0, 5, 15) == (5, "padded to the 5 s minimum")
+    assert cp.clamp_duration(30.0, 5, 15) == (15, "trimmed to the 15 s maximum")
+    assert cp.clamp_duration(2.5, None, None, integer=False) == (2.5, "")

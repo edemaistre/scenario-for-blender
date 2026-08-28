@@ -63,17 +63,59 @@ def set_enabled(enabled):
                 area.tag_redraw()
 
 
+def save_layout():
+    """Remember where the user put the composer (offset from the default spot, card width) in the preferences."""
+    state, prefs = runtime.state.composer, runtime.prefs()
+    if state is None or prefs is None:
+        return False
+    prefs.composer_offset_x, prefs.composer_offset_y = float(state.offset[0]), float(state.offset[1])
+    prefs.composer_width = int(state.width or 0)
+    return True
+
+
+def load_layout():
+    """Apply the remembered placement to the composer state (0 width means the default)."""
+    state, prefs = runtime.state.composer, runtime.prefs()
+    if state is None or prefs is None:
+        return False
+    state.offset = (float(getattr(prefs, "composer_offset_x", 0.0)), float(getattr(prefs, "composer_offset_y", 0.0)))
+    width = int(getattr(prefs, "composer_width", 0) or 0)
+    state.width = width if width > 0 else None
+    return True
+
+
 def _load_pre(*args):
     if runtime.state.composer is not None:
         runtime.state.composer.__init__()
+        load_layout()
     runtime.state.composer_modal_running = False
+
+
+class SCENARIO_OT_composer_reset_layout(bpy.types.Operator):
+    bl_idname = "scenario.composer_reset_layout"
+    bl_label = "Reset composer placement"
+    bl_description = "Put the floating composer back at the bottom centre of the viewport with its default width"
+
+    def execute(self, context):
+        state = runtime.state.composer
+        if state is not None:
+            state.cancel_drag()
+            state.reset_layout()
+        save_layout()
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
+        return {'FINISHED'}
 
 
 def register():
     global _keymap
     bpy.utils.register_class(SCENARIO_OT_composer_modal)
+    bpy.utils.register_class(SCENARIO_OT_composer_reset_layout)
     runtime.state.composer = ComposerState()
     runtime.state.composer_modal_running = False
+    load_layout()
     prefs = runtime.prefs()
     if prefs is None or prefs.composer_enabled:
         add_handler()
@@ -98,4 +140,5 @@ def unregister():
             pass
         _keymap = None
     runtime.state.composer = None
+    bpy.utils.unregister_class(SCENARIO_OT_composer_reset_layout)
     bpy.utils.unregister_class(SCENARIO_OT_composer_modal)

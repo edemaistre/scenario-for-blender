@@ -53,20 +53,26 @@ class StubManager:
 
 
 class FakeClient:
-    def __init__(self):
+    def __init__(self, spark_prompts=("A brass teapot robot, studio light",)):
         self.posts = []
+        self.gets = []
+        self.spark_prompts = list(spark_prompts)
 
     def post(self, path, json_body=None, query=None, **kw):
         self.posts.append((path, json_body, query))
         if path == "/generate/prompt":
-            return {"prompts": ["A brass teapot robot, studio light"], "mode": "contextual-v2"}
+            return {"prompts": self.spark_prompts, "mode": "structured"}
         if path.startswith("/generate/custom/model_scenario-llm"):
             return {"job": {"jobId": "job_llm", "status": "success", "metadata": {"assetIds": ["asset_txt"]}}}
         raise AssertionError(f"unexpected POST {path}")
 
     def get(self, path, query=None, **kw):
+        self.gets.append(path)
         if path == "/assets/asset_txt":
             return {"asset": {"id": "asset_txt", "metadata": {"type": "text", "preview": "a copper teapot"}}}
+        if path.startswith("/assets/asset_bogus"):
+            errors = submodule("core.api.errors")
+            raise errors.ScenarioError(404, f"Asset {path.rsplit('/', 1)[-1]} not found")
         raise AssertionError(f"unexpected GET {path}")
 
 
@@ -175,10 +181,45 @@ class PromptToolsTests(unittest.TestCase):
         self.assertFalse(bpy.ops.scenario.prompt_spark.poll())
         self.assertFalse(bpy.ops.scenario.prompt_translate.poll())
 
-    def test_descriptions_state_the_cost(self):
+    def test_descriptions_match_the_web_app_and_state_the_cost(self):
         cls = bpy.types.SCENARIO_OT_prompt_spark if hasattr(bpy.types, "SCENARIO_OT_prompt_spark") else None
         self.assertIsNotNone(cls)
-        self.assertIn("3.75 CU", self.tools.MODE_ITEMS[0][2])
-        self.assertIn("rewrites", self.tools.MODE_ITEMS[1][2])
-        self.assertIn("0.5 CU", self.tools.SCENARIO_OT_prompt_translate.bl_description)
+        self.assertEqual(self.tools.MODE_ITEMS[0][2], "Generate a new prompt. Prompt Spark, up to 3.75 CU")
+        self.assertEqual(self.tools.MODE_ITEMS[1][2], "Rewrite your prompt. Prompt Spark, up to 3.75 CU")
+        self.assertEqual(self.tools.SCENARIO_OT_prompt_translate.bl_description, "Translate to English. Scenario LLM, 0.5 CU")
+        for op_cls in self.tools.CLASSES:
+            self.assertTrue(op_cls.bl_description, op_cls.bl_idname)
         self.assertTrue(callable(self.tools.draw_prompt_row))
+
+    def test_spark_asset_answer_falls_back_to_the_scenario_llm(self):
+        """Live 2026-08-29: Rewrite pasted 'asset_XpjL5Dzw...' into the field. Now the id is resolved or the LLM writes instead."""
+        self.client = FakeClient(spark_prompts=["asset_bogus"])
+        self.runtime.make_client = lambda: self.client
+        self.lane.prompt = "a cute robot, low poly"
+        self.assertEqual(bpy.ops.scenario.prompt_spark(lane="image", mode='REWRITE'), {'FINISHED'})
+        paths = [p for p, _b, _q in self.client.posts]
+        self.assertEqual(paths[0], "/generate/prompt")
+        self.assertTrue(paths[1].startswith("/generate/custom/model_scenario-llm"))
+        self.assertIn("/assets/asset_bogus", self.client.gets)
+        llm_body = self.client.posts[1][1]
+        self.assertIn("Rewrite the user's prompt", llm_body["instruction"])
+        self.assertEqual(llm_body["textInputs"], ["a cute robot, low poly"])
+        events = self._dispatch_prompt_events()
+        self.assertEqual(events[0][0], "prompt")
+        self.assertEqual(events[0][1]["source"], "llm")
+        self.assertEqual(self.lane.prompt, "a copper teapot")
+        self.assertIn("Scenario LLM", self.runtime.state.last_message)
+
+    def test_an_asset_id_never_reaches_the_prompt_field(self):
+        self.lane.prompt = "keep me"
+        self.tools.on_prompt_event({"lane": "image", "text": "asset_XpjL5DzwFNe4V6mbQ9qMUy7t", "mode": 'REWRITE'})
+        self.assertEqual(self.lane.prompt, "keep me")
+        self.assertEqual(self.tools.usable_text(" asset_abc "), "")
+        self.assertEqual(self.tools.usable_text("  two words "), "two words")
+
+    def test_fallback_instruction_mentions_the_model(self):
+        text = self.tools.fallback_instruction('GENERATE', "Meshy 7 - Text-to-3D", " (textured meshes)", "a robot")
+        self.assertIn("Meshy 7 - Text-to-3D", text)
+        self.assertIn("(textured meshes)", text)
+        self.assertIn("The user's idea: a robot.", text)
+        self.assertTrue(self.tools.fallback_instruction('REWRITE', "Gemini 3.1", "", None).startswith("Rewrite the user's prompt"))

@@ -31,6 +31,13 @@ class IconsTests(unittest.TestCase):
         if not self.icons.loaded("image"):
             self.icons.register()
 
+    def test_prompt_tool_icons_are_part_of_the_set(self):
+        for name in ("dice", "sparkles", "translate"):
+            self.assertIn(name, self.icons.ICON_NAMES)
+        self.assertEqual(self.icons.builtin("dice"), 'LIGHT_SUN')
+        self.assertEqual(self.icons.builtin("sparkles"), 'FILE_REFRESH')
+        self.assertEqual(self.icons.builtin("translate"), 'WORLD_DATA')
+
     def test_png_files_exist_in_both_sizes(self):
         for name in self.icons.ICON_NAMES:
             self.assertTrue(self.icons.icon_path(name).exists(), name)

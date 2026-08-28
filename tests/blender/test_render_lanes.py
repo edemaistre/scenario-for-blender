@@ -130,3 +130,36 @@ class RenderLanesTests(unittest.TestCase):
         for name in ("SCENARIO_PT_main", "SCENARIO_PT_jobs", "SCENARIO_PT_generations", "SCENARIO_PT_agents"):
             self.assertTrue(hasattr(bpy.types, name), name)
         self.assertFalse(hasattr(bpy.types, "SCENARIO_PT_results"))
+
+
+class TimelineSyncTests(unittest.TestCase):
+    def setUp(self):
+        reset_scene()
+        self.generation = submodule("blender.generation")
+        self.runtime = submodule("blender.runtime")
+        handlers = submodule("blender.handlers")
+        self.runtime.state.reset()
+        records = [rec("model_minimax-h3"), rec("model_bytedance-seedance-2-0")]
+        handlers.dispatch(("catalog", {"privacy": "public", "records": records, "detailed": records}))
+        self.scene = bpy.context.scene
+        self.lane = self.scene.scenario.lane_state("render_video")
+
+    def test_numeric_duration_range_follows_the_clip(self):
+        self.lane.model_id = "model_minimax-h3"
+        self.scene.frame_start, self.scene.frame_end = 1, 144  # 6 s at 24 fps
+        request = self.generation.build_request(self.scene, "render_video")
+        self.assertEqual(request.body["duration"], 6)
+        self.scene.frame_end = 48  # 2 s: padded to H3's 5 s minimum
+        request = self.generation.build_request(self.scene, "render_video")
+        self.assertEqual(request.body["duration"], 5)
+        seconds, value, note = self.generation.timeline_sync_info(self.scene, self.lane, self.generation.schema_for(self.lane.model_id))
+        self.assertEqual((value, note), (5, "padded to the 5 s minimum"))
+        self.scene.frame_end = 24 * 40
+        request = self.generation.build_request(self.scene, "render_video")
+        self.assertEqual(request.body["duration"], 15)
+
+    def test_messages_expire(self):
+        self.runtime.set_message("Submitted to Meshy 7")
+        self.assertEqual(self.runtime.message_visible(), "Submitted to Meshy 7")
+        self.runtime.state.message_at -= 60
+        self.assertEqual(self.runtime.message_visible(), "")

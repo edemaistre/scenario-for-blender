@@ -205,3 +205,54 @@ def test_settings_chip_and_corner_minus_button():
 
 def _center(rect):
     return rect.x + rect.w / 2, rect.y + rect.h / 2
+
+
+def test_offset_moves_the_composer_and_is_clamped_to_keep_it_reachable():
+    base = cl.pill_placement(1600, 900, expanded=True)
+    moved = cl.pill_placement(1600, 900, expanded=True, offset=(120.0, 300.0))
+    assert moved.card_rect.x == base.card_rect.x + 120.0 and moved.card_rect.y == base.card_rect.y + 300.0
+    assert moved.card_rect.w == base.card_rect.w
+    # every control travels with the card
+    assert moved.prompt_rect.y == base.prompt_rect.y + 300.0 and moved.generate_rect.x == base.generate_rect.x + 120.0
+    # dragged far away: at least MIN_VISIBLE px stay inside the region
+    far = cl.pill_placement(1600, 900, expanded=True, offset=(5000.0, -5000.0))
+    assert far.card_rect.x == 1600 - cl.MIN_VISIBLE
+    assert far.card_rect.y == cl.MIN_VISIBLE - far.card_rect.h
+    left = cl.pill_placement(1600, 900, expanded=True, offset=(-5000.0, 5000.0))
+    assert left.card_rect.x == cl.MIN_VISIBLE - left.card_rect.w
+    assert left.card_rect.y == 900 - cl.MIN_VISIBLE
+    # the collapsed pill shares the offset (same centre point), and clamps the same way
+    pill = cl.pill_placement(1600, 900, expanded=False, offset=(120.0, 300.0))
+    assert pill.pill_rect.y == cl.MARGIN + 300.0
+    assert abs((pill.pill_rect.x + pill.pill_rect.w / 2) - (moved.card_rect.x + moved.card_rect.w / 2)) < 1e-6
+
+
+def test_width_override_is_clamped_between_the_minimum_and_the_region():
+    wide = cl.pill_placement(1600, 900, expanded=True, width=1200)
+    assert wide.card_rect.w == 1200
+    assert wide.generate_rect.right == wide.card_rect.right - cl.PAD
+    too_wide = cl.pill_placement(1600, 900, expanded=True, width=5000)
+    assert too_wide.card_rect.w == 1600 - 2 * cl.MARGIN
+    too_narrow = cl.pill_placement(1600, 900, expanded=True, width=10)
+    assert too_narrow.card_rect.w == cl.MIN_CARD_WIDTH
+    scaled = cl.pill_placement(3200, 1800, expanded=True, scale=2.0, width=10)
+    assert scaled.card_rect.w == cl.MIN_CARD_WIDTH * 2
+    assert cl.clamp_width(50, 1600) == cl.MIN_CARD_WIDTH and cl.clamp_width(50, 1600, expanded=False) == cl.MIN_PILL_WIDTH
+    pill = cl.pill_placement(1600, 900, expanded=False, width=600)
+    assert pill.pill_rect.w == 600
+
+
+def test_resize_grip_and_drag_hit_kinds():
+    layout = cl.pill_placement(1600, 900, expanded=True)
+    card = layout.card_rect
+    grip = layout.resize_rect
+    assert grip is not None and grip.right == card.right and grip.y == card.y and grip.w == cl.RESIZE_SIZE
+    assert layout.hit(card.right - 2, card.y + 2) == ("resize",)
+    # empty card area (between the tabs row and the prompt) is a drag handle
+    gap_y = layout.prompt_rect.top + (layout.tab_rects["image"].y - layout.prompt_rect.top) / 2
+    assert layout.hit(card.x + card.w / 2, gap_y) == ("drag",)
+    assert layout.hit(card.x - 5, card.y + 5) is None
+    assert layout.hit(layout.generate_rect.x + 5, layout.generate_rect.y + 5) == ("generate",)
+    collapsed = cl.pill_placement(1600, 900, expanded=False)
+    assert collapsed.hit(collapsed.pill_rect.x + 5, collapsed.pill_rect.y + 5) == ("expand",)
+    assert collapsed.resize_rect is None

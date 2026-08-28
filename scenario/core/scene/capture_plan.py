@@ -29,6 +29,18 @@ def choose_duration(seconds, allowed_values, minimum=None):
     return numeric[-1], f"trimmed to the {numeric[-1]} s maximum"
 
 
+def clamp_duration(seconds, minimum, maximum, integer=True):
+    """Duration for a model with a numeric range (Minimax H3: 5 to 15 s): the clip length rounded up, clamped."""
+    needed = math.ceil(seconds - 1e-6) if integer else round(seconds, 2)
+    value = max(1, needed)
+    note = ""
+    if minimum is not None and value < minimum:
+        value, note = minimum, f"padded to the {minimum:g} s minimum"
+    if maximum is not None and value > maximum:
+        value, note = maximum, f"trimmed to the {maximum:g} s maximum"
+    return (int(value) if integer else float(value)), note
+
+
 def ensure_min_frames(start, end, fps, min_seconds=MIN_CLIP_SECONDS):
     """Extend the end frame so the clip lasts at least `min_seconds`; returns (start, end, padded)."""
     needed = int(math.ceil(min_seconds * (fps or 24)))
