@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Bridge between ParamSpec schemas and the ScenarioParamValue collection, plus drawing."""
 from . import props, runtime
+from ..core.api.catalog import param_override
 
 SEP = ","
 
@@ -44,8 +45,12 @@ def sync_params(lane_state, schema, model_id):
                 continue
             runtime.set_enum_items(("param", model_id, spec.name), [(str(v), spec.label_for(v), spec.description) for v in options])
             valid = [str(v) for v in options]
-            has_default = spec.default is not None and str(spec.default) in valid
-            default = str(spec.default) if has_default else valid[0]
+            override = param_override(model_id, spec.name)
+            if override is not None and str(override) in valid:
+                spec_default, has_default = override, True
+            else:
+                spec_default, has_default = spec.default, spec.default is not None and str(spec.default) in valid
+            default = str(spec_default) if has_default else valid[0]
             if created or item.enum_value not in valid:
                 item.enum_value = default
             if created and not has_default and not spec.required_always:

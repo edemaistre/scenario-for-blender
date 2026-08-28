@@ -249,6 +249,18 @@ class SCENARIO_PT_results(bpy.types.Panel):
                     col.operator("scenario.show_image", text="Show").filepath = path
                     col.operator("scenario.apply_texture", text="Apply as texture").filepath = path
                     col.operator("scenario.add_plane", text="Add as plane").filepath = path
+                elif rec.kind == "3d":
+                    if path == rec.files[0]:
+                        primary = rec.meta.get("primary_mesh") or ""
+                        if primary:
+                            box.label(text="Imported: " + os.path.basename(primary)[-48:], icon='MESH_DATA')
+                        for alt in rec.meta.get("mesh_alternates") or []:
+                            row = box.row(align=True)
+                            row.label(text=os.path.basename(alt)[-40:], icon='FILE_3D')
+                            row.operator("scenario.import_mesh_file", text="Import").filepath = alt
+                        textures = [p for p in rec.files if p.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))]
+                        if textures:
+                            box.label(text=f"{len(textures)} texture file(s) on disk", icon='TEXTURE')
                 elif rec.kind == "video":
                     row = box.row(align=True)
                     row.operator("scenario.play_video", text="Play", icon='PLAY').filepath = path
