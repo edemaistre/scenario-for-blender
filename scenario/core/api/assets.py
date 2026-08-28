@@ -4,10 +4,12 @@
 import base64
 import math
 import pathlib
+import shutil
 import time
+import urllib.request
 
 from . import jobs
-from .errors import ScenarioError
+from .errors import NetworkError, ScenarioError
 from .transport import UrllibTransport
 
 BASE64_LIMIT = 3_500_000  # bytes; the gateway body cap is 10 MB, 4.4 MB raw PNGs verified to pass
@@ -47,18 +49,39 @@ def asset_type(asset):
     return ((asset or {}).get("metadata") or {}).get("type") or ""
 
 
-def download_file(url, dest, transport=None, timeout=300):
-    """Download a signed CDN URL to `dest` (atomic rename). Never alters the query string."""
-    transport = transport or UrllibTransport(timeout=timeout)
+def download_file(url, dest, transport=None, timeout=300, retries=3, sleep=time.sleep):
+    """Download a signed CDN URL to `dest` (atomic rename), streaming to disk, with bounded retries.
+
+    Large 3D bundles (a Meshy OBJ is 200+ MB) have seen the CDN close the connection mid-transfer;
+    one retry with a short backoff recovers it. The query string is never altered (it carries the signature)."""
     dest = pathlib.Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    status, _headers, raw = transport.request("GET", url, {}, None, timeout)
-    if status >= 400:
-        raise ScenarioError(status, f"download failed for {url[:80]}")
     tmp = dest.with_suffix(dest.suffix + ".part")
-    tmp.write_bytes(raw)
-    tmp.replace(dest)
-    return dest
+    delay = 1.0
+    last_error = None
+    for attempt in range(retries + 1):
+        try:
+            if transport is not None:
+                status, _headers, raw = transport.request("GET", url, {}, None, timeout)
+                if status >= 400:
+                    raise ScenarioError(status, f"download failed ({status}) for {url[:80]}")
+                tmp.write_bytes(raw)
+            else:
+                req = urllib.request.Request(url, headers={"User-Agent": "ScenarioBlender"})
+                with urllib.request.urlopen(req, timeout=timeout) as resp, tmp.open("wb") as out:
+                    shutil.copyfileobj(resp, out, 1024 * 1024)
+            tmp.replace(dest)
+            return dest
+        except ScenarioError as err:
+            if err.status and err.status < 500 and err.status not in (408, 429):
+                raise
+            last_error = err
+        except (OSError, NetworkError) as err:  # includes URLError, RemoteDisconnected, timeouts
+            last_error = err
+        if attempt < retries:
+            sleep(delay)
+            delay *= 2
+    raise NetworkError(0, f"download failed after {retries + 1} attempts: {last_error}")
 
 
 def upload_image_base64(client, path, name=None):

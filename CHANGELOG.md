@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.2 (2026-08-28)
+- **A finished Meshy 6 job never reached the scene.** Root cause: the CDN closed the connection while the add-on downloaded one of the seven result files (Meshy bundles include a 200+ MB OBJ), downloads had no retry, and any failure marked the whole job failed. Downloads now stream to disk with three retries and short backoff, 3D bundles fetch the meshes first, and a 3D job stays successful when at least one mesh arrived (missing alternates or textures are recorded in the job, not fatal). Jobs that already failed this way can be re-imported from Generations.
+
 ## 0.5.1 (2026-08-28)
 Fixes from the first hands-on session.
 - **3D results looked untextured (Meshy 7).** Root cause: a Meshy job returns seven assets (a GLB with three embedded PBR textures, a 205 MB OBJ whose `.mtl` arrives under a `.bin` name, and four texture PNGs); the importer loaded every file it could open, so an untextured OBJ copy sat exactly on top of the textured GLB. Now one primary mesh is imported per job (glTF first, then the variant with the most PBR textures), the viewport switches to Material Preview, and the other mesh files stay on disk with an Import button in Results.

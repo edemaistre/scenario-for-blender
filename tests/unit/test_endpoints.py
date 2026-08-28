@@ -102,3 +102,34 @@ def test_error_text_reads_metadata_error_and_hint():
     assert jobs.error_text(job) == "An internal error occurred. id: error_x Try a longer clip"
     assert jobs.error_text({"status": "failure"}) is None
     assert jobs.error_text({"error": "top"}) == "top"
+
+
+def test_download_file_retries_after_a_network_error(tmp_path):
+    from scenario.core.api.errors import NetworkError
+
+    class Flaky:
+        def __init__(self):
+            self.calls = 0
+
+        def request(self, method, url, headers, body, timeout=None):
+            self.calls += 1
+            if self.calls == 1:
+                raise NetworkError(0, "network: Remote end closed connection without response")
+            return 200, {}, b"glb bytes"
+
+    flaky = Flaky()
+    sleeps = []
+    dest = assets.download_file("https://cdn/x.glb", tmp_path / "x.glb", transport=flaky, sleep=sleeps.append)
+    assert dest.read_bytes() == b"glb bytes" and flaky.calls == 2 and sleeps == [1.0]
+
+
+def test_download_file_gives_up_after_retries(tmp_path):
+    import pytest as _pytest
+    from scenario.core.api.errors import NetworkError
+
+    class Dead:
+        def request(self, *a, **k):
+            raise NetworkError(0, "network: down")
+
+    with _pytest.raises(NetworkError):
+        assets.download_file("https://cdn/x.glb", tmp_path / "x.glb", transport=Dead(), retries=2, sleep=lambda s: None)
