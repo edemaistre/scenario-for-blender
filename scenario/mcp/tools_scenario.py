@@ -85,6 +85,10 @@ def estimate_cost(args):
 
 
 def generate(args):
+    import os
+
+    if os.environ.get("SCENARIO_GUI_PROBE") == "1":
+        raise PermissionError("Generation is disabled while an automated GUI probe runs")
     lane = args.get("lane") or "image"
     if lane not in LANES:
         raise ValueError(f"lane must be one of {LANES}")

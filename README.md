@@ -57,7 +57,7 @@ Agents get scene tools (summary, object detail, select, set frame, screenshots, 
 - `SCENARIO_SMOKE=1 python3 tests/smoke/smoke_image.py`, `smoke_material.py`, `smoke_video.py`: one real generation each through the core (about 9, 7 and 76 CU; the video smoke aborts if its dry run exceeds 150 CU).
 - GUI check: `blender tools/blank.blend --python tools/gui_screenshot.py -- out.png image 10`, screenshots reviewed under `~/Developer/scratch/playwright-screenshots/scenario-blender/`.
 
-Credits spent on this project so far: about 185 CU (no new spend in P3/P4) (two Patina probes 12 CU, Gemini smoke 9 CU, Patina smoke 6 CU, Seedance smoke 76 CU plus one failed 76 CU attempt on a 0.5 s clip, quality-gate fees), cap agreed about $30.
+Credits spent on this project so far: about 207 CU (185 CU of probes and smokes, plus two accidental 11 CU GPT Image 2 jobs on 2026-08-28 triggered by keyboard focus landing in an automated GUI test window; the screenshot tool now disables Generate) (two Patina probes 12 CU, Gemini smoke 9 CU, Patina smoke 6 CU, Seedance smoke 76 CU plus one failed 76 CU attempt on a 0.5 s clip, quality-gate fees), cap agreed about $30.
 
 ## Verified vs assumed
 

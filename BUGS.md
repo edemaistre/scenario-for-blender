@@ -8,3 +8,4 @@ Source: 36-agent adversarial review of P0+P1 on 2026-08-28 (31 confirmed finding
 - Composer text editing is single-line; long prompts scroll horizontally (the pencil button in the N-panel opens a wider editor).
 - Playblast captures need the Blender GUI; the MCP `render_still` and `screenshot_viewport` tools report an error in `--background` mode.
 - No project switcher for team-scoped API keys (a project key is assumed; team keys need `?projectId=`, not sent yet).
+- **Automated GUI checks steal keyboard focus**: `tools/gui_screenshot.py` opens a real Blender window for about 15 s; two accidental generations happened when keystrokes landed in it. The tool now sets `SCENARIO_GUI_PROBE=1`, which disables every Generate path; still, avoid running GUI checks while typing on the machine.
