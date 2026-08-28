@@ -5,11 +5,11 @@ import logging
 
 import bpy
 
-from . import apply_3d, apply_image, apply_material, generation, props, runtime
+from . import apply_3d, apply_image, apply_material, apply_video, generation, props, runtime
 
 log = logging.getLogger("scenario.handlers")
 
-RESULT_HANDLERS = {"image": apply_image.on_image_result, "material": apply_material.on_material_result, "3d": apply_3d.on_3d_result}
+RESULT_HANDLERS = {"image": apply_image.on_image_result, "material": apply_material.on_material_result, "3d": apply_3d.on_3d_result, "video": apply_video.on_video_result}
 
 
 def dispatch(event):
@@ -50,6 +50,9 @@ def _on_job(name, rec):
         view.insert(0, rec)
     del view[50:]
     if name == "job_done":
+        from . import render_to_real
+
+        render_to_real.on_result(rec)
         handler = RESULT_HANDLERS.get(rec.kind)
         if handler is None:
             runtime.set_message(f"{rec.kind} result ready in {rec.files[0] if rec.files else 'the output folder'}")

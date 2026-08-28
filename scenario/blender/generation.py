@@ -11,6 +11,7 @@ from . import params_ui, props, runtime
 from ..core.api.catalog import DEFAULT_MODELS, models_for_lane
 from ..core.api.errors import ScenarioError
 from ..core.schema.params import build_body, missing_required_files, parse_schema, validate
+from ..core.scene import capture_plan
 
 log = logging.getLogger("scenario.generation")
 
@@ -158,6 +159,7 @@ class Request:
     array_params: set = field(default_factory=set)
     errors: list = field(default_factory=list)
     partial: bool = False
+    captures: list = field(default_factory=list)
 
 
 def build_request(scene, lane, for_estimate=False):
@@ -166,9 +168,11 @@ def build_request(scene, lane, for_estimate=False):
     schema = schema_for(model_id)
     if schema is None:
         return Request(lane, lane_kind(lane), model_id, {}, errors=["Model not loaded yet"])
+    if schema.by_name("duration") is not None and lane_state.match_timeline:
+        apply_match_timeline(scene, lane_state, schema)
     values, enabled = params_ui.collect_values(lane_state, schema)
     refs = params_ui.collect_file_refs(lane_state, schema)
-    files, array_params, asset_ids = {}, set(), {}
+    files, array_params, asset_ids, captures = {}, set(), {}, []
     for spec in schema.specs:
         if not spec.is_file:
             continue
@@ -183,18 +187,84 @@ def build_request(scene, lane, for_estimate=False):
                 path = _save_render_result(scene)
                 if path:
                     files.setdefault(spec.name, []).append(path)
+            elif ref.source in props.CAPTURE_SOURCES:
+                captures.append({"param": spec.name, "source": ref.source, "camera": ref.asset_id or None})
     body = build_body(schema.specs, values, asset_ids, enabled=enabled)
+    pending = {name: list(paths) for name, paths in files.items()}
+    for cap in captures:
+        pending.setdefault(cap["param"], []).append("<capture>")
     check = dict(body)
-    for name, paths in files.items():
+    for name, paths in pending.items():
         check.setdefault(name, paths if name in array_params else paths[0])
+    if "seedance" in model_id and schema.prompt_name and (pending or asset_ids):
+        has_video = any(s.kind == "video" and s.name in check for s in schema.specs if s.is_file)
+        has_image = any((s.kind or "image") == "image" and s.name in check for s in schema.specs if s.is_file)
+        body[schema.prompt_name] = capture_plan.tag_prompt(body.get(schema.prompt_name, ""), has_video, has_image)
+        check[schema.prompt_name] = body[schema.prompt_name]
     errors = validate(schema.specs, check)
     partial = False
     if for_estimate:
         # The dry run rejects unknown asset ids (404), so files still to be uploaded are left out of the quote.
         if missing_required_files(schema.specs, check):
             errors.append("Add a reference to see the cost")
-        partial = any(spec.cost_impact and spec.name in files for spec in schema.specs if spec.is_file)
-    return Request(lane, lane_kind(lane), model_id, body, files, array_params, errors, partial)
+        partial = bool(captures) or any(spec.cost_impact and spec.name in files for spec in schema.specs if spec.is_file)
+    return Request(lane, lane_kind(lane), model_id, body, files, array_params, errors, partial, captures)
+
+
+def apply_match_timeline(scene, lane_state, schema):
+    spec = schema.by_name("duration")
+    if spec is None or not spec.allowed_values or not lane_state.match_timeline:
+        return None
+    fps = scene.render.fps / (scene.render.fps_base or 1.0)
+    _, _, seconds = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
+                                            preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
+    value, note = capture_plan.choose_duration(seconds, spec.allowed_values)
+    index = lane_state.params.find("duration")
+    if index >= 0 and value is not None:
+        item = lane_state.params[index]
+        if item.enum_value != str(value):
+            item.enum_value = str(value)
+        item.enabled = True
+    return value, note, seconds
+
+
+def perform_captures(context, request, runner=None):
+    """Run the pending viewport/camera captures on the main thread and turn them into files."""
+    from . import capture
+
+    scene = context.scene
+    lane_state = scene.scenario.lane_state(request.lane)
+    schema = schema_for(request.model_id)
+    limit = None
+    chosen = request.body.get("duration")
+    duration_spec = schema.by_name("duration") if schema else None
+    if isinstance(chosen, int) and chosen > 0:
+        limit = chosen
+    elif duration_spec and duration_spec.allowed_values:
+        numeric = [int(v) for v in duration_spec.allowed_values if isinstance(v, (int, float)) and int(v) > 0]
+        limit = max(numeric) if numeric else None
+    for cap in request.captures:
+        source = cap["source"]
+        camera = bpy.data.objects.get(cap["camera"]) if cap.get("camera") else None
+        base = 'CAMERA' if source.startswith('CAMERA') else 'VIEWPORT'
+        force_solid = bool(lane_state.force_solid) if lane_state is not None else False
+        if source in props.CLIP_SOURCES:
+            fps = scene.render.fps / (scene.render.fps_base or 1.0)
+            start, end, _ = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
+                                                    preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
+            if limit:
+                start, end = capture_plan.clip_frames_for(limit, fps, start, end)
+            start, end, padded = capture_plan.ensure_min_frames(start, end, fps)
+            if padded:
+                runtime.set_message(f"Clip padded to {capture_plan.MIN_CLIP_SECONDS:g} s (frames {start} to {end}) for the video model")
+            path = capture.new_capture_path("playblast", "mp4")
+            info = capture.capture_playblast(context, path, source=base, camera=camera, frame_start=start, frame_end=end, force_solid=force_solid, runner=runner)
+            request.files.setdefault(cap["param"], []).append(info["path"])
+        else:
+            path = capture.new_capture_path("still", "png")
+            request.files.setdefault(cap["param"], []).append(capture.capture_still(context, path, source=base, camera=camera, force_solid=force_solid, runner=runner))
+    request.captures = []
+    return request
 
 
 def request_meta(context, lane):
@@ -231,6 +301,10 @@ def submit_generation(context, lane):
     request = build_request(scene, lane)
     if request.errors:
         raise ScenarioError(0, "; ".join(request.errors))
+    try:
+        perform_captures(context, request)
+    except RuntimeError as err:
+        raise ScenarioError(0, str(err)) from err
     manager = runtime.ensure_manager()
     rec = manager.submit(lane, request.kind, request.model_id, request.body, files=request.files,
                          array_params=request.array_params, meta=request_meta(context, lane))

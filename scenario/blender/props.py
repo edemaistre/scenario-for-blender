@@ -21,10 +21,15 @@ GENERATION_LANES = ("image", "video", "3d", "material", "render")
 LANE_ATTR = {"image": "image", "video": "video", "3d": "three_d", "material": "material", "render": "render"}
 REFERENCE_SOURCES = [
     ('FILE', "File", "An image or video file on disk"),
-    ('VIEWPORT', "Viewport", "Capture the active 3D viewport at generate time"),
+    ('VIEWPORT', "Viewport still", "Capture the active 3D viewport as an image at generate time"),
+    ('CAMERA', "Camera still", "Render the scene camera view as an image at generate time"),
+    ('VIEWPORT_CLIP', "Viewport clip", "Playblast the active viewport over the timeline at generate time"),
+    ('CAMERA_CLIP', "Camera clip", "Playblast the scene camera over the timeline at generate time"),
     ('RENDER', "Render Result", "The latest render result"),
     ('ASSET', "Scenario asset", "An asset already in your Scenario project"),
 ]
+CAPTURE_SOURCES = ('VIEWPORT', 'CAMERA', 'VIEWPORT_CLIP', 'CAMERA_CLIP')
+CLIP_SOURCES = ('VIEWPORT_CLIP', 'CAMERA_CLIP')
 
 
 def mark_estimate_dirty(lane_state):
@@ -117,6 +122,12 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     estimate_error: StringProperty()
     estimate_partial: BoolProperty(default=False, description="The quote excludes references that are not uploaded yet")
     last_error: StringProperty()
+    match_timeline: BoolProperty(name="Match timeline", default=True, description="Set the clip duration from the scene frame range", update=_on_prompt_update)
+    force_solid: BoolProperty(name="Grey clay capture", default=False, description="Capture with solid single-colour shading so the model reads motion, not materials")
+    capture_source: EnumProperty(name="Source", items=[('VIEWPORT', "Viewport", "The active 3D viewport"), ('CAMERA', "Scene camera", "The scene camera")], default='CAMERA')
+    generate_audio: BoolProperty(name="Generate audio", default=False)
+    concept_path: StringProperty()
+    concept_job: StringProperty()
 
 
 class ScenarioSceneProps(bpy.types.PropertyGroup):
