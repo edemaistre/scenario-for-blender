@@ -59,8 +59,10 @@ def _numeric_fallback(spec, schema=None):
     """A sensible value when the schema has no default: preset, then 1024 for sizes, then the range."""
     lo = spec.min if spec.min is not None else 0
     hi = spec.max if spec.max is not None else lo
-    if schema is not None:
-        for preset in schema.resolution_presets:
+    if schema is not None and schema.resolution_presets:
+        # prefer a square preset, then the one closest to 1024 px, so first-run defaults look sane
+        presets = sorted(schema.resolution_presets, key=lambda pr: (abs((pr.get("width") or 0) - (pr.get("height") or 0)), abs((pr.get("width") or 0) - 1024)))
+        for preset in presets:
             if preset.get("width_param") == spec.name and preset.get("width"):
                 return preset["width"]
             if preset.get("height_param") == spec.name and preset.get("height"):

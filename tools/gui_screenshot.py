@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Open Blender with the Scenario panel visible, screenshot it, quit.
 
-Usage: blender [file.blend] --python tools/gui_screenshot.py -- /abs/out.png [lane] [delay_seconds]
+Usage: blender [file.blend] --python tools/gui_screenshot.py -- /abs/out.png [lane] [delay_seconds] [prompt]
 Opening a .blend file (any, tools/blank.blend is provided) avoids the splash screen.
 """
 import sys
@@ -13,6 +13,7 @@ argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = argv[0] if argv else "/tmp/scenario-panel.png"
 LANE = argv[1] if len(argv) > 1 else "image"
 DELAY = float(argv[2]) if len(argv) > 2 else 6.0
+PROMPT = argv[3] if len(argv) > 3 else ""
 
 
 def _view3d():
@@ -27,6 +28,8 @@ def _prepare():
         space = area.spaces.active
         space.show_region_ui = True
         bpy.context.scene.scenario.lane = LANE
+        if PROMPT:
+            bpy.context.scene.scenario.lane_state(LANE).prompt = PROMPT
         ui_region = next(r for r in area.regions if r.type == 'UI')
         try:
             ui_region.active_panel_category = "Scenario"
