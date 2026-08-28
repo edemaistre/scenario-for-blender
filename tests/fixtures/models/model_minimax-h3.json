@@ -1,0 +1,165 @@
+{
+ "model": {
+  "id": "model_minimax-h3",
+  "name": "Minimax H3",
+  "shortDescription": "MiniMax H3 generates video from text, first/last frames, or multimodal references. Native stereo audio; 5-15s clips up to 2K at 24fps.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "txt2video",
+   "img2video",
+   "video2video"
+  ],
+  "status": "trained",
+  "tags": [
+   "Audio",
+   "First Frame",
+   "I2V",
+   "Last Frame",
+   "MiniMax",
+   "Reference Images",
+   "T2V",
+   "V2V",
+   "Video",
+   "preview",
+   "sc:featured",
+   "sc:third-party"
+  ],
+  "inputs": [
+   {
+    "description": "Describe the video you want.",
+    "label": "Prompt",
+    "maxLength": 7000,
+    "name": "prompt",
+    "costImpact": false,
+    "prompt": true,
+    "required": {
+     "always": true
+    },
+    "type": "string",
+    "promptSpark": true
+   },
+   {
+    "backgroundBehavior": "opaque",
+    "description": "An image to use as the video's opening frame. The video's shape follows this image. Can't be combined with reference images, videos, or audio.",
+    "kind": "image",
+    "label": "First Frame",
+    "maxSize": 31457280,
+    "name": "firstFrameImage",
+    "costImpact": false,
+    "parent": true,
+    "required": {
+     "ifDefined": {
+      "lastFrameImage": {
+       "message": "A first frame must be provided if a last frame is set."
+      }
+     }
+    },
+    "type": "file"
+   },
+   {
+    "backgroundBehavior": "opaque",
+    "description": "An image to use as the video's closing frame. Only works when a first frame is also set. Can't be combined with reference images, videos, or audio.",
+    "kind": "image",
+    "label": "Last Frame",
+    "maxSize": 31457280,
+    "name": "lastFrameImage",
+    "costImpact": false,
+    "parent": true,
+    "type": "file"
+   },
+   {
+    "description": "Images to guide the subjects or style (up to 9, max 30 MB each). Can't be combined with a first or last frame. First 5 are free; additional images are billed.",
+    "kind": "image",
+    "label": "Reference Images",
+    "maxLength": 9,
+    "maxSize": 31457280,
+    "name": "referenceImages",
+    "costImpact": true,
+    "parent": true,
+    "type": "file_array"
+   },
+   {
+    "description": "Videos to guide the motion (up to 3, each 2\u201315s and 2\u201315s in total, max 50 MB each). Can't be combined with a first or last frame. Billed per second of uploaded duration.",
+    "kind": "video",
+    "label": "Reference Videos",
+    "maxLength": 3,
+    "maxSize": 52428800,
+    "maxDuration": 15,
+    "name": "referenceVideos",
+    "costImpact": true,
+    "parent": true,
+    "type": "file_array"
+   },
+   {
+    "description": "Audio to guide the video (up to 3, each 2\u201315s and 2\u201315s in total, max 15 MB each). Requires at least one reference image or video.",
+    "kind": "audio",
+    "label": "Reference Audio",
+    "maxLength": 3,
+    "maxSize": 15728640,
+    "maxDuration": 15,
+    "name": "referenceAudio",
+    "costImpact": false,
+    "parent": true,
+    "type": "file_array"
+   },
+   {
+    "description": "How long the video lasts, in seconds (5-15). Longer videos cost more.",
+    "default": 5,
+    "group": "Settings",
+    "label": "Duration",
+    "max": 15,
+    "min": 5,
+    "name": "duration",
+    "costImpact": true,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "768P",
+     "2K"
+    ],
+    "description": "The output quality. Higher resolutions cost more.",
+    "default": "2K",
+    "group": "Settings",
+    "label": "Resolution",
+    "name": "resolution",
+    "costImpact": true,
+    "type": "string"
+   },
+   {
+    "allowedValues": [
+     "21:9",
+     "16:9",
+     "4:3",
+     "1:1",
+     "3:4",
+     "9:16",
+     "adaptive"
+    ],
+    "description": "The shape of the video. Auto picks a fitting shape. Ignored when a first frame is set, since the shape follows that image.",
+    "default": "adaptive",
+    "group": "Settings",
+    "label": "Aspect Ratio",
+    "name": "aspectRatio",
+    "costImpact": false,
+    "type": "string"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "aspectRatio": {
+     "4:3": "4:3",
+     "9:16": "9:16",
+     "adaptive": "Auto",
+     "21:9": "21:9",
+     "16:9": "16:9",
+     "3:4": "3:4",
+     "1:1": "1:1"
+    }
+   }
+  },
+  "parameters": {}
+ }
+}

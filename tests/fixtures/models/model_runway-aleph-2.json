@@ -1,0 +1,150 @@
+{
+ "model": {
+  "id": "model_runway-aleph-2",
+  "name": "Runway Aleph 2",
+  "shortDescription": "Runway Aleph 2 by Runway ML edits real footage with text prompts. Remove objects, swap products, restyle or relight shots. Motion and audio preserved. Up to 30s at 1080p.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "video2video"
+  ],
+  "status": "trained",
+  "tags": [
+   "Aleph",
+   "Editing",
+   "Runway",
+   "Video to Video",
+   "sc:featured",
+   "sc:third-party"
+  ],
+  "inputs": [
+   {
+    "description": "Describe how you want the video to look or feel after editing \u2014 style, atmosphere, visual changes. For example: 'transform into a noir film with high contrast and rain-soaked streets'.",
+    "label": "Prompt",
+    "maxLength": 1000,
+    "name": "prompt",
+    "costImpact": false,
+    "prompt": true,
+    "required": {
+     "always": true
+    },
+    "type": "string",
+    "promptSpark": true
+   },
+   {
+    "description": "The source video to edit. Maximum 30 seconds and 16 MB. The model rewrites its visuals based on your prompt while preserving the original motion and structure.",
+    "kind": "video",
+    "label": "Video",
+    "maxSize": 16777216,
+    "maxDuration": 30,
+    "name": "video",
+    "costImpact": true,
+    "parent": true,
+    "required": {
+     "always": true
+    },
+    "type": "file"
+   },
+   {
+    "description": "Pin reference images to specific moments in the video to guide the edit at those points. Add up to 5 keyframes. Use Seconds or Position to set each one's timing.",
+    "inputs": [
+     {
+      "description": "The reference image to use at this moment in the video.",
+      "kind": "image",
+      "label": "Image",
+      "name": "uri",
+      "costImpact": false,
+      "required": {
+       "always": true
+      },
+      "type": "file"
+     },
+     {
+      "description": "When this keyframe applies, as a number of seconds from the start of the video.",
+      "group": "Timing",
+      "label": "Seconds",
+      "min": 0,
+      "name": "seconds",
+      "costImpact": false,
+      "type": "number"
+     },
+     {
+      "description": "When this keyframe applies, as a fraction of the total video length. 0 = start, 1 = end, 0.5 = halfway.",
+      "group": "Timing",
+      "label": "Position",
+      "max": 1,
+      "min": 0,
+      "name": "at",
+      "costImpact": false,
+      "step": 0.01,
+      "type": "number"
+     }
+    ],
+    "label": "Keyframes",
+    "maxLength": 5,
+    "name": "keyframes",
+    "costImpact": false,
+    "type": "inputs_array"
+   },
+   {
+    "description": "Alternative to Keyframes \u2014 pin reference images to moments in the output video. Cannot be used together with Keyframes. Add up to 5 images.",
+    "inputs": [
+     {
+      "description": "The reference image to apply at this position in the output.",
+      "kind": "image",
+      "label": "Image",
+      "name": "uri",
+      "costImpact": false,
+      "required": {
+       "always": true
+      },
+      "type": "file"
+     },
+     {
+      "allowedValues": [
+       "timestamp",
+       "position"
+      ],
+      "description": "Whether to set the position using a timestamp in seconds or a percentage of the video's total length.",
+      "default": "position",
+      "label": "Position Type",
+      "name": "positionType",
+      "costImpact": false,
+      "required": {
+       "always": true
+      },
+      "type": "string"
+     },
+     {
+      "description": "When this image applies, as a number of seconds from the start of the output video.",
+      "default": 0,
+      "group": "Position",
+      "label": "Timestamp Seconds",
+      "min": 0,
+      "name": "timestampSeconds",
+      "costImpact": false,
+      "type": "number"
+     },
+     {
+      "description": "When this image applies, as a fraction of the output video length. 0 = start, 1 = end.",
+      "default": 0,
+      "group": "Position",
+      "label": "Position Percentage",
+      "max": 1,
+      "min": 0,
+      "name": "positionPercentage",
+      "costImpact": false,
+      "step": 0.01,
+      "type": "number"
+     }
+    ],
+    "label": "Prompt Images",
+    "maxLength": 5,
+    "name": "promptImage",
+    "costImpact": false,
+    "type": "inputs_array"
+   }
+  ],
+  "parameters": {}
+ }
+}

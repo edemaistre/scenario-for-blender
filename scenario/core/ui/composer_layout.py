@@ -7,11 +7,13 @@ MARGIN = 24
 PILL_WIDTH, PILL_HEIGHT = 320, 44
 CARD_WIDTH, CARD_HEIGHT = 720, 150
 TAB_HEIGHT, ROW_GAP, PAD = 24, 8, 12
-GENERATE_WIDTH, MODEL_WIDTH, COLLAPSE_SIZE = 190, 200, 20
-LANE_ORDER = ("image", "video", "3d", "material", "render")
-LANE_LABELS = {"image": "Image", "video": "Video", "3d": "3D", "material": "Materials", "render": "Render-to-real"}
+GENERATE_WIDTH, MODEL_WIDTH, COLLAPSE_SIZE, SETTINGS_WIDTH = 190, 200, 20, 84
+LANE_ORDER = ("image", "video", "3d", "material", "render_image", "render_video")
+LANE_LABELS = {"image": "Image", "video": "Video", "3d": "3D", "material": "Materials", "render_image": "Render Img", "render_video": "Render Vid"}
 PLACEHOLDERS = {"image": "Describe the image to generate", "video": "Describe the video, or capture the timeline", "3d": "Describe the object",
-                "material": "Describe the material (weathered copper, mossy stone...)", "render": "Describe the look of the concept"}
+                "material": "Describe the material (weathered copper, mossy stone...)",
+                "render_image": "Describe the look to render the viewport with (empty: Prompt Spark writes it)",
+                "render_video": "Describe the look of the video (empty: Prompt Spark writes it)"}
 
 
 def placeholder_for(lane):
@@ -38,20 +40,91 @@ class Rect:
 
 
 class TextField:
-    """Single-line editor: text, caret index, optional selection (a, b) with a < b."""
+    """Single-line editor: text, caret index and a selection anchor.
+
+    The selection is the span between `anchor` and `caret` (None when they coincide or no anchor is set), so
+    extending with Shift+arrows, Shift+Home/End, shift-click or a drag only ever moves the caret."""
 
     def __init__(self, text="", caret=None):
         self.text = text
         self.caret = len(text) if caret is None else max(0, min(caret, len(text)))
-        self.selection = None
+        self.anchor = None
+
+    # -- selection ----------------------------------------------------------
+    @property
+    def selection(self):
+        if self.anchor is None or self.anchor == self.caret:
+            return None
+        a, b = sorted((self.anchor, self.caret))
+        return (a, b)
+
+    @selection.setter
+    def selection(self, value):
+        if value is None:
+            self.anchor = None
+            return
+        a, b = value
+        self.anchor, self.caret = self._clamp(a), self._clamp(b)
+
+    def _clamp(self, index):
+        return max(0, min(len(self.text), int(index)))
 
     def _clear_selection(self):
-        self.selection = None
+        self.anchor = None
 
+    def _start_extend(self):
+        if self.anchor is None:
+            self.anchor = self.caret
+
+    def selected_text(self):
+        sel = self.selection
+        return self.text[sel[0]:sel[1]] if sel else ""
+
+    def select_all(self):
+        self.anchor = 0
+        self.caret = len(self.text)
+
+    def select_word_at(self, index):
+        """Select the word (or the whitespace run) under `index`, as a double-click does."""
+        if not self.text:
+            return
+        i = max(0, min(len(self.text) - 1, int(index)))
+        space = self.text[i].isspace()
+        a = i
+        while a > 0 and self.text[a - 1].isspace() == space:
+            a -= 1
+        b = i + 1
+        while b < len(self.text) and self.text[b].isspace() == space:
+            b += 1
+        self.anchor, self.caret = a, b
+
+    def caret_at(self, index, extend=False):
+        """Place the caret from a click (or a drag when `extend` is true, which keeps the press position as anchor)."""
+        if extend:
+            self._start_extend()
+        else:
+            self._clear_selection()
+        self.caret = self._clamp(index)
+
+    # -- clipboard -----------------------------------------------------------
+    def copy(self):
+        return self.selected_text() or self.text
+
+    def cut(self):
+        if self.selection:
+            out = self.selected_text()
+            self.replace_selection("")
+            return out
+        out = self.text
+        self.set_text("")
+        return out
+
+    # -- editing -------------------------------------------------------------
     def insert(self, s):
         if self.selection:
             self.replace_selection(s)
             return
+        self._clear_selection()
         self.text = self.text[:self.caret] + s + self.text[self.caret:]
         self.caret += len(s)
 
@@ -59,6 +132,7 @@ class TextField:
         if self.selection:
             self.replace_selection("")
             return
+        self._clear_selection()
         if self.caret > 0:
             self.text = self.text[:self.caret - 1] + self.text[self.caret:]
             self.caret -= 1
@@ -67,24 +141,9 @@ class TextField:
         if self.selection:
             self.replace_selection("")
             return
+        self._clear_selection()
         if self.caret < len(self.text):
             self.text = self.text[:self.caret] + self.text[self.caret + 1:]
-
-    def move(self, delta):
-        self._clear_selection()
-        self.caret = max(0, min(len(self.text), self.caret + delta))
-
-    def home(self):
-        self._clear_selection()
-        self.caret = 0
-
-    def end(self):
-        self._clear_selection()
-        self.caret = len(self.text)
-
-    def select_all(self):
-        self.selection = (0, len(self.text)) if self.text else None
-        self.caret = len(self.text)
 
     def replace_selection(self, s):
         if not self.selection:
@@ -93,12 +152,39 @@ class TextField:
         a, b = self.selection
         self.text = self.text[:a] + s + self.text[b:]
         self.caret = a + len(s)
-        self.selection = None
+        self.anchor = None
 
     def set_text(self, text):
         self.text = text or ""
         self.caret = min(self.caret, len(self.text))
-        self.selection = None
+        self.anchor = None
+
+    # -- caret movement --------------------------------------------------------
+    def move(self, delta, extend=False):
+        if extend:
+            self._start_extend()
+            self.caret = self._clamp(self.caret + delta)
+            return
+        sel = self.selection
+        self._clear_selection()
+        if sel:
+            self.caret = sel[0] if delta < 0 else sel[1]  # collapse onto the edge, like a native text field
+            return
+        self.caret = self._clamp(self.caret + delta)
+
+    def home(self, extend=False):
+        if extend:
+            self._start_extend()
+        else:
+            self._clear_selection()
+        self.caret = 0
+
+    def end(self, extend=False):
+        if extend:
+            self._start_extend()
+        else:
+            self._clear_selection()
+        self.caret = len(self.text)
 
     def visible_slice(self, width_chars):
         width_chars = max(1, int(width_chars))
@@ -121,6 +207,7 @@ class Layout:
     model_rect: Rect = None
     generate_rect: Rect = None
     collapse_rect: Rect = None
+    settings_rect: Rect = None
 
     def hit(self, px, py):
         if not self.expanded:
@@ -138,6 +225,8 @@ class Layout:
             return ("generate",)
         if self.model_rect.contains(px, py):
             return ("model",)
+        if self.settings_rect is not None and self.settings_rect.contains(px, py):
+            return ("settings",)
         return ("card",)
 
 
@@ -155,12 +244,14 @@ def pill_placement(region_w, region_h, expanded, scale=1.0):
     pad, gap = PAD * s, ROW_GAP * s
     tab_h = TAB_HEIGHT * s
     tabs_y = card.top - pad - tab_h
+    size = COLLAPSE_SIZE * s
+    # the minus button sits in the top-right corner, the same distance from the top and the right edge
+    collapse = Rect(card.right - pad - size, card.top - pad - size, size, size)
     tab_rects, tx = {}, x + pad
-    tab_w = (w - 2 * pad - COLLAPSE_SIZE * s - gap - gap * (len(LANE_ORDER) - 1)) / len(LANE_ORDER)
+    tab_w = (collapse.x - gap - (x + pad) - gap * (len(LANE_ORDER) - 1)) / len(LANE_ORDER)
     for lane in LANE_ORDER:
         tab_rects[lane] = Rect(tx, tabs_y, tab_w, tab_h)
         tx += tab_w + gap
-    collapse = Rect(card.right - pad - COLLAPSE_SIZE * s, tabs_y + (tab_h - COLLAPSE_SIZE * s) / 2, COLLAPSE_SIZE * s, COLLAPSE_SIZE * s)
     row_h = 34 * s
     prompt_y = tabs_y - gap - row_h
     prompt = Rect(x + pad, prompt_y, w - 2 * pad, row_h)
@@ -169,4 +260,8 @@ def pill_placement(region_w, region_h, expanded, scale=1.0):
         bottom_y = y + pad
     model = Rect(x + pad, bottom_y, min(MODEL_WIDTH * s, w / 2 - pad), row_h)
     generate = Rect(card.right - pad - min(GENERATE_WIDTH * s, w / 2 - pad), bottom_y, min(GENERATE_WIDTH * s, w / 2 - pad), row_h)
-    return Layout(True, s, Rect(x, y, w, h), card, tab_rects, prompt, model, generate, collapse)
+    settings = None
+    room = generate.x - gap - (model.right + gap)
+    if room >= 40 * s:
+        settings = Rect(model.right + gap, bottom_y, min(SETTINGS_WIDTH * s, room), row_h)
+    return Layout(True, s, Rect(x, y, w, h), card, tab_rects, prompt, model, generate, collapse, settings)

@@ -1,0 +1,128 @@
+{
+ "model": {
+  "id": "model_scenario-llm",
+  "name": "Scenario LLM",
+  "shortDescription": "A Scenario text and vision tool powered by leading LLMs. Write, analyze, or reason over text and images. Choose your model, batch up to 5 results.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "txt2txt",
+   "img2txt"
+  ],
+  "status": "trained",
+  "tags": [
+   "Text",
+   "llm",
+   "sc:scenario",
+   "text",
+   "tool",
+   "vision"
+  ],
+  "inputs": [
+   {
+    "description": "Main instruction or prompt for the AI",
+    "label": "Instruction",
+    "maxLength": 100000,
+    "name": "instruction",
+    "costImpact": false,
+    "prompt": true,
+    "required": {
+     "always": true
+    },
+    "type": "string",
+    "promptSpark": true
+   },
+   {
+    "description": "Additional text context (e.g., documents, examples, data to analyze)",
+    "default": [],
+    "label": "Text Inputs",
+    "maxLength": 10,
+    "name": "textInputs",
+    "costImpact": true,
+    "prompt": true,
+    "type": "string_array"
+   },
+   {
+    "description": "Images for vision analysis (leave empty for text-only)",
+    "default": [],
+    "kind": "image",
+    "label": "Images",
+    "maxLength": 10,
+    "name": "images",
+    "costImpact": true,
+    "parent": true,
+    "type": "file_array"
+   },
+   {
+    "description": "How many distinct results to generate",
+    "default": 1,
+    "label": "Number of Results",
+    "max": 5,
+    "min": 1,
+    "name": "numOutputs",
+    "costImpact": true,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "claude-fable-5",
+     "claude-opus-5",
+     "claude-sonnet-5",
+     "claude-haiku-4-5",
+     "gpt-5.6-sol",
+     "gpt-5.6-terra",
+     "gpt-5.6-luna",
+     "gpt-5.4-mini",
+     "gemini-3.7-flash",
+     "gemini-3.5-flash-lite"
+    ],
+    "description": "AI model to use for generation",
+    "default": "gemini-3.5-flash-lite",
+    "label": "Model",
+    "name": "model",
+    "costImpact": true,
+    "type": "string"
+   },
+   {
+    "allowedValues": [
+     "none",
+     "minimal",
+     "low",
+     "medium",
+     "high"
+    ],
+    "description": "Controls reasoning depth on the Gemini 3 models (Flash, Flash Lite, 3.7 Flash). 'none' disables thinking for lower latency and cost; higher levels improve accuracy on complex tasks and cost more. Ignored \u2014 and not billed \u2014 by every other model: Gemini 2.5 rejects the parameter, and the OpenAI and Anthropic models manage reasoning themselves with no per-level control.",
+    "default": "none",
+    "label": "Thinking Level",
+    "name": "thinkingLevel",
+    "costImpact": true,
+    "type": "string"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "thinkingLevel": {
+     "medium": "Medium - Balanced",
+     "high": "High - Best Reasoning",
+     "none": "None",
+     "minimal": "Minimal - Fastest",
+     "low": "Low - Fast"
+    },
+    "model": {
+     "claude-sonnet-5": "Claude Sonnet 5 (Anthropic)",
+     "gpt-5.6-sol": "GPT-5.6 Sol (OpenAI)",
+     "gpt-5.6-luna": "GPT-5.6 Luna (OpenAI)",
+     "gemini-3.5-flash-lite": "Gemini 3.5 Flash Lite (Google)",
+     "claude-opus-5": "Claude Opus 5 (Anthropic)",
+     "gpt-5.6-terra": "GPT-5.6 Terra (OpenAI)",
+     "claude-haiku-4-5": "Claude Haiku 4.5 (Anthropic)",
+     "claude-fable-5": "Claude Fable 5 (Anthropic)",
+     "gpt-5.4-mini": "GPT-5.4 Mini (OpenAI)",
+     "gemini-3.7-flash": "Gemini 3.7 Flash (Google)"
+    }
+   }
+  },
+  "parameters": {}
+ }
+}

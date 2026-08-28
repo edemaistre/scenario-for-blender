@@ -1,0 +1,63 @@
+{
+ "model": {
+  "id": "model_tripo-retopology",
+  "name": "Tripo Retopology",
+  "shortDescription": "Tripo Retopology by Tripo AI converts dense or AI-generated 3D meshes into clean, low-poly geometry with face count control and texture baking.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "3d23d"
+  ],
+  "status": "trained",
+  "tags": [
+   "3D",
+   "Low Poly",
+   "Retopology",
+   "Tripo",
+   "sc:third-party"
+  ],
+  "inputs": [
+   {
+    "description": "Source 3D model.",
+    "kind": "3d",
+    "label": "3D Model",
+    "name": "model",
+    "costImpact": false,
+    "parent": true,
+    "required": {
+     "always": true
+    },
+    "type": "file"
+   },
+   {
+    "description": "Target face count. Adaptive if not set. Must be between 1,000 and 20,000 if set.",
+    "group": "Settings",
+    "label": "Face Limit",
+    "max": 20000,
+    "min": 1000,
+    "name": "faceLimit",
+    "costImpact": false,
+    "type": "number"
+   },
+   {
+    "description": "Output quad faces instead of triangles.",
+    "default": false,
+    "group": "Settings",
+    "label": "Quad",
+    "name": "quad",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "description": "Bake textures onto lowpoly mesh.",
+    "default": true,
+    "group": "Settings",
+    "label": "Bake Textures",
+    "name": "bake",
+    "costImpact": false,
+    "type": "boolean"
+   }
+  ],
+  "parameters": {}
+ }
+}

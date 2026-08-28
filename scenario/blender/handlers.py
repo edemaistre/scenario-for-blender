@@ -56,9 +56,9 @@ def _on_job(name, rec):
         view.insert(0, rec)
     del view[50:]
     if name == "job_done":
-        from . import render_to_real
+        from . import render_lanes
 
-        render_to_real.on_result(rec)
+        render_lanes.on_result(rec)
         handler = RESULT_HANDLERS.get(rec.kind)
         if handler is None:
             runtime.set_message(f"{rec.kind} result ready in {rec.files[0] if rec.files else 'the output folder'}")

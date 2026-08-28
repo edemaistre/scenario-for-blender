@@ -8,14 +8,14 @@ from dataclasses import dataclass, field
 import bpy
 
 from . import params_ui, props, runtime
-from ..core.api.catalog import DEFAULT_MODELS, MULTIVIEW_HINTS, models_for_lane
+from ..core.api.catalog import DEFAULT_MODELS, MULTIVIEW_HINTS, RENDER_LANES, edit3d_models, mesh_param, models_for_lane
 from ..core.api.errors import ScenarioError
 from ..core.schema.params import build_body, missing_required_files, parse_schema, validate
 from ..core.scene import capture_plan
 
 log = logging.getLogger("scenario.generation")
 
-LANE_KIND = {"image": "image", "video": "video", "3d": "3d", "material": "material", "render": "video"}
+LANE_KIND = {"image": "image", "video": "video", "3d": "3d", "material": "material", "render_image": "image", "render_video": "video", "edit3d": "3d"}
 _schemas = {}
 
 
@@ -66,7 +66,7 @@ def set_catalog(records, detailed):
     for rec in records:
         runtime.state.records.setdefault(rec.id, rec)
     for lane in props.GENERATION_LANES:
-        lane_records = models_for_lane("video" if lane == "render" else lane, records)
+        lane_records = models_for_lane(lane, records)
         runtime.state.lane_models[lane] = lane_records
         runtime.set_enum_items(("models", lane), [(r.id, r.name, r.short_description) for r in lane_records])
     runtime.state.catalog_loaded = True
@@ -80,6 +80,7 @@ def set_catalog(records, detailed):
             on_model_changed(bpy.context, lane_state, mark_dirty=False)
     if bpy.context.scene is not None:
         refresh_3d_models(bpy.context)
+        refresh_edit3d_models(bpy.context)
 
 
 def restore_model_key(lane_state):
@@ -179,6 +180,25 @@ def refresh_3d_models(context=None):
         request_models(missing)
 
 
+def refresh_edit3d_models(context=None):
+    """The Edit 3D model list follows the task tabs (Retexture, Retopology, Rigging...)."""
+    scene = getattr(context, "scene", None) or bpy.context.scene
+    if scene is None:
+        return
+    records = edit3d_models(scene.scenario.edit3d_task, list(runtime.state.records.values()))
+    runtime.state.lane_models["edit3d"] = records
+    runtime.set_enum_items(("models", "edit3d"), [(r.id, r.name, r.short_description) for r in records])
+    lane_state = scene.scenario.lane_state("edit3d")
+    restore_model_key(lane_state)
+    if lane_state.model_id == "NONE" or lane_state.model_id not in [r.id for r in records]:
+        if records:
+            lane_state.model_id = records[0].id
+    on_model_changed(context or bpy.context, lane_state)
+    missing = [r.id for r in records if not r.parameters and r.id not in _pending_models][:12]
+    if missing:
+        request_models(missing)
+
+
 def request_models(model_ids):
     if not runtime.online():
         return
@@ -244,6 +264,8 @@ class Request:
     errors: list = field(default_factory=list)
     partial: bool = False
     captures: list = field(default_factory=list)
+    spark: dict = None            # set by the render lanes when Prompt Spark must write the look first
+    meta: dict = field(default_factory=dict)
 
 
 def build_request(scene, lane, for_estimate=False):
@@ -257,6 +279,13 @@ def build_request(scene, lane, for_estimate=False):
     values, enabled = params_ui.collect_values(lane_state, schema)
     refs = params_ui.collect_file_refs(lane_state, schema)
     files, array_params, asset_ids, captures = {}, set(), {}, []
+    if lane == "edit3d":
+        # the mesh comes from the selection, exported at generate time (never a file the user has to pick)
+        record = runtime.state.records.get(model_id)
+        mesh_name = mesh_param(record) if record is not None else None
+        if mesh_name is None:
+            return Request(lane, lane_kind(lane), model_id, {}, errors=["This model takes no mesh input"])
+        captures.append({"param": mesh_name, "source": 'MESH', "camera": None, "first": True})
     for spec in schema.specs:
         if not spec.is_file:
             continue
@@ -277,25 +306,41 @@ def build_request(scene, lane, for_estimate=False):
             elif ref.source in props.CAPTURE_SOURCES:
                 captures.append({"param": spec.name, "source": ref.source, "camera": ref.asset_id or None})
     body = build_body(schema.specs, values, asset_ids, enabled=enabled)
-    pending = {name: list(paths) for name, paths in files.items()}
-    for cap in captures:
-        pending.setdefault(cap["param"], []).append("<capture>")
+    request = Request(lane, lane_kind(lane), model_id, body, files, array_params, [], False, captures)
+    if lane in RENDER_LANES:
+        from . import render_lanes
+
+        render_lanes.decorate(scene, lane, lane_state, schema, request, for_estimate)
+        if request.errors:
+            return request
+    pending = {name: list(paths) for name, paths in request.files.items()}
+    for cap in request.captures:
+        if cap.get("param"):
+            pending.setdefault(cap["param"], []).append("<capture>")
     check = dict(body)
     for name, paths in pending.items():
-        check.setdefault(name, paths if name in array_params else paths[0])
+        check.setdefault(name, paths if name in request.array_params else paths[0])
     if "seedance" in model_id and schema.prompt_name and (pending or asset_ids):
         has_video = any(s.kind == "video" and s.name in check for s in schema.specs if s.is_file)
         has_image = any((s.kind or "image") == "image" and s.name in check for s in schema.specs if s.is_file)
         body[schema.prompt_name] = capture_plan.tag_prompt(body.get(schema.prompt_name, ""), has_video, has_image)
         check[schema.prompt_name] = body[schema.prompt_name]
     errors = validate(schema.specs, check)
-    partial = False
+    if lane == "edit3d":
+        from . import mesh_export
+
+        if not mesh_export.source_objects(bpy.context):
+            errors.append("Select the mesh to edit")
     if for_estimate:
         # The dry run rejects unknown asset ids (404), so files still to be uploaded are left out of the quote.
         if missing_required_files(schema.specs, check):
             errors.append("Add a reference to see the cost")
-        partial = bool(captures) or any(spec.cost_impact and spec.name in files for spec in schema.specs if spec.is_file)
-    return Request(lane, lane_kind(lane), model_id, body, files, array_params, errors, partial, captures)
+        elif missing_required_files(schema.specs, body):
+            # the required file only exists as a pending capture or export: the server prices it after the upload
+            errors.append("Price shown after the upload (the model needs the " + ("mesh" if lane == "edit3d" else "capture") + " first)")
+        request.partial = bool(request.captures) or any(spec.cost_impact and spec.name in request.files for spec in schema.specs if spec.is_file)
+    request.errors = errors
+    return request
 
 
 def apply_match_timeline(scene, lane_state, schema):
@@ -331,13 +376,36 @@ def perform_captures(context, request, runner=None):
     elif duration_spec and duration_spec.allowed_values:
         numeric = [int(v) for v in duration_spec.allowed_values if isinstance(v, (int, float)) and int(v) > 0]
         limit = max(numeric) if numeric else None
+    def _add(cap, path):
+        if cap.get("param") is None:
+            return
+        target = request.files.setdefault(cap["param"], [])
+        if cap.get("first"):
+            target.insert(0, path)
+        else:
+            target.append(path)
+
     for cap in request.captures:
         source = cap["source"]
         if source == 'RENDER':
             continue
+        if source == 'MESH':
+            from . import mesh_export
+
+            objects = mesh_export.source_objects(context)
+            path = mesh_export.export_glb(context, objects)
+            request.meta["source_object"] = objects[0].name if objects else ""
+            request.meta["source_objects"] = [o.name for o in objects]
+            _add(cap, path)
+            continue
         camera = bpy.data.objects.get(cap["camera"]) if cap.get("camera") else None
         base = 'CAMERA' if source.startswith('CAMERA') else 'VIEWPORT'
         force_solid = bool(lane_state.force_solid) if lane_state is not None else False
+        if cap.get("role") == "spark":
+            # a still for Prompt Spark to look at, never sent to the generation model; taken at the first frame of the clip
+            path = capture.new_capture_path("spark", "png")
+            request.meta["spark_image"] = capture.first_frame_still(context, path, source=base, camera=camera, force_solid=False, runner=runner)
+            continue
         if source in props.CLIP_SOURCES:
             fps = scene.render.fps / (scene.render.fps_base or 1.0)
             start, end, _ = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
@@ -349,20 +417,32 @@ def perform_captures(context, request, runner=None):
                 runtime.set_message(f"Clip padded to {capture_plan.MIN_CLIP_SECONDS:g} s (frames {start} to {end}) for the video model")
             path = capture.new_capture_path("playblast", "mp4")
             info = capture.capture_playblast(context, path, source=base, camera=camera, frame_start=start, frame_end=end, force_solid=force_solid, runner=runner)
-            request.files.setdefault(cap["param"], []).append(info["path"])
+            _add(cap, info["path"])
+            request.meta.setdefault("captures", []).append(info["path"])
         else:
             path = capture.new_capture_path("still", "png")
-            request.files.setdefault(cap["param"], []).append(capture.capture_still(context, path, source=base, camera=camera, force_solid=force_solid, runner=runner))
+            still = capture.capture_still(context, path, source=base, camera=camera, force_solid=force_solid, runner=runner)
+            _add(cap, still)
+            request.meta.setdefault("captures", []).append(still)
+            if cap.get("first") and request.spark is not None and request.spark.get("kind") == "image":
+                request.meta["spark_image"] = still
     request.captures = []
     return request
 
 
-def request_meta(context, lane):
+def request_meta(context, lane, request=None):
     lane_state = context.scene.scenario.lane_state(lane)
     record = runtime.state.records.get(lane_state.model_id)
     meta = {"prompt": lane_state.prompt, "model_name": record.name if record else lane_state.model_id}
     if lane == "material":
         meta["target_objects"] = [o.name for o in context.selected_objects if o.type == 'MESH']
+    if request is not None:
+        # the local files that went into the job, so Generations can show what was used (like the web app)
+        inputs = []
+        for paths in request.files.values():
+            inputs.extend(p for p in paths if p not in inputs)
+        meta["inputs"] = inputs
+        meta.update(request.meta)
     return meta
 
 
@@ -396,11 +476,16 @@ def submit_generation(context, lane):
     except RuntimeError as err:
         raise ScenarioError(0, str(err)) from err
     manager = runtime.ensure_manager()
+    prepare = None
+    if request.spark is not None:
+        from . import render_lanes
+
+        prepare = render_lanes.make_prepare(request.spark, request.meta.get("spark_image"), request.meta.get("prompt_name") or "prompt")
     rec = manager.submit(lane, request.kind, request.model_id, request.body, files=request.files,
-                         array_params=request.array_params, meta=request_meta(context, lane))
+                         array_params=request.array_params, meta=request_meta(context, lane, request), prepare=prepare)
     runtime.state.jobs_view.insert(0, rec)
     lane_state.last_error = ""
-    runtime.set_message(f"Submitted to {rec.meta.get('model_name', rec.model_id)}")
+    runtime.set_message(("Prompt Spark is writing the look for " if prepare else "Submitted to ") + rec.meta.get('model_name', rec.model_id))
     return rec
 
 

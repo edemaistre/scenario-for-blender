@@ -14,9 +14,9 @@ _log_handler = None
 
 
 def _modules():
-    from . import props, operators, panels, popover, composer  # noqa: F401
+    from . import props, shot_planner, operators, model_picker, panels, popover, composer  # noqa: F401
 
-    return [props, operators, panels, popover, composer]
+    return [props, shot_planner, operators, model_picker, panels, popover, composer]
 
 
 def _configure_logging():

@@ -27,7 +27,7 @@ def _encode_query(query):
 
 class ScenarioClient:
     def __init__(self, key, secret, *, base_url=DEFAULT_BASE_URL, transport=None,
-                 user_agent="ScenarioBlender/0.5.2", sleep=time.sleep, max_retries=3):
+                 user_agent="ScenarioBlender/0.6.0", sleep=time.sleep, max_retries=3):
         token = base64.b64encode(f"{key}:{secret}".encode("utf-8")).decode("ascii")
         self._auth = f"Basic {token}"
         self.base_url = base_url.rstrip("/")

@@ -27,10 +27,13 @@ def test_paths_layout(tmp_path):
     paths = config.Paths(state_dir=tmp_path / "state", cache_dir=tmp_path / "cache", output_dir=tmp_path / "out")
     assert paths.models_cache_dir == tmp_path / "cache" / "models"
     assert paths.registry_file == tmp_path / "state" / "jobs.json"
-    assert paths.output_for("image") == tmp_path / "out" / "images"
-    assert paths.output_for("3d") == tmp_path / "out" / "3d"
-    assert paths.output_for("material") == tmp_path / "out" / "materials"
-    assert paths.output_for("weird") == tmp_path / "out" / "other"
+    when = dt.datetime(2026, 8, 28, 9, 30, 5)
+    assert paths.output_for("image", when) == tmp_path / "out" / "images" / "20260828"
+    assert paths.output_for("3d", when) == tmp_path / "out" / "3d" / "20260828"
+    assert paths.output_for("material", when) == tmp_path / "out" / "materials" / "20260828"
+    assert paths.output_for("weird", when) == tmp_path / "out" / "other" / "20260828"
+    today = f"{dt.datetime.now():%Y%m%d}"
+    assert paths.output_for("video").name == today
 
 
 def test_ext_for_mime():

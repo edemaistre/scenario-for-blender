@@ -81,11 +81,27 @@ def _material_preview():
                 area.spaces.active.shading.type = 'MATERIAL'
 
 
+def place_next_to(context, objects, source):
+    """Move `objects` so they sit to the right (+X) of `source`, bottoms aligned: an edited mesh lands beside its original."""
+    src_box = _world_bbox([source] + [c for c in source.children_recursive if c.type == 'MESH'])
+    new_box = _world_bbox(objects)
+    if src_box is None or new_box is None:
+        return
+    gap = max(0.1, 0.15 * (src_box[1][0] - src_box[0][0]))
+    dx = src_box[1][0] + gap - new_box[0][0]
+    dy = src_box[0][1] - new_box[0][1]
+    dz = src_box[0][2] - new_box[0][2]
+    roots = [o for o in objects if o.parent is None or o.parent not in objects]
+    for root in roots:
+        root.location = (root.location.x + dx, root.location.y + dy, root.location.z + dz)
+    context.view_layer.update()
+
+
 def on_3d_result(rec):
     """Import ONE mesh per job. Providers ship variants of the same result (Meshy: GLB + OBJ + texture PNGs;
     Rodin with material=All: a shaded GLB and a PBR GLB); importing them all stacked an untextured copy on top of
     the textured one. The best variant (glTF, most PBR textures) is imported, the others stay on disk and are
-    offered as alternates in Results."""
+    offered as alternates in Generations. Edit 3D results are placed next to the mesh they came from."""
     primary, alternates = placement.pick_primary_mesh(rec.files)
     rec.meta["primary_mesh"] = primary or ""
     rec.meta["mesh_alternates"] = alternates
@@ -93,12 +109,21 @@ def on_3d_result(rec):
         runtime.set_message("The job returned no importable mesh (GLB, FBX or OBJ)")
         return []
     prompt = (rec.meta.get("prompt") or "").strip()
-    objects = import_model(bpy.context, primary, at_cursor=True)
+    source = bpy.data.objects.get(rec.meta.get("source_object") or "")
+    objects = import_model(bpy.context, primary, at_cursor=source is None)
+    if source is not None:
+        place_next_to(bpy.context, objects, source)
     meshes = [o for o in objects if o.type == 'MESH']
-    if prompt and len(meshes) == 1:
+    if source is not None and meshes:
+        label = (rec.meta.get("model_name") or "edit").split(" - ")[-1][:24]
+        for mesh in meshes:
+            mesh.name = f"{source.name} {label}"
+    elif prompt and len(meshes) == 1:
         meshes[0].name = f"Scenario {prompt[:40]}"
+    rec.meta["objects"] = [o.name for o in objects]
     textured = sum(1 for o in meshes for s in o.material_slots if s.material and any(n.type == 'TEX_IMAGE' and n.image for n in s.material.node_tree.nodes))
     _material_preview()
     extra = f", {len(alternates)} other mesh file(s) kept on disk" if alternates else ""
-    runtime.set_message(f"Imported {len(meshes)} mesh(es) at the 3D cursor ({'textured' if textured else 'no textures'}){extra}")
+    where = f"next to {source.name}" if source is not None else "at the 3D cursor"
+    runtime.set_message(f"Imported {len(meshes)} mesh(es) {where} ({'textured' if textured else 'no textures'}){extra}")
     return objects

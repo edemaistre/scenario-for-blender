@@ -19,6 +19,18 @@ def _redraw(context):
         context.region.tag_redraw()
 
 
+def _open_sidebar(context):
+    from ..popover import open_sidebar
+
+    open_sidebar(context.area)
+
+
+def _caret_index(context, state, layout, px):
+    from .draw import caret_index_at, ui_scale
+
+    return caret_index_at(px, layout.prompt_rect, state.field, ui_scale(context))
+
+
 class SCENARIO_OT_composer_modal(bpy.types.Operator):
     bl_idname = "scenario.composer_modal"
     bl_label = "Scenario composer"
@@ -50,6 +62,7 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
         state = runtime.state.composer
         if state is not None:
             state.hover = None
+            state.dragging = False
         _redraw(context)
         return {'FINISHED'}
 
@@ -61,6 +74,10 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
         layout = _layout(context, state)
         if event.type == 'MOUSEMOVE':
             state.mouse = (event.mouse_region_x, event.mouse_region_y)
+            if state.dragging and state.focused and layout.prompt_rect is not None:
+                state.field.caret_at(_caret_index(context, state, layout, event.mouse_region_x), extend=True)
+                _redraw(context)
+                return {'RUNNING_MODAL'}
             hit = layout.hit(*state.mouse)
             if hit != state.hover:
                 state.hover = hit
@@ -68,6 +85,21 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
             if hit is None and not state.focused:
                 return self._finish(context)
             return {'PASS_THROUGH'}
+        if event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+            if state.dragging:
+                state.dragging = False
+                _redraw(context)
+                return {'RUNNING_MODAL'}
+            return {'PASS_THROUGH'} if not state.focused else {'RUNNING_MODAL'}
+        if event.type == 'LEFTMOUSE' and event.value == 'DOUBLE_CLICK':
+            hit = layout.hit(event.mouse_region_x, event.mouse_region_y)
+            if hit == ("prompt",) and state.expanded:
+                state.sync_from_lane(scene)
+                state.focused = True
+                state.field.select_word_at(_caret_index(context, state, layout, event.mouse_region_x))
+                state.dragging = False
+                _redraw(context)
+            return {'RUNNING_MODAL'}
         if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
             hit = layout.hit(event.mouse_region_x, event.mouse_region_y)
             if hit is None:
@@ -87,20 +119,24 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
                 scene.scenario.lane = hit[1]
                 state.sync_from_lane(scene)
             elif kind == "prompt":
-                state.sync_from_lane(scene)
+                if not state.focused:
+                    state.sync_from_lane(scene)
                 state.focused = True
+                state.field.caret_at(_caret_index(context, state, layout, event.mouse_region_x), extend=event.shift)
+                state.dragging = True
             elif kind == "generate":
                 state.commit_to_lane(scene)
                 state.focused = False
                 bpy.ops.scenario.generate(lane=state.lane_for(scene))
             elif kind == "model":
-                context.space_data.show_region_ui = True
-                for region in context.area.regions:
-                    if region.type == 'UI':
-                        try:
-                            region.active_panel_category = "Scenario"
-                        except (AttributeError, TypeError):
-                            pass
+                # the model chip opens the search dialog; the sidebar shows the rest of the form
+                _open_sidebar(context)
+                try:
+                    bpy.ops.scenario.pick_model('INVOKE_DEFAULT', lane=state.lane_for(scene))
+                except (RuntimeError, AttributeError):
+                    pass
+            elif kind == "settings":
+                _open_sidebar(context)
             _redraw(context)
             return {'RUNNING_MODAL'}
         if not state.focused:
@@ -108,8 +144,10 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
         if event.value != 'PRESS':
             return {'RUNNING_MODAL'}
         field = state.field
+        command = event.ctrl or event.oskey
         if event.type == 'ESC':
             state.focused = False
+            state.dragging = False
             state.commit_to_lane(scene)
             _redraw(context)
             return {'RUNNING_MODAL'}
@@ -124,18 +162,24 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
         elif event.type == 'DEL':
             field.delete()
         elif event.type == 'LEFT_ARROW':
-            field.move(-1)
+            field.move(-1, extend=event.shift)
         elif event.type == 'RIGHT_ARROW':
-            field.move(1)
+            field.move(1, extend=event.shift)
         elif event.type == 'HOME':
-            field.home()
+            field.home(extend=event.shift)
         elif event.type == 'END':
-            field.end()
-        elif (event.ctrl or event.oskey) and event.type == 'V':
+            field.end(extend=event.shift)
+        elif command and event.type == 'V':
             field.insert(context.window_manager.clipboard or "")
-        elif (event.ctrl or event.oskey) and event.type == 'A':
+        elif command and event.type == 'A':
             field.select_all()
-        elif event.unicode and not (event.ctrl or event.oskey or event.alt):
+        elif command and event.type == 'C':
+            context.window_manager.clipboard = field.copy()
+            _redraw(context)
+            return {'RUNNING_MODAL'}  # the text did not change
+        elif command and event.type == 'X':
+            context.window_manager.clipboard = field.cut()
+        elif event.unicode and not (command or event.alt):
             field.insert(event.unicode)
         else:
             return {'RUNNING_MODAL'}

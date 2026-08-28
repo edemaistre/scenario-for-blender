@@ -346,43 +346,53 @@ class SCENARIO_OT_play_video_blender(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SCENARIO_OT_render_concept(bpy.types.Operator):
-    bl_idname = "scenario.render_concept"
-    bl_label = "Render concept"
-    bl_description = "Capture the view and restyle it with the concept model"
-
-    @classmethod
-    def poll(cls, context):
-        return _network_poll(cls, context)
+class SCENARIO_OT_use_first_frame(bpy.types.Operator):
+    bl_idname = "scenario.use_first_frame"
+    bl_label = "Use as video first frame"
+    bl_description = "Start the Render Video clip from this image: it becomes the first frame reference"
+    filepath: StringProperty()
 
     def execute(self, context):
-        from . import render_to_real
-
-        try:
-            render_to_real.submit_concept(context)
-        except ScenarioError as err:
-            self.report({'ERROR'}, err.reason)
-            return {'CANCELLED'}
+        lane_state = context.scene.scenario.lane_state("render_video")
+        lane_state.first_frame_path = self.filepath
+        lane_state.use_first_frame = True
+        props.mark_estimate_dirty(lane_state)
+        self.report({'INFO'}, "First frame set for Render Video")
         return {'FINISHED'}
 
 
-class SCENARIO_OT_render_video(bpy.types.Operator):
-    bl_idname = "scenario.render_video"
-    bl_label = "Playblast and Generate"
-    bl_description = "Playblast the timeline and send it with the concept image to Seedance 2.0"
+class SCENARIO_OT_clear_first_frame(bpy.types.Operator):
+    bl_idname = "scenario.clear_first_frame"
+    bl_label = "Clear first frame"
+
+    def execute(self, context):
+        lane_state = context.scene.scenario.lane_state("render_video")
+        lane_state.first_frame_path = ""
+        props.mark_estimate_dirty(lane_state)
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_select_result_objects(bpy.types.Operator):
+    bl_idname = "scenario.select_result_objects"
+    bl_label = "Select in scene"
+    bl_description = "Select the objects this generation created"
+    names: StringProperty(description="Object names separated by |")
 
     @classmethod
     def poll(cls, context):
-        return _network_poll(cls, context)
+        return context.mode == 'OBJECT'
 
     def execute(self, context):
-        from . import render_to_real
-
-        try:
-            render_to_real.submit_video(context)
-        except ScenarioError as err:
-            self.report({'ERROR'}, err.reason)
+        wanted = [n for n in self.names.split("|") if n]
+        found = [bpy.data.objects[n] for n in wanted if n in bpy.data.objects]
+        if not found:
+            self.report({'WARNING'}, "Those objects are no longer in the file")
             return {'CANCELLED'}
+        for obj in context.selected_objects:
+            obj.select_set(False)
+        for obj in found:
+            obj.select_set(True)
+        context.view_layer.objects.active = found[0]
         return {'FINISHED'}
 
 
@@ -449,7 +459,7 @@ class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_use_first_frame, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

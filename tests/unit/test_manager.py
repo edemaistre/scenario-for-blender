@@ -187,3 +187,41 @@ def test_3d_job_survives_a_failed_alternate_download(tmp_path):
     assert rec.status == "success"
     assert [pathlib.Path(f).suffix for f in rec.files] == [".glb", ".png"]  # meshes first, failed OBJ skipped
     assert "a_obj" in rec.meta["download_errors"]
+
+
+def test_prepare_hook_runs_before_upload_and_can_rewrite_the_body(tmp_path):
+    job = json.loads((FIXTURES / "patina-copper-512" / "job.json").read_text())
+    t = FakeTransport().queue(200, {"prompts": ["brushed brass"]}).queue(200, job).queue(200, job)
+    for asset_id in job["job"]["metadata"]["assetIds"]:
+        t.queue(200, {"asset": {"id": asset_id, "url": f"https://cdn/{asset_id}", "mimeType": "image/png", "metadata": {"type": "texture-albedo"}}})
+    manager = make_manager(tmp_path, t)
+    seen = {}
+
+    def prepare(client, rec):
+        seen["status"] = rec.status
+        data = client.post("/generate/prompt", json_body={"prompt": "x"})
+        rec.body["prompt"] = "Image 1 ... look: " + data["prompts"][0]
+
+    rec = manager.submit("render_image", "image", "model_g", {"prompt": "placeholder"}, prepare=prepare)
+    manager.join(timeout=5)
+    events = manager.drain()
+    assert seen["status"] == "preparing"
+    assert [name for name, _ in events][0] == "job"
+    submitted = json.loads(t.calls[1]["body"])
+    assert submitted["prompt"] == "Image 1 ... look: brushed brass"
+    assert events_of("job_done", events)[0].status == "success"
+    # results land in a dated folder
+    assert all(pathlib.Path(p).parent.name.isdigit() and len(pathlib.Path(p).parent.name) == 8 for p in events_of("job_done", events)[0].files)
+
+
+def test_prepare_failure_fails_the_job_visibly(tmp_path):
+    manager = make_manager(tmp_path, FakeTransport())
+
+    def prepare(client, rec):
+        raise ValueError("Prompt Spark returned no prompt")
+
+    rec = manager.submit("render_image", "image", "model_g", {"prompt": "placeholder"}, prepare=prepare)
+    manager.join(timeout=5)
+    events = manager.drain()
+    failed = events_of("job_failed", events)[0]
+    assert failed.status == "failed" and "Prompt Spark returned no prompt" in failed.error

@@ -1,0 +1,54 @@
+{
+ "model": {
+  "id": "model_meshy-rigging",
+  "name": "Meshy Rigging",
+  "shortDescription": "Meshy Rigging by Meshy adds a skeleton and skin weights to humanoid GLB characters automatically, making them animation-ready in one step.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "3d23d"
+  ],
+  "status": "trained",
+  "tags": [
+   "3D to 3D",
+   "Meshy",
+   "Rigging",
+   "sc:third-party"
+  ],
+  "inputs": [
+   {
+    "description": "The 3D model (GLB)",
+    "kind": "3d",
+    "label": "3D Model",
+    "name": "model",
+    "costImpact": false,
+    "parent": true,
+    "required": {
+     "always": true
+    },
+    "type": "file"
+   },
+   {
+    "description": "The approximate height of the character model in meters. This aids in scaling and rigging accuracy. It must be a positive number.",
+    "default": 1.7,
+    "label": "Height Meters",
+    "max": 100,
+    "min": 0.1,
+    "name": "heightMeters",
+    "costImpact": false,
+    "step": 0.1,
+    "type": "number"
+   },
+   {
+    "description": "Model's base color texture image.",
+    "kind": "image",
+    "label": "Style Image",
+    "name": "textureImage",
+    "costImpact": false,
+    "parent": true,
+    "type": "file"
+   }
+  ],
+  "parameters": {}
+ }
+}

@@ -65,5 +65,143 @@ def test_scale_multiplies_every_size_and_fits_small_regions():
 
 
 def test_prompt_placeholder_and_lane_labels():
-    assert cl.LANE_LABELS["image"] == "Image" and "render" in cl.LANE_LABELS
+    assert cl.LANE_ORDER == ("image", "video", "3d", "material", "render_image", "render_video")
+    assert cl.LANE_LABELS["image"] == "Image" and cl.LANE_LABELS["render_image"] == "Render Img" and cl.LANE_LABELS["render_video"] == "Render Vid"
     assert cl.placeholder_for("image").startswith("Describe")
+    assert "Prompt Spark" in cl.placeholder_for("render_image") and "Prompt Spark" in cl.placeholder_for("render_video")
+    assert cl.placeholder_for("unknown") == "Type a prompt"
+
+
+def test_shift_arrows_extend_and_shrink_the_selection():
+    f = cl.TextField("hello world")  # caret at 11
+    f.move(-1, extend=True)
+    assert f.selection == (10, 11) and f.caret == 10 and f.anchor == 11
+    f.move(-4, extend=True)
+    assert f.selection == (6, 11) and f.selected_text() == "world"
+    f.move(1, extend=True)  # shrink from the caret side
+    assert f.selection == (7, 11) and f.selected_text() == "orld"
+    f.move(4, extend=True)  # caret meets the anchor: no selection
+    assert f.selection is None and f.caret == 11
+    f.home(extend=True)
+    assert f.selection == (0, 11) and f.caret == 0
+    f.end(extend=True)
+    assert f.selection is None and f.caret == 11
+    f.move(-3)
+    f.home(extend=True)
+    f.end(extend=True)  # anchor stays at 8, caret to the end
+    assert f.selection == (8, 11)
+
+
+def test_plain_moves_collapse_onto_the_selection_edge():
+    f = cl.TextField("abcdef", caret=1)
+    f.move(3, extend=True)  # selects bcd, caret 4
+    assert f.selection == (1, 4)
+    f.move(1)
+    assert f.selection is None and f.caret == 4
+    f.move(-3, extend=True)
+    f.move(-1)
+    assert f.selection is None and f.caret == 1
+    f.move(2, extend=True)
+    f.home()
+    assert f.selection is None and f.caret == 0
+    f.move(2, extend=True)
+    f.end()
+    assert f.selection is None and f.caret == 6
+
+
+def test_typing_paste_backspace_delete_act_on_the_selection():
+    f = cl.TextField("hello world", caret=0)
+    f.move(5, extend=True)
+    f.insert("bye")
+    assert f.text == "bye world" and f.caret == 3 and f.selection is None
+    f.move(-3, extend=True)
+    f.backspace()
+    assert f.text == " world" and f.caret == 0
+    f.move(1, extend=True)
+    f.delete()
+    assert f.text == "world" and f.caret == 0
+    f.select_all()
+    f.insert("pasted text")
+    assert f.text == "pasted text" and f.caret == 11
+    f.select_all()
+    f.replace_selection("")
+    assert f.text == "" and f.selection is None
+    f.select_all()  # nothing to select in an empty field
+    assert f.selection is None
+
+
+def test_click_shift_click_drag_and_double_click():
+    f = cl.TextField("one two  three")
+    f.caret_at(2)
+    assert f.caret == 2 and f.selection is None
+    f.caret_at(6, extend=True)  # shift-click
+    assert f.selection == (2, 6) and f.selected_text() == "e tw"
+    f.caret_at(0, extend=True)  # drag back past the anchor
+    assert f.selection == (0, 2)
+    f.caret_at(99)
+    assert f.caret == len(f.text) and f.selection is None
+    f.select_word_at(5)
+    assert f.selected_text() == "two" and f.caret == 7
+    f.select_word_at(8)  # inside the double space
+    assert f.selected_text() == "  "
+    f.select_word_at(0)
+    assert f.selected_text() == "one"
+    f.select_word_at(50)  # clamped to the last character
+    assert f.selected_text() == "three"
+    empty = cl.TextField("")
+    empty.select_word_at(0)
+    assert empty.selection is None
+
+
+def test_copy_and_cut():
+    f = cl.TextField("copy me please", caret=0)
+    assert f.copy() == "copy me please"  # nothing selected: the whole text
+    f.move(4, extend=True)
+    assert f.copy() == "copy" and f.text == "copy me please"
+    assert f.cut() == "copy" and f.text == " me please" and f.caret == 0 and f.selection is None
+    assert f.cut() == " me please" and f.text == ""
+
+
+def test_selection_setter_keeps_compatibility_and_set_text_clears_it():
+    f = cl.TextField("abcdef")
+    f.selection = (1, 4)
+    assert f.selection == (1, 4) and f.caret == 4
+    f.selection = None
+    assert f.selection is None and f.caret == 4
+    f.select_all()
+    f.set_text("xy")
+    assert f.selection is None and f.caret == 2
+    f.selection = (0, 50)  # clamped
+    assert f.selection == (0, 2)
+
+
+def test_visible_slice_follows_the_caret_while_selecting():
+    f = cl.TextField("a" * 50, caret=50)
+    f.home(extend=True)
+    start, end = f.visible_slice(20)
+    assert start == 0 and end == 20 and f.selection == (0, 50)
+    f.caret_at(45, extend=True)
+    start, end = f.visible_slice(20)
+    assert start <= 45 <= end
+
+
+def test_settings_chip_and_corner_minus_button():
+    expanded = cl.pill_placement(1600, 900, expanded=True, scale=1.0)
+    card, c = expanded.card_rect, expanded.collapse_rect
+    pad = cl.PAD
+    assert c.w == c.h == cl.COLLAPSE_SIZE
+    assert abs((card.right - c.right) - pad) < 1e-6 and abs((card.top - c.top) - pad) < 1e-6  # same padding right and top
+    for rect in expanded.tab_rects.values():
+        assert rect.right <= c.x  # tabs never run under the button
+    s = expanded.settings_rect
+    assert s is not None and s.x > expanded.model_rect.right and s.right < expanded.generate_rect.x
+    assert expanded.hit(s.x + 1, s.y + 1) == ("settings",)
+    assert expanded.hit(c.x + c.w - 1, c.y + c.h - 1) == ("collapse",)
+    assert len(expanded.tab_rects) == 6 and expanded.hit(*_center(expanded.tab_rects["render_video"])) == ("tab", "render_video")
+    narrow = cl.pill_placement(420, 400, expanded=True, scale=1.0)
+    assert narrow.settings_rect is None or narrow.settings_rect.right < narrow.generate_rect.x
+    assert narrow.hit(narrow.model_rect.x + 1, narrow.model_rect.y + 1) == ("model",)
+
+
+def _center(rect):
+    return rect.x + rect.w / 2, rect.y + rect.h / 2

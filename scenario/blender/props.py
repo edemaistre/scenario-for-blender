@@ -7,18 +7,21 @@ import bpy
 from bpy.props import BoolProperty, CollectionProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty
 
 from . import runtime
+from ..core.api.catalog import EDIT3D_TASKS
 
+# Generation lanes only. Jobs, Generations and Agents (MCP) are separate panels, not tabs: the tabs answer
+# "what do I want to generate", the panels answer "what is running" and "what came back".
 LANE_ITEMS = [
     ('image', "Image", "Text and reference images to images"),
     ('video', "Video", "Text, images or a Blender playblast to video"),
     ('3d', "3D", "Text or images to 3D models"),
     ('material', "Materials", "PBR materials with Patina"),
-    ('render', "Render-to-real", "Viewport capture and playblast to styled stills and video"),
-    ('mcp', "MCP", "Let agents build in this Blender"),
-    ('history', "Generations", "Everything generated in this project"),
+    ('render_image', "Render Image", "Render the viewport or the camera view as a finished still: capture + optional style images + look prompt"),
+    ('render_video', "Render Video", "Render a playblast of the timeline as a finished clip: captured video + optional images + look prompt"),
+    ('edit3d', "Edit 3D", "Retexture, remesh, rig, animate, unwrap or split the selected mesh with Scenario's 3D tools"),
 ]
-GENERATION_LANES = ("image", "video", "3d", "material", "render")
-LANE_ATTR = {"image": "image", "video": "video", "3d": "three_d", "material": "material", "render": "render"}
+GENERATION_LANES = ("image", "video", "3d", "material", "render_image", "render_video", "edit3d")
+LANE_ATTR = {"image": "image", "video": "video", "3d": "three_d", "material": "material", "render_image": "render_image", "render_video": "render_video", "edit3d": "edit3d"}
 ATTR_LANE = {attr: lane for lane, attr in LANE_ATTR.items()}
 REFERENCE_SOURCES = [
     ('FILE', "File", "An image or video file on disk"),
@@ -28,10 +31,12 @@ REFERENCE_SOURCES = [
     ('CAMERA_CLIP', "Camera clip", "Playblast the scene camera over the timeline at generate time"),
     ('RENDER', "Render Result", "The latest render result"),
     ('ASSET', "Scenario asset", "An asset already in your Scenario project"),
+    ('MESH', "Selected mesh", "Export the selected mesh objects as GLB at generate time"),
 ]
 CAPTURE_SOURCES = ('VIEWPORT', 'CAMERA', 'VIEWPORT_CLIP', 'CAMERA_CLIP')
 CLIP_SOURCES = ('VIEWPORT_CLIP', 'CAMERA_CLIP')
-ADDABLE_SOURCES = [item for item in REFERENCE_SOURCES if item[0] != 'ASSET']  # asset ids come from the MCP tools, not the Add menu
+ADDABLE_SOURCES = [item for item in REFERENCE_SOURCES if item[0] not in ('ASSET', 'MESH')]  # asset ids come from the MCP tools, the mesh from the selection
+EDIT3D_TASK_ITEMS = [(task_id, label, description) for task_id, label, description, _models in EDIT3D_TASKS]
 
 
 _T0 = time.monotonic()
@@ -133,6 +138,12 @@ def _on_mode_change(self, context):
     generation.refresh_3d_models(context)
 
 
+def _on_task_change(self, context):
+    from . import generation
+
+    generation.refresh_edit3d_models(context)
+
+
 class ScenarioLaneState(bpy.types.PropertyGroup):
     lane: StringProperty()
     model_id: EnumProperty(name="Model", items=_model_items, update=_on_model_change)
@@ -148,21 +159,33 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     estimate_partial: BoolProperty(default=False, description="The quote excludes references that are not uploaded yet")
     last_error: StringProperty()
     match_timeline: BoolProperty(name="Match timeline", default=True, description="Set the clip duration from the scene frame range", update=_on_prompt_update)
-    force_solid: BoolProperty(name="Grey clay capture", default=False, description="Capture with solid single-colour shading so the model reads motion, not materials")
-    capture_source: EnumProperty(name="Source", items=[('VIEWPORT', "Viewport", "The active 3D viewport"), ('CAMERA', "Scene camera", "The scene camera")], default='CAMERA')
+    force_solid: BoolProperty(name="Grey clay capture", default=False, description="Capture with solid single-colour shading so the model reads shapes and motion, not materials")
+    capture_source: EnumProperty(name="Source", items=[('VIEWPORT', "Viewport", "The active 3D viewport, as you see it"), ('CAMERA', "Scene camera", "The scene camera view")], default='CAMERA', update=_on_prompt_update)
     generate_audio: BoolProperty(name="Generate audio", default=False)
-    concept_path: StringProperty()
+    # Render lanes
+    spark_enabled: BoolProperty(name="Prompt Spark when the look is empty", default=True,
+                                description="With an empty prompt, a capture of the view is sent to Prompt Spark, which writes the art-direction brief (0.75 CU)")
+    spark_look: StringProperty(description="The look Prompt Spark wrote for the last generation")
+    first_frame_path: StringProperty(description="A Render Image result used as the first frame of the video")
+    use_first_frame: BoolProperty(name="Use as first frame", default=True, description="Send the rendered still as the first frame so the clip starts exactly from it", update=_on_prompt_update)
+    # Edit 3D
+    source_object: StringProperty(description="Name of the mesh object sent to the 3D tool")
+    concept_path: StringProperty()  # kept for scenes saved with 0.5.x
     concept_job: StringProperty()
 
 
 class ScenarioSceneProps(bpy.types.PropertyGroup):
     lane: EnumProperty(name="Lane", items=LANE_ITEMS, default='image')
     three_d_mode: EnumProperty(name="Input", items=[('TEXT', "Text", "Describe the object"), ('IMAGE', "Image", "One reference image"), ('MULTI', "Multi-view", "Several views of the same object")], default='TEXT', update=_on_mode_change)
+    edit3d_task: EnumProperty(name="Task", items=EDIT3D_TASK_ITEMS, default='RETEXTURE', update=_on_task_change)
     image: PointerProperty(type=ScenarioLaneState)
     video: PointerProperty(type=ScenarioLaneState)
     three_d: PointerProperty(type=ScenarioLaneState)
     material: PointerProperty(type=ScenarioLaneState)
-    render: PointerProperty(type=ScenarioLaneState)
+    render_image: PointerProperty(type=ScenarioLaneState)
+    render_video: PointerProperty(type=ScenarioLaneState)
+    edit3d: PointerProperty(type=ScenarioLaneState)
+    show_cloud_history: BoolProperty(name="Cloud history", default=True, description="List the project's generations made elsewhere (web app, agents, other machines)")
 
     def lane_state(self, lane=None):
         lane = lane or self.lane

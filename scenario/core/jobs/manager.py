@@ -42,12 +42,16 @@ class JobManager:
         self.resume_pending = []
 
     # -- public API (main thread) -----------------------------------------
-    def submit(self, lane, kind, model_id, body, files=None, array_params=(), meta=None):
+    def submit(self, lane, kind, model_id, body, files=None, array_params=(), meta=None, prepare=None):
+        """Queue a generation. `prepare(client, rec)`, when given, runs first on the worker (no bpy) and may rewrite
+        `rec.body`: the render lanes use it to ask Prompt Spark for the look before the job is submitted."""
         client = self.client_factory()  # resolved on the calling (main) thread; workers never touch bpy
         rec = JobRecord.new(lane=lane, kind=kind, model_id=model_id, body=body, meta=meta)
+        if prepare is not None:
+            rec.status = "preparing"
         self.registry.add(rec)
         self.registry.save()
-        self._spawn(self._run_job, client, rec, dict(files or {}), set(array_params))
+        self._spawn(self._run_job, client, rec, dict(files or {}), set(array_params), prepare)
         return rec
 
     def estimate(self, key, model_id, body):
@@ -123,7 +127,15 @@ class JobManager:
             log.exception("worker %s failed", target.__name__)
             self.events.put(("error", str(err)))
 
-    def _run_job(self, client, rec, files, array_params):
+    def _run_job(self, client, rec, files, array_params, prepare=None):
+        if prepare is not None:
+            try:
+                prepare(client, rec)
+            except Exception as err:  # Prompt Spark or any pre-step failing must fail the job visibly, not the worker
+                self._fail(rec, f"preparation failed: {getattr(err, 'reason', err)}")
+                return
+            rec.status = "submitting"
+            self.events.put(("job", rec))
         try:
             for param_name, paths in files.items():
                 ids = [self.uploader(client, p) for p in paths]
@@ -177,9 +189,9 @@ class JobManager:
     def _download_results(self, client, rec):
         """Fetch every asset record, then download meshes first. For 3D jobs a failed alternate or texture
         download is recorded, not fatal, as long as one mesh arrived (providers ship 200+ MB OBJ variants)."""
-        out_dir = self.paths.output_for(rec.kind)
-        out_dir.mkdir(parents=True, exist_ok=True)
         now = dt.datetime.now()
+        out_dir = self.paths.output_for(rec.kind, now)
+        out_dir.mkdir(parents=True, exist_ok=True)
         records = []
         for index, asset_id in enumerate(rec.asset_ids):
             asset = assets_api.get_asset(client, asset_id)

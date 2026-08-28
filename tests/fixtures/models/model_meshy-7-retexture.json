@@ -1,0 +1,107 @@
+{
+ "model": {
+  "id": "model_meshy-7-retexture",
+  "name": "Meshy 7 - Retexture",
+  "shortDescription": "Meshy 7 retexturing: rewrap an existing GLB in a new material without changing its geometry. Drive it with a text prompt, a style image, or 1-4 multi-view images, with optional PBR maps.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "3d23d"
+  ],
+  "status": "trained",
+  "tags": [
+   "3d",
+   "Meshy",
+   "Meshy 7",
+   "PBR",
+   "retexture",
+   "sc:featured",
+   "sc:third-party",
+   "texturing"
+  ],
+  "inputs": [
+   {
+    "description": "Upload a GLB file of the 3D model you want to retexture.",
+    "kind": "3d",
+    "label": "3D Model",
+    "name": "model",
+    "costImpact": false,
+    "parent": true,
+    "required": {
+     "always": true
+    },
+    "type": "file"
+   },
+   {
+    "description": "Describe your desired texture style using text. Provide exactly one of Style Prompt, Style Image, or Multi-View Images.",
+    "label": "Style Prompt",
+    "maxLength": 600,
+    "name": "textStylePrompt",
+    "costImpact": false,
+    "prompt": true,
+    "type": "string"
+   },
+   {
+    "description": "Provide a 2D image to guide the texturing process. Provide exactly one of Style Prompt, Style Image, or Multi-View Images.",
+    "kind": "image",
+    "label": "Style Image",
+    "name": "imageStyle",
+    "costImpact": false,
+    "parent": true,
+    "type": "file"
+   },
+   {
+    "description": "Provide 1\u20134 images of the same object from different views to drive multi-view texturing (Meshy 7). The first image is the primary (front) view. Provide exactly one of Style Prompt, Style Image, or Multi-View Images.",
+    "kind": "image",
+    "label": "Multi-View Images",
+    "maxLength": 4,
+    "name": "multiviewImage",
+    "costImpact": false,
+    "parent": true,
+    "type": "file_array"
+   },
+   {
+    "description": "Generate PBR Maps (metallic, roughness, normal) in addition to the base color.",
+    "default": false,
+    "label": "Generate PBR Maps",
+    "name": "enablePbr",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "allowedValues": [
+     "2k",
+     "4k",
+     "8k"
+    ],
+    "description": "Base color texture resolution: 2K (2048), 4K (4096), or 8K (8192). At 8K, PBR maps are generated at 4K and no emission map is produced.",
+    "default": "2k",
+    "label": "Texture Resolution",
+    "name": "textureResolution",
+    "costImpact": true,
+    "type": "string"
+   },
+   {
+    "description": "Use the model's existing UV map instead of generating a new one. If no UVs are present, output quality may be lower.",
+    "default": true,
+    "label": "Use Original UV",
+    "name": "enableOriginalUv",
+    "costImpact": false,
+    "type": "boolean"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "textureResolution": {
+     "2k": "2K",
+     "4k": "4K",
+     "8k": "8K"
+    },
+    "aiModel": {
+     "meshy-7": "Meshy 7"
+    }
+   }
+  },
+  "parameters": {}
+ }
+}

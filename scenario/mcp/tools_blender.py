@@ -100,6 +100,43 @@ def render_still(args):
     return _png_content(path)
 
 
+def camera_path(args):
+    """Build an animated camera for the Render Video lane: from explicit waypoints, or from a preset around the subject."""
+    from ..blender import shot_planner
+    from ..core.scene import shot_plan
+
+    context = bpy.context
+    scene = context.scene
+    props = scene.scenario_shot
+    if args.get("preset"):
+        if args["preset"] not in shot_plan.PRESETS:
+            raise ValueError(f"preset must be one of {sorted(shot_plan.PRESETS)}")
+        props.preset = args["preset"]
+    if args.get("duration") is not None:
+        props.duration = float(args["duration"])
+    if args.get("focal") is not None:
+        props.focal = float(args["focal"])
+    if args.get("aim_at_subject") is not None:
+        props.aim_at_subject = bool(args["aim_at_subject"])
+    if args.get("description"):
+        plan = shot_plan.plan_from_text(args["description"])
+        props.preset, props.duration, props.focal = plan["preset"], plan["duration"], plan["focal"]
+    waypoints = args.get("waypoints") or []
+    if waypoints:
+        shot_planner.clear_markers(scene)
+        for wp in waypoints:
+            position = wp.get("position")
+            if not position or len(position) != 3:
+                raise ValueError("each waypoint needs position: [x, y, z]")
+            rotation = wp.get("rotation_euler")
+            shot_planner.add_marker(context, tuple(float(v) for v in position), rotation=tuple(rotation) if rotation else None,
+                                    focal=wp.get("focal"), hold=float(wp.get("hold") or 0.0))
+    camera, keyframes, last_frame = shot_planner.build_path(context)
+    return {"camera": camera.name, "keyframes": keyframes, "frame_start": scene.frame_start, "frame_end": last_frame,
+            "preset": props.preset, "duration": props.duration, "focal": props.focal, "markers": len(shot_planner.marker_objects(scene)),
+            "note": "The scene camera now follows this path; Render Video (Camera clip) records it."}
+
+
 def _schema(props, required=()):
     return {"type": "object", "properties": props, "required": list(required)}
 
@@ -112,6 +149,11 @@ SPECS = (
     ToolSpec("select_objects", "Select the named objects and make the first one active.", _schema({"names": {"type": "array", "items": {"type": "string"}}}, ["names"]), select_objects),
     ToolSpec("set_frame", "Jump the timeline to a frame.", _schema({"frame": {"type": "integer"}}, ["frame"]), set_frame),
     ToolSpec("screenshot_viewport", "PNG screenshot of the 3D viewport area as the user sees it (GUI only).", _schema({}), screenshot_viewport, {"readOnlyHint": True}),
+    ToolSpec("camera_path", "Animate a camera around the scene for Render Video: a preset (orbit, push_in, pull_back, crane, pan, flyover) around the subject, a free-text description, or explicit waypoints.",
+             _schema({"preset": {"type": "string"}, "duration": {"type": "number", "description": "seconds"}, "focal": {"type": "number", "description": "mm"},
+                      "aim_at_subject": {"type": "boolean"}, "description": {"type": "string", "description": "e.g. 'slow orbit, 8 s, 35mm'"},
+                      "waypoints": {"type": "array", "items": {"type": "object", "properties": {"position": {"type": "array", "items": {"type": "number"}}, "rotation_euler": {"type": "array", "items": {"type": "number"}},
+                                                                                              "focal": {"type": "number"}, "hold": {"type": "number"}}}}}), camera_path),
     ToolSpec("render_still", "Quick OpenGL still of the scene camera (or the viewport) as PNG, default 1280x720 (GUI only).",
              _schema({"source": {"type": "string", "enum": ["CAMERA", "VIEWPORT"]}, "width": {"type": "integer"}, "height": {"type": "integer"}}), render_still, {"readOnlyHint": True}),
 )

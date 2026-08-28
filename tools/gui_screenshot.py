@@ -34,7 +34,21 @@ def _prepare():
         bpy.context.scene.scenario.lane = LANE
         if PROMPT and bpy.context.scene.scenario.lane_state(LANE) is not None:
             bpy.context.scene.scenario.lane_state(LANE).prompt = PROMPT
-        if LANE == "history":
+        if ACTION == "shot":
+            # a preset camera move around the scene, so the Render Video lane shows a built path
+            bpy.context.scene.scenario_shot.description = "slow orbit, 8 s, 35mm"
+            bpy.ops.scenario.shot_from_description()
+            with bpy.context.temp_override(window=window, area=area, region=next(r for r in area.regions if r.type == 'WINDOW')):
+                area.spaces.active.region_3d.view_perspective = 'CAMERA'
+        if ACTION == "edit3d":
+            cube = next((o for o in bpy.context.scene.objects if o.type == 'MESH'), None)
+            if cube is not None:
+                for o in bpy.context.selected_objects:
+                    o.select_set(False)
+                cube.select_set(True)
+                bpy.context.view_layer.objects.active = cube
+            bpy.context.scene.scenario.edit3d_task = 'RETEXTURE'
+        if ACTION == "generations":
             bpy.ops.scenario.history_refresh()
         if ACTION == "composer":
             import importlib

@@ -1,54 +1,61 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""A native floating composer: a header button opening a popover with model, prompt and Generate."""
+"""The Scenario button in the 3D viewport header: opens the full panel in the sidebar.
+
+The floating composer is the quick path (prompt + Generate); every setting, the jobs and the generations live
+in the sidebar tab, so the header button leads there instead of opening a third, smaller form."""
 import bpy
 
-from . import panels, props, runtime
+
+def open_sidebar(area):
+    """Show the sidebar of a VIEW_3D area on the Scenario tab. Returns True when the area qualified."""
+    if area is None or area.type != 'VIEW_3D':
+        return False
+    space = area.spaces.active
+    space.show_region_ui = True
+    for region in area.regions:
+        if region.type == 'UI':
+            try:
+                region.active_panel_category = "Scenario"
+            except (AttributeError, TypeError):
+                pass  # read-only right after startup on some builds; the tab keeps its last state
+    return True
 
 
-class SCENARIO_PT_popover(bpy.types.Panel):
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'HEADER'
+def _view3d_area(context):
+    area = getattr(context, "area", None)
+    if area is not None and area.type == 'VIEW_3D':
+        return area
+    screen = getattr(context, "screen", None)
+    if screen is not None:
+        return next((a for a in screen.areas if a.type == 'VIEW_3D'), None)
+    return None
+
+
+class SCENARIO_OT_open_panel(bpy.types.Operator):
+    bl_idname = "scenario.open_panel"
     bl_label = "Scenario"
-    bl_options = {'INSTANCED'}
-    bl_ui_units_x = 22
+    bl_description = "Open the Scenario panel in the sidebar: models, references, settings, jobs and generations"
+    bl_options = {'INTERNAL'}
 
-    def draw(self, context):
-        layout = self.layout
-        scenario = context.scene.scenario
-        if not runtime.credentials().valid:
-            layout.label(text="Add your API key in Preferences", icon='ERROR')
-            return
-        row = layout.row(align=True)
-        for value in panels.GENERATE_LANES:
-            label = next(name for ident, name, _ in props.LANE_ITEMS if ident == value)
-            op = row.operator("scenario.set_lane", text=label, depress=(scenario.lane == value))
-            op.lane = value
-        lane = scenario.lane if scenario.lane in panels.GENERATE_LANES else "image"
-        if scenario.lane not in panels.GENERATE_LANES:
-            layout.label(text="Driving the Image lane; other tabs live in the N-panel", icon='INFO')
-        lane_state = scenario.lane_state(lane)
-        if not runtime.state.catalog_loaded:
-            layout.label(text="Loading models...", icon='TIME')
-            return
-        layout.prop(lane_state, "model_id", text="")
-        layout.prop(lane_state, "prompt", text="")
-        layout.operator("scenario.generate", text=panels.generate_button_text(lane_state), icon='PLAY').lane = lane
-        if lane_state.last_error:
-            layout.label(text=lane_state.last_error[:60], icon='ERROR')
+    def execute(self, context):
+        if not open_sidebar(_view3d_area(context)):
+            self.report({'WARNING'}, "No 3D viewport to open the panel in")
+            return {'CANCELLED'}
+        return {'FINISHED'}
 
 
 def draw_header_button(self, context):
     if context.space_data is None or context.space_data.type != 'VIEW_3D':
         return
-    self.layout.popover(panel="SCENARIO_PT_popover", text="Scenario", icon='SHADERFX')
+    self.layout.operator(SCENARIO_OT_open_panel.bl_idname, text="Scenario", icon='SHADERFX')
 
 
 def register():
-    bpy.utils.register_class(SCENARIO_PT_popover)
+    bpy.utils.register_class(SCENARIO_OT_open_panel)
     bpy.types.VIEW3D_HT_header.append(draw_header_button)
 
 
 def unregister():
     bpy.types.VIEW3D_HT_header.remove(draw_header_button)
-    bpy.utils.unregister_class(SCENARIO_PT_popover)
+    bpy.utils.unregister_class(SCENARIO_OT_open_panel)

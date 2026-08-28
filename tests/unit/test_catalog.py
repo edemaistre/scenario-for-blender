@@ -19,7 +19,7 @@ def test_model_record_from_api_reads_schema_and_lanes():
     assert "txt2img" in rec.capabilities
     assert len(rec.parameters) == 15
     assert rec.ui_config["selects"]["maps"]["basecolor"] == "Base Color"
-    assert rec.lanes == {"image", "material"}
+    assert rec.lanes == {"image", "material", "render_image"}
     assert rec.deprecated_successor is None
 
 

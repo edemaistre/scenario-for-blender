@@ -6,6 +6,30 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.6.0] - 2026-08-28
+
+### Added
+- **Render Image** and **Render Video** lanes replace Render-to-real. Render Image: a capture of the viewport or the camera plus optional style images and a look prompt, with any image edit model (Gemini 3.1, GPT Image 2, Seedream 5.0 Pro, FLUX 2, Reve Remix, Qwen Edit, MAI Image 2.5 Pro Edit, Grok Imagine 2.0, Z-Image and every other img2img model). Render Video: a playblast of the timeline plus images (the rendered first frame, style references) and a look, with any video model that takes a reference video (Seedance 2.0 / 2.5 / Mini, Minimax H3, Runway Aleph 2, Happy Horse Video Edit, Gemini Omni Edit, Grok Edit Video...). A Render Image result becomes the first frame of Render Video automatically.
+- **Prompt Spark**: with an empty look, a still of the view goes to Scenario's prompt writer (`POST /generate/prompt`, 0.75 CU) which writes the art-direction brief before the job is submitted; the Jobs panel shows "Prompt Spark is writing the look". The look it wrote is kept on the lane and in Generations.
+- **Precise render prompts** (`core/scene/render_prompt.py`): every input has a stated role. Image 1 / @video1 is the exact scene to render (objects, positions, camera, framing frozen); the other images are look references whose content must not appear. The first tests had put a character from a style image on a roof.
+- **Camera path planner** in Render Video: numbered shot markers (small cameras `Shot 1`, `Shot 2`... placed at the cursor or from the current view, each with its own focal length and hold), or a preset around the subject (orbit, push in, pull back, crane, pan, flyover), a free-text "Plan" field (`slow orbit, 8 s, 35mm`), Build camera path (keyframed camera, Track To the subject), Preview. Also an MCP tool `camera_path` so agents can set the move.
+- **Edit 3D** lane: select a mesh, pick a task (Retexture, Retopology, Rigging, Animation, UV unwrap, Segment, Stylize), the mesh is exported as GLB at generate time and the result is imported next to the original (Meshy 7 Retexture, Tripo Retopology, Meshy Rigging / Animation / UV Unwrap, Tripo Segmentation, Hunyuan Polygen, Trellis 2 Retexture, Cartwheel...).
+- **Model picker**: a search dialog with filter chips (All, Featured, Scenario, Partners, Recent), a list with thumbnails and the description of the highlighted model, in place of the 600-entry dropdown (still available as a small arrow next to it).
+- **Composer text selection**: Shift+arrows, Shift+Home/End, click and drag, double-click selects a word, Ctrl/Cmd+C copies, Ctrl/Cmd+X cuts, typing replaces the selection. The collapse control is a proper minus button in the top-right corner; a "Settings" chip opens the full panel.
+- Reference thumbnails in every lane and an "Inputs" strip on results, so the images used in an inference are visible. 3D results have "Add to scene" and "Select"; image results have "Use as video first frame".
+
+### Changed
+- The Scenario tab is four panels: **Scenario** (lane tabs: Image, Video, 3D, Materials, Render Image, Render Video, Edit 3D), **Jobs** (everything running, with a count in the header), **Generations** (this session's results with their actions, then the project's cloud history) and **Agents (MCP)**. Generations and MCP are no longer lane tabs.
+- The header "Scenario" button opens the sidebar on the Scenario tab instead of a second small form; the floating composer remains the quick path.
+- Output folders carry the day: `<output>/<kind>/YYYYMMDD/` (Downloads synced to Dropbox stays browsable).
+- Version, catalog lanes (`render_image`, `render_video`, `edit3d`) and MCP `generate` lanes extended accordingly.
+
+### Fixed
+- Numeric choice parameters (Seedance `duration`: Auto, 4 to 15 s) were edited through the dropdown but read from the integer field, so the request always carried the default (-1, Auto) whatever the dropdown or Match timeline said. The value shown is now the value sent.
+
+### Removed
+- Render-to-real (two-step concept then Seedance) and the header popover; the code is archived under `archive/0.5.x/`.
+
 ## [0.5.2] - 2026-08-28
 
 ### Fixed

@@ -67,8 +67,10 @@ class Paths:
     def registry_file(self):
         return self.state_dir / "jobs.json"
 
-    def output_for(self, kind):
-        return self.output_dir / KIND_SUBDIR.get(kind, "other")
+    def output_for(self, kind, when=None):
+        """`<output>/<kind>/<YYYYMMDD>/`: one folder per kind and per day, so a Downloads folder synced to Dropbox stays browsable."""
+        when = when or dt.datetime.now()
+        return self.output_dir / KIND_SUBDIR.get(kind, "other") / f"{when:%Y%m%d}"
 
 
 def ext_for_mime(mime):

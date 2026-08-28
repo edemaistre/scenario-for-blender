@@ -10,8 +10,8 @@ from ..blender import generation, runtime
 from ..core.api import generate as generate_api
 from ..core.schema.params import build_body, validate
 
-LANES = ("image", "video", "3d", "material")
-KIND = {"image": "image", "video": "video", "3d": "3d", "material": "material"}
+LANES = ("image", "video", "3d", "material", "render_image", "render_video", "edit3d")
+KIND = {"image": "image", "video": "video", "3d": "3d", "material": "material", "render_image": "image", "render_video": "video", "edit3d": "3d"}
 
 
 def _catalog_ready():

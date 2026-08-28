@@ -89,6 +89,7 @@ dl.anatomy dd{margin:0;color:var(--ink)}
 .lane span{font-size:.88rem;color:var(--muted)}
 .lane a{text-decoration:none;color:inherit}
 .lane:hover{border-color:var(--accent)}
+.lane.panel{background:var(--surface-2)}
 
 .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 table{border-collapse:collapse;width:100%;font-size:.93rem}
@@ -115,20 +116,23 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 <nav class="toc" aria-label="Contents">
   <div class="toc-head">
     <span class="eyebrow">Handbook</span>
-    <span class="version">v0.5.2 &middot; 2026-08-28</span>
+    <span class="version">v0.6.0 &middot; 2026-08-28</span>
   </div>
   <ol>
     <li><a href="#what">What it does</a></li>
     <li><a href="#install">Install and connect</a></li>
-    <li><a href="#panel">The panel</a></li>
+    <li><a href="#panels">The four panels</a></li>
+    <li><a href="#form">The form</a></li>
     <li><a href="#lanes">Lanes</a></li>
     <li class="sub"><a href="#image">Image</a></li>
     <li class="sub"><a href="#video">Video</a></li>
     <li class="sub"><a href="#threed">3D</a></li>
     <li class="sub"><a href="#materials">Materials</a></li>
-    <li class="sub"><a href="#r2r">Render-to-real</a></li>
+    <li class="sub"><a href="#render-image">Render Image</a></li>
+    <li class="sub"><a href="#render-video">Render Video</a></li>
+    <li class="sub"><a href="#edit3d">Edit 3D</a></li>
     <li class="sub"><a href="#generations">Generations</a></li>
-    <li class="sub"><a href="#mcp">MCP for agents</a></li>
+    <li class="sub"><a href="#mcp">Agents (MCP)</a></li>
     <li><a href="#composer">Floating composer</a></li>
     <li><a href="#costs">Costs</a></li>
     <li><a href="#files">Files and folders</a></li>
@@ -140,13 +144,13 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 <main>
 <header class="hero" id="what">
   <span class="eyebrow">Scenario for Blender</span>
-  <h1>Generate images, video, 3D and materials without leaving the viewport.</h1>
-  <p class="lede">Scenario for Blender is a Blender extension that runs Scenario's generation models from the 3D viewport. It feeds them with what is already in your scene (a viewport capture, the scene camera, a playblast, a render) and brings the results back where you work: images as datablocks and textures, meshes at the 3D cursor, PBR materials on the selected objects, videos in your output folder. Every generation shows its price before you press Generate.</p>
+  <h1>Generate, render and edit without leaving the viewport.</h1>
+  <p class="lede">Scenario for Blender is a Blender extension that runs Scenario's generation models from the 3D viewport. It generates images, video, 3D models and PBR materials; it renders your scene as a finished still or clip from a capture of the view or a playblast of the timeline; and it edits the meshes you already have with Scenario's 3D tools. Results come back where you work: images as datablocks and textures, meshes at the cursor or next to their original, materials on the selected objects, videos in your output folder. Every generation shows its price before you press Generate.</p>
   <div class="facts">
     <div class="fact"><b>Blender 4.2+</b><span>tested on 5.1, macOS, Windows, Linux</span></div>
     <div class="fact"><b>Scenario API key</b><span>Pro plan or above, key + secret</span></div>
     <div class="fact"><b>Pure Python</b><span>no wheels, GPL-3.0, open source</span></div>
-    <div class="fact"><b>MCP built in</b><span>16 tools for Claude Code, Cursor, Codex</span></div>
+    <div class="fact"><b>MCP built in</b><span>17 tools for Claude Code, Cursor, Codex</span></div>
   </div>
 </header>
 
@@ -160,28 +164,45 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
         <li>In Scenario, create an API key: <b>Team &rsaquo; API Keys</b>, Project or Team scope, role Editor. The secret is shown once.</li>
         <li>In Blender, <b>Edit &rsaquo; Preferences &rsaquo; Add-ons &rsaquo; Scenario</b>: paste the key and the secret, press <b>Test connection</b>. Choose an <b>Output Folder</b> (default <code>~/Downloads/Scenario</code>).</li>
       </ol>
-      <div class="note"><span class="tag">Where</span><span>Press <kbd>N</kbd> in the 3D viewport and open the <b>Scenario</b> tab. The same form is available from the <b>Scenario</b> button in the viewport header (a compact popover) and from the floating composer at the bottom of the viewport.</span></div>
+      <div class="note"><span class="tag">Where</span><span>Press <kbd>N</kbd> in the 3D viewport and open the <b>Scenario</b> tab: four panels, Scenario, Jobs, Generations, Agents. The <b>Scenario</b> button in the viewport header opens the same tab. The floating composer at the bottom of the viewport is the quick path.</span></div>
       <div class="warn"><span class="tag">Check</span><span>Blender's <b>Allow Online Access</b> (Preferences &rsaquo; System) must be on, otherwise every network operator refuses to run.</span></div>
     </div>
     <figure>
-      <img src="{{img:panel-image.png}}" alt="The Scenario tab in the viewport sidebar, Image lane, with a quote on the Generate button and a result">
-      <figcaption>The Scenario tab: account strip, lane tabs, model, prompt, references, parameters, the priced Generate button, Running and Results.</figcaption>
+      <img src="{{img:panel-image.png}}" alt="The Scenario tab in the viewport sidebar: the Scenario panel on the Image lane, then the Jobs, Generations and Agents panels">
+      <figcaption>The Scenario tab: the lane form, then Jobs, Generations and Agents (MCP).</figcaption>
     </figure>
   </div>
 </section>
 
-<section id="panel">
-  <h2>The panel</h2>
+<section id="panels">
+  <h2>The four panels</h2>
+  <div class="split">
+    <div class="stack">
+      <dl class="anatomy">
+        <dt>Scenario</dt><dd>What to generate. Lane tabs: Image, Video, 3D, Materials, Render Image, Render Video, Edit 3D. Below them, the form of the lane.</dd>
+        <dt>Jobs</dt><dd>What is running, all lanes together, with a count in the header: "Prompt Spark is writing the look", "uploading and submitting", "rendering 40%".</dd>
+        <dt>Generations</dt><dd>What came back. This session's results with their actions and an <b>Inputs</b> strip showing the images used in the inference; then, with the globe toggle on, the project's cloud history (generations made on the web app, by agents or on another machine) with Import into scene and Load older.</dd>
+        <dt>Agents (MCP)</dt><dd>The local MCP server: status, token, one-click client setups, the Python permission.</dd>
+      </dl>
+      <p>The tabs answer "what do I want to make"; the panels below answer "what is running" and "what did I get", whatever the lane.</p>
+    </div>
+    <figure>
+      <img src="{{img:panel-sections.png}}" alt="The Jobs, Generations and Agents (MCP) panels below the lane form">
+      <figcaption>Jobs, Generations (session results, then cloud history) and Agents.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="form">
+  <h2>The form</h2>
   <p>Every lane uses the same form, top to bottom. The parts you edit are built from the model's own schema, so a new model on Scenario appears here with the right controls without an add-on update.</p>
   <dl class="anatomy">
     <dt>Account strip</dt><dd>Your team and project, a refresh for the model list, a shortcut to the preferences.</dd>
-    <dt>Lane tabs</dt><dd>Image, Video, 3D, Materials, Render-to-real, MCP, Generations.</dd>
-    <dt>Model</dt><dd>The models usable in this lane, curated ones first, with the one-line description from the Scenario catalog.</dd>
+    <dt>Model</dt><dd>A button with the current model. It opens the <b>model picker</b>: a search field, filter chips (All, Featured, Scenario, Partners, Recent), the list with thumbnails and the description of the highlighted model. The small arrow next to it is the plain dropdown.</dd>
     <dt>Prompt</dt><dd>One line; the pencil opens a wider editor.</dd>
-    <dt>References</dt><dd>One box per file input the model accepts (image, video, audio, 3D). <b>Add</b> offers File, Viewport still, Camera still, Viewport clip, Camera clip and Render Result. Captures are taken when you press Generate.</dd>
+    <dt>References</dt><dd>One box per file input the model accepts (image, video, audio, 3D), a thumbnail per file. <b>Add</b> offers File, Viewport still, Camera still, Viewport clip, Camera clip and Render Result. Captures are taken when you press Generate. Pinned rows are inputs the lane adds itself: the capture, the selected mesh.</dd>
     <dt>Parameters</dt><dd>A checkbox in front of an optional parameter means "send this value"; unchecked, Scenario uses its default. <code>(cost)</code> marks the ones that change the price.</dd>
     <dt>Generate (N CU)</dt><dd>The exact price of the form as it stands, refreshed as you edit, computed by a free dry run. "from N CU" means references that will only be uploaded at generate time are not in the quote yet.</dd>
-    <dt>Running, Results</dt><dd>Jobs in flight with progress; finished jobs with the actions of their kind (Show, Apply as texture, Add as plane, Import, Play, Tiling).</dd>
   </dl>
 </section>
 
@@ -192,15 +213,17 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
     <a class="lane" href="#video"><b>Video</b><span>Text, images or a playblast of your timeline to video.</span></a>
     <a class="lane" href="#threed"><b>3D</b><span>Text, one image or several views to a mesh at the 3D cursor.</span></a>
     <a class="lane" href="#materials"><b>Materials</b><span>Patina PBR sets applied to the selected meshes.</span></a>
-    <a class="lane" href="#r2r"><b>Render-to-real</b><span>Concept still, then a finished clip from a grey playblast.</span></a>
-    <a class="lane" href="#generations"><b>Generations</b><span>Cloud history of the project, import anything into the scene.</span></a>
-    <a class="lane" href="#mcp"><b>MCP</b><span>Let an agent see the scene and generate on your behalf.</span></a>
+    <a class="lane" href="#render-image"><b>Render Image</b><span>Your view, rendered as a finished still. Prompt Spark writes the look if you don't.</span></a>
+    <a class="lane" href="#render-video"><b>Render Video</b><span>A playblast, rendered as a finished clip, with a camera path planner.</span></a>
+    <a class="lane" href="#edit3d"><b>Edit 3D</b><span>Retexture, retopology, rigging, animation, UV unwrap, segmentation of the selected mesh.</span></a>
+    <a class="lane panel" href="#generations"><b>Generations</b><span>Panel: results of this session and the project's cloud history.</span></a>
+    <a class="lane panel" href="#mcp"><b>Agents (MCP)</b><span>Panel: let an agent see the scene, plan a camera move and generate.</span></a>
   </div>
 </section>
 
 <section id="image">
   <h3>Image</h3>
-  <p>Text or reference images to images with GPT Image 2, Gemini 3.1, Seedream, Z-Image and any other txt2img or img2img model in the catalog. Results open in an Image Editor and appear in Results with <b>Show</b>, <b>Apply as texture</b> (a material with the image as Base Color on the active mesh) and <b>Add as plane</b> (a view-facing plane at the 3D cursor).</p>
+  <p>Text or reference images to images with GPT Image 2, Gemini 3.1, Seedream, Z-Image and any other txt2img or img2img model in the catalog. Results open in an Image Editor and appear in Generations with <b>Show</b>, <b>Apply as texture</b> (a material with the image as Base Color on the active mesh), <b>Add as plane</b> (a view-facing plane at the 3D cursor) and <b>Use as video first frame</b>.</p>
 </section>
 
 <section id="video">
@@ -227,8 +250,8 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
   <div class="split">
     <div class="stack">
       <p>Three modes: <b>Text</b>, <b>Image</b> (one picture) and <b>Multi-view</b> (several views of the same object, the first one is the front). Meshy 7 and Rodin Gen-2.5 for text; Tripo 3.1, Tripo P1, Meshy 7, Hunyuan 3.1 Pro and Rodin 2.5 for images; Meshy 7 Multi Image, Tripo 3.1 Multi View, Hunyuan 3.1 Pro Multiview and Rodin for multi-view.</p>
-      <p>The result is imported at the 3D cursor into a <b>Scenario</b> collection and the viewport switches to Material Preview so the textures show.</p>
-      <div class="note"><span class="tag">One mesh per job</span><span>Providers return several variants of one result: Meshy sends a GLB with embedded textures, a 200+ MB OBJ and the texture PNGs; Rodin with <code>material = All</code> sends a shaded and a PBR mesh. The add-on imports one primary mesh (the textured GLB) and lists the other files in Results with an <b>Import</b> button. Rodin defaults to PBR.</span></div>
+      <p>The result is imported at the 3D cursor into a <b>Scenario</b> collection and the viewport switches to Material Preview so the textures show. In Generations, <b>Add to scene</b> imports the primary mesh again at the cursor and <b>Select</b> selects the objects the job created.</p>
+      <div class="note"><span class="tag">One mesh per job</span><span>Providers return several variants of one result: Meshy sends a GLB with embedded textures, a 200+ MB OBJ and the texture PNGs; Rodin with <code>material = All</code> sends a shaded and a PBR mesh. The add-on imports one primary mesh (the textured GLB) and lists the other files with an <b>Add</b> button. Rodin defaults to PBR.</span></div>
     </div>
     <figure>
       <img src="{{img:panel-3d.png}}" alt="3D lane in Text mode with Meshy 7 selected and its parameters">
@@ -241,7 +264,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
   <h3>Materials</h3>
   <div class="split">
     <div class="stack">
-      <p>Patina turns a prompt or a photo into a seamless PBR set: base color, normal, roughness, metalness, height. Select the meshes to texture, describe the material, choose the maps and size, press Generate. The material arrives as a Principled BSDF with UV mapping and displacement, applied to the meshes you had selected. <b>Tiling</b> in Results scales the mapping.</p>
+      <p>Patina turns a prompt or a photo into a seamless PBR set: base color, normal, roughness, metalness, height. Select the meshes to texture, describe the material, choose the maps and size, press Generate. The material arrives as a Principled BSDF with UV mapping and displacement, applied to the meshes you had selected. <b>Tiling</b> in Generations scales the mapping.</p>
       <ul class="plain">
         <li><b>PATINA Material</b>: prompt to maps, with variation and inpainting options.</li>
         <li><b>PATINA Image to Maps</b>: a flat texture or photo to a full set.</li>
@@ -255,24 +278,66 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
   </div>
 </section>
 
-<section id="r2r">
-  <h3>Render-to-real</h3>
-  <div class="split wide">
+<section id="render-image">
+  <h3>Render Image</h3>
+  <div class="split">
     <div class="stack">
-      <p>Two steps to turn a grey animation into a finished-looking clip.</p>
-      <ol class="steps">
-        <li><b>Concept look.</b> Pick the source (scene camera or viewport), describe the look, optionally add style references, press <b>Render concept</b>. A styled still of your capture comes back.</li>
-        <li><b>Playblast and Generate.</b> The timeline is playblasted (grey clay by default) and sent to Seedance 2.0 with the concept as style reference and a prompt that asks the model to keep the motion and framing of the playblast.</li>
-      </ol>
-      <div class="note"><span class="tag">Tip</span><span>Keep a ground plane in the playblast so the model understands how the subject moves relative to the floor. Motion is followed closely; a plain grey cube over three seconds became the teapot below.</span></div>
+      <p>Your view, rendered as a finished still by an image edit model: a capture of the viewport or the scene camera, optional style images, a look.</p>
+      <ul class="plain">
+        <li><b>Scene to render</b>: Viewport (what you see) or Scene camera; Grey clay capture when the model should ignore your materials.</li>
+        <li><b>Model</b>: Gemini 3.1, GPT Image 2, Seedream 5.0 Pro, FLUX 2 (Max / Pro), Reve Remix, Qwen Edit 2511, MAI Image 2.5 Pro Edit, Grok Imagine Image 2.0, Z-Image first; every other img2img model through the picker.</li>
+        <li><b>Look</b>: what the render should look like ("weathered steampunk copper, overcast light"). Leave it empty and <b>Prompt Spark</b> writes it: a capture of the view goes to Scenario's prompt writer (0.75 CU), which describes materials, lighting and mood; the look it wrote stays on the lane and with the result.</li>
+        <li><b>Style images</b>: optional references for palette, materials and lighting. The capture is always image 1.</li>
+      </ul>
+      <div class="note"><span class="tag">The prompt</span><span>Every input has a stated role. Image 1 is the exact scene: every object, its position, the camera, the framing and the perspective are frozen, nothing may be added, moved or removed. The other images are look references only and none of their content may appear. The result lands in Generations and becomes the first frame of Render Video.</span></div>
+    </div>
+    <figure>
+      <img src="{{img:panel-render-image.png}}" alt="Render Image lane: Scene to render, model Gemini 3.1, the Look field, style images with the pinned capture row, parameters and Generate">
+      <figcaption>Render Image: the capture is pinned as image 1, style images follow.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="render-video">
+  <h3>Render Video</h3>
+  <div class="split">
+    <div class="stack">
+      <p>A playblast of your timeline, rendered as a finished clip by a video model that takes a reference video.</p>
+      <ul class="plain">
+        <li><b>Clip to render</b>: Viewport clip or Camera clip, frame range and duration, Grey clay capture, Match timeline.</li>
+        <li><b>Camera path</b>: type the shot ("slow orbit, 8 s, 35mm") and press <b>Plan</b>, or pick a preset (Orbit, Push in, Pull back, Crane, Pan, Flyover) with a duration and a focal length, or place numbered markers: <b>At cursor</b> and <b>From view</b> add <code>Shot 1</code>, <code>Shot 2</code>... (small cameras; select one to set its own focal length and hold time). <b>Build camera path</b> creates the <code>Scenario Shot Camera</code>, keyframes it through the markers or around the subject, aims it at the subject and sets the frame range. <b>Preview</b> plays it in camera view. Camera clip then records exactly that move.</li>
+        <li><b>Model</b>: Seedance 2.0, Minimax H3, Seedance 2.5 and Mini, Runway Aleph 2, Happy Horse Video Edit, Gemini Omni Edit, Grok Edit Video first; every other video2video model through the picker. They take the video plus images, often many.</li>
+        <li><b>Look</b>: as in Render Image; empty means Prompt Spark writes it from a still of the first frame.</li>
+        <li><b>First frame</b>: the latest Render Image result is proposed automatically and sent as the first frame (Seedance's <code>image</code>, H3's <code>firstFrameImage</code>) so the clip starts exactly from your rendered still. Any image result offers <b>Use as video first frame</b>.</li>
+      </ul>
+      <div class="note"><span class="tag">The prompt</span><span>The playblast is the exact scene, camera move and timing to reproduce; the first frame is the look to match through the whole clip; the other images are style only. Seedance gets <code>@video1</code> / <code>@image1</code> tags, the other models plain words.</span></div>
       <figure class="strip">
         <img src="{{img:render-to-real-result.png}}" alt="Frames of a Seedance 2.0 clip generated from a grey cube playblast and a teapot concept">
-        <figcaption>Seedance 2.0 frames from a 3 s grey-cube playblast and a ceramic teapot concept (76 CU at 480p).</figcaption>
+        <figcaption>From the first tests: a 3 s grey-cube playblast and a teapot look became this Seedance 2.0 clip (76 CU at 480p).</figcaption>
       </figure>
     </div>
     <figure>
-      <img src="{{img:panel-render-to-real.png}}" alt="Render-to-real lane with the concept model, look prompt, Render concept, and the video step">
-      <figcaption>Render-to-real lane: concept step, then video step.</figcaption>
+      <img src="{{img:panel-render-video.png}}" alt="Render Video lane: Clip to render, the Camera path planner with an orbit built, Seedance 2.0, the Look field with Prompt Spark, the first frame row and style images">
+      <figcaption>Render Video with an orbit path built and Prompt Spark ready to write the look.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="edit3d">
+  <h3>Edit 3D</h3>
+  <div class="split">
+    <div class="stack">
+      <p>Scenario's 3D tools on a mesh that is already in your scene.</p>
+      <ol class="steps">
+        <li>Select the mesh (or several) in the viewport.</li>
+        <li>Pick the task: <b>Retexture</b> (Meshy 7 Retexture, Tripo Texturing, Trellis 2 Retexture, Tencent Texture Edit), <b>Retopology</b> (Tripo Retopology, Meshy Remesh, Hunyuan Polygen), <b>Rigging</b> (Meshy, Tripo 2.5, Cartwheel), <b>Animation</b> (Meshy Animation, Cartwheel Text to Motion), <b>UV unwrap</b> (Meshy, Tencent), <b>Segment</b> (Tripo Segmentation, Hunyuan 3D Part, Hitem3D Split), <b>Stylize</b>, or <b>All</b>.</li>
+        <li>Fill the model's parameters (a style prompt or image for retexturing, a face limit for retopology, a height for rigging) and Generate.</li>
+      </ol>
+      <p>The selection is exported as a GLB at generate time (modifiers applied, materials embedded) and uploaded; the result is imported next to the original, bottoms aligned, named after it.</p>
+    </div>
+    <figure>
+      <img src="{{img:panel-edit3d.png}}" alt="Edit 3D lane: the selected mesh, task tabs, Meshy 7 Retexture, a style prompt, the pinned mesh input and parameters">
+      <figcaption>Edit 3D: the selected mesh is pinned as the model input; task tabs pick the tool.</figcaption>
     </figure>
   </div>
 </section>
@@ -281,30 +346,30 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
   <h3>Generations</h3>
   <div class="split wide">
     <div class="stack">
-      <p>The project's cloud history: prompt, kind, price, status. <b>Import into scene</b> brings a result into Blender, downloading it if needed, also for generations made on the web app or by an agent. <b>Load older</b> pages back in time. This is also the recovery path when a download failed: the job is still there, import it again.</p>
+      <p>This session's results with their actions, then the project's cloud history: prompt, kind, price, status. <b>Import into scene</b> brings a result into Blender, downloading it if needed, also for generations made on the web app or by an agent. <b>Load older</b> pages back in time. This is also the recovery path when a download failed: the job is still there, import it again.</p>
     </div>
     <figure>
-      <img src="{{img:panel-generations.png}}" alt="Generations tab listing the project history with thumbnails and Import into scene buttons">
-      <figcaption>Generations: the project history with Import into scene.</figcaption>
+      <img src="{{img:panel-generations.png}}" alt="Generations listing the project history with thumbnails and Import into scene buttons">
+      <figcaption>Cloud history with Import into scene.</figcaption>
     </figure>
   </div>
 </section>
 
 <section id="mcp">
-  <h3>MCP for agents</h3>
+  <h3>Agents (MCP)</h3>
   <div class="split wide">
     <div class="stack">
-      <p>The add-on serves the Model Context Protocol on <code>http://127.0.0.1:9876/mcp</code> with a bearer token that changes every Blender session. Pick a client in the MCP tab and press its button: the setup is copied to the clipboard (a Claude Code command, a Cursor <code>mcp.json</code>, a Claude Desktop stdio snippet, a Codex command, or a curl test).</p>
-      <p><b>Allow connected agents to run Python</b> gates the <code>execute_python</code> tool. Off, agents keep the other fifteen tools.</p>
+      <p>The add-on serves the Model Context Protocol on <code>http://127.0.0.1:9876/mcp</code> with a bearer token that changes every Blender session. Pick a client in the Agents panel and press its button: the setup is copied to the clipboard (a Claude Code command, a Cursor <code>mcp.json</code>, a Claude Desktop stdio snippet, a Codex command, or a curl test).</p>
+      <p><b>Allow connected agents to run Python</b> gates the <code>execute_python</code> tool. Off, agents keep the other sixteen tools.</p>
       <div class="tools">
-        <span>scene_summary</span><span>object_detail</span><span class="gated">execute_python</span><span>select_objects</span><span>set_frame</span><span>screenshot_viewport</span><span>render_still</span><span>list_models</span><span>model_schema</span><span>estimate_cost</span><span>generate</span><span>job_status</span><span>wait_for_job</span><span>import_result</span><span>capture_reference</span><span>list_generations</span>
+        <span>scene_summary</span><span>object_detail</span><span class="gated">execute_python</span><span>select_objects</span><span>set_frame</span><span>screenshot_viewport</span><span>render_still</span><span>camera_path</span><span>list_models</span><span>model_schema</span><span>estimate_cost</span><span>generate</span><span>job_status</span><span>wait_for_job</span><span>import_result</span><span>capture_reference</span><span>list_generations</span>
       </div>
       <p>Headless, without a window:</p>
       <pre><code>blender --background scene.blend --command scenario-mcp --port 9876 --token &lt;token&gt;</code></pre>
     </div>
     <figure>
-      <img src="{{img:panel-mcp.png}}" alt="MCP tab showing the server status, masked token, client setup buttons and the Python toggle">
-      <figcaption>MCP tab: status, token, one-click setups, Python toggle.</figcaption>
+      <img src="{{img:panel-mcp.png}}" alt="Agents (MCP) panel showing the server status, masked token, client setup buttons and the Python toggle">
+      <figcaption>Agents (MCP): status, token, one-click setups, Python toggle.</figcaption>
     </figure>
   </div>
 </section>
@@ -312,21 +377,22 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 <section id="composer">
   <h2>Floating composer</h2>
   <figure class="strip">
-    <img src="{{img:composer.png}}" alt="The floating composer expanded in the viewport: lane tabs, prompt, model chip and Generate with its price">
-    <figcaption>The composer expanded, sharing its form with the panel.</figcaption>
+    <img src="{{img:composer.png}}" alt="The floating composer expanded in the viewport: six lane tabs, the minus button, the prompt with its caret, the model chip, the Settings chip and Generate with its price">
+    <figcaption>The composer expanded: lane tabs, prompt, model chip, Settings, Generate.</figcaption>
   </figure>
-  <p>The pill at the bottom of every 3D viewport shows the current prompt and a Generate button. Click it to expand: lane tabs, the prompt, the model chip (opens the Scenario tab) and Generate with the price. In the prompt: type, arrows, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>V</kbd> to paste, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> to select all, <kbd>Enter</kbd> to generate, <kbd>Esc</kbd> to leave. Click the chevron or outside the card to collapse. The composer and the panel are two views of the same form.</p>
-  <p>If drawing fails repeatedly the composer switches itself off; re-enable it in Preferences (Floating composer in the viewport).</p>
+  <p>The pill at the bottom of every 3D viewport shows the current prompt and a Generate button. Click it to expand: lane tabs (Image, Video, 3D, Materials, Render Img, Render Vid), the prompt, the model chip (opens the model picker), a <b>Settings</b> chip (opens the sidebar) and Generate with the price. The composer is the quick path: it uses the settings of the current lane as they stand in the sidebar.</p>
+  <p>Editing the prompt: click to place the caret, drag or <kbd>Shift</kbd>+arrows to select, double-click selects a word, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects all, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> copies, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>X</kbd> cuts, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>V</kbd> pastes, typing replaces the selection, <kbd>Enter</kbd> generates, <kbd>Esc</kbd> leaves. The minus button in the top-right corner collapses the card; clicking outside also does. If drawing ever fails repeatedly the composer switches itself off; re-enable it in Preferences (Floating composer in the viewport).</p>
 </section>
 
 <section id="costs">
   <h2>Costs</h2>
-  <p>Prices are in Creative Units (CU), charged to the workspace of your API key. They depend on the model and its cost-marked parameters; the quote on the Generate button is exact for the form you see. Figures observed during the build, August 2026:</p>
+  <p>Prices are in Creative Units (CU), charged to the workspace of your API key. They depend on the model and its cost-marked parameters; the quote on the Generate button is exact for the form you see, and the Prompt Spark call is added when the look is empty. Figures observed during the build, August 2026:</p>
   <div class="tablewrap">
     <table>
       <thead><tr><th>Generation</th><th>Model</th><th>Observed</th></tr></thead>
       <tbody>
-        <tr><td>Image</td><td>GPT Image 2, Gemini 3.1, Seedream</td><td class="num">9 to 13 CU</td></tr>
+        <tr><td>Image</td><td>GPT Image 2, Gemini 3.1, Seedream</td><td class="num">9 to 17 CU</td></tr>
+        <tr><td>Look written by Prompt Spark</td><td>Scenario Prompt Spark</td><td class="num">0.75 CU</td></tr>
         <tr><td>PBR material</td><td>PATINA Material, 512 to 2048 px</td><td class="num">6 to 18 CU</td></tr>
         <tr><td>Image to 3D</td><td>Tripo 3.1</td><td class="num">45 CU</td></tr>
         <tr><td>Text to 3D</td><td>Rodin Gen-2.5</td><td class="num">80 CU</td></tr>
@@ -341,9 +407,9 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 <section id="files">
   <h2>Files and folders</h2>
   <dl class="anatomy">
-    <dt>Results</dt><dd>Your Output Folder, <code>~/Downloads/Scenario</code> by default, in <code>images/</code>, <code>videos/</code>, <code>3d/</code>, <code>materials/</code>, named <code>&lt;date&gt;_&lt;model&gt;_&lt;job&gt;_&lt;n&gt;.&lt;ext&gt;</code>.</dd>
-    <dt>Captures</dt><dd>Stills and playblasts used as references live in the extension cache (<code>captures/</code> under Blender's extension user directory).</dd>
-    <dt>State</dt><dd>The job registry (so unfinished jobs resume after a restart) and the model cache sit in the extension state and cache directories, removed with the extension.</dd>
+    <dt>Results</dt><dd>Your Output Folder, <code>~/Downloads/Scenario</code> by default, one folder per kind and per day: <code>images/20260828/</code>, <code>videos/20260828/</code>, <code>3d/20260828/</code>, <code>materials/20260828/</code>, files named <code>&lt;date&gt;_&lt;model&gt;_&lt;job&gt;_&lt;n&gt;.&lt;ext&gt;</code>.</dd>
+    <dt>Captures</dt><dd>Stills, playblasts, Prompt Spark stills and Edit 3D exports live in the extension cache (<code>captures/</code>, <code>exports/</code> under Blender's extension user directory); model thumbnails in <code>thumbs/</code>.</dd>
+    <dt>State</dt><dd>The job registry (so unfinished jobs resume after a restart), recent models and the model cache sit in the extension state and cache directories, removed with the extension.</dd>
     <dt>Your key</dt><dd>Stored in Blender's preferences file. Treat it like any credential and rotate it in Scenario if it leaks.</dd>
   </dl>
 </section>
@@ -353,9 +419,11 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
   <div class="faq">
     <details><summary>"Loading models..." never ends</summary><p>Check the key and secret in Preferences (Test connection) and Blender's Allow Online Access. When the catalog request fails, a message and a Retry button replace the loading text.</p></details>
     <details><summary>"Prompt is required" or "Add a reference to see the cost"</summary><p>The quote needs a valid form. Fill the prompt, or add the reference the model requires.</p></details>
-    <details><summary>The result does not appear in the scene</summary><p>Open Results. A job whose download failed says so with the reason; fetch it again from Generations &rsaquo; Import into scene. After installing an update, restart Blender so the new version loads.</p></details>
-    <details><summary>A 3D model looks untextured</summary><p>Switch the viewport to Material Preview (the add-on does this on import since 0.5.1) and check in Results which file was imported. Texture PNGs from the provider are saved next to the mesh in <code>3d/</code>.</p></details>
-    <details><summary>Two meshes came out of one job</summary><p>Versions before 0.5.1 imported every variant of a result. Update, or delete the extra object.</p></details>
+    <details><summary>"Select the mesh to edit" or "Price shown after the upload"</summary><p>Edit 3D needs a mesh object selected in the viewport; its price is known once the mesh is uploaded, Generate works anyway.</p></details>
+    <details><summary>"This model takes no image/video input"</summary><p>The picked model cannot receive the capture; choose another one in the Render lane.</p></details>
+    <details><summary>The result does not appear in the scene</summary><p>Open Generations. A job whose download failed says so with the reason; fetch it again with Import into scene. After installing an update, restart Blender so the new version loads.</p></details>
+    <details><summary>The rendered image moved things around</summary><p>The prompt already freezes the layout; give the model a cleaner capture (Grey clay capture, a camera view rather than a wide viewport) and fewer style images, and keep the look about materials and light, not about content.</p></details>
+    <details><summary>A 3D model looks untextured</summary><p>Switch the viewport to Material Preview (the add-on does this on import) and check in Generations which file was imported. Texture PNGs from the provider are saved next to the mesh.</p></details>
     <details><summary>Enter or the Generate button does nothing</summary><p>With <code>SCENARIO_GUI_PROBE=1</code> in the environment (set by the automated screenshot tool) every Generate path is disabled. Start Blender normally.</p></details>
     <details><summary>Where are the logs?</summary><p>Blender's system console (Window &rsaquo; Toggle System Console on Windows, the terminal you launched Blender from on macOS and Linux). Messages are prefixed <code>scenario</code>.</p></details>
   </div>
@@ -364,13 +432,13 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 <section id="limits">
   <h2>Known limits</h2>
   <ul class="plain">
-    <li>The prompt is single-line in the composer; the pencil in the panel opens a wider editor.</li>
+    <li>The prompt is single-line in the composer; the pencil in the panel opens a wider editor. The composer shows six lanes; Edit 3D lives in the sidebar (its input is the selection).</li>
     <li>Captures need the Blender GUI; in <code>--background</code> use the MCP <code>render_still</code> tool instead.</li>
-    <li>Team-scoped keys generate into the first project; a project switcher is planned.</li>
-    <li>Planned for v2: skyboxes on the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion, custom LoRAs, Scenario Workflows, sign in with Scenario, an in-Blender agent chat.</li>
+    <li>MCP <code>generate</code> sends parameters as given: the role-explicit render prompts and Prompt Spark run from the panel and the composer.</li>
+    <li>Team-scoped keys generate into the first project; a project switcher is planned. Skyboxes, custom LoRAs, Scenario Workflows and sign-in with Scenario are still planned.</li>
   </ul>
   <footer>
-    <span>Scenario for Blender v0.5.2</span>
+    <span>Scenario for Blender v0.6.0</span>
     <a href="https://github.com/edemaistre/scenario-for-blender">Source on GitHub</a>
     <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/CHANGELOG.md">Changelog</a>
     <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/docs/USER_GUIDE.md">Markdown guide</a>

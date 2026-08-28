@@ -1,13 +1,16 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Interaction state of the floating composer, mirrored into the Scene lane state."""
-from ...core.ui.composer_layout import TextField
+from ...core.ui.composer_layout import LANE_ORDER, TextField
+
+COMPOSER_LANES = tuple(LANE_ORDER)
 
 
 class ComposerState:
     def __init__(self):
         self.expanded = False
         self.focused = False
+        self.dragging = False      # left button held inside the prompt: mouse moves extend the selection
         self.hover = None
         self.mouse = (0, 0)
         self.field = TextField("")
@@ -16,8 +19,11 @@ class ComposerState:
         self.layout = None
 
     def lane_for(self, scene):
+        """The composer drives the six generation lanes; other tabs (Generations, MCP, 3D tools) fall back to Image."""
         lane = scene.scenario.lane
-        return lane if lane in ("image", "video", "3d", "material", "render") else "image"
+        if lane in COMPOSER_LANES and scene.scenario.lane_state(lane) is not None:
+            return lane
+        return "image"
 
     def sync_from_lane(self, scene):
         lane = self.lane_for(scene)

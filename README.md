@@ -1,6 +1,6 @@
 # Scenario for Blender
 
-**Status: experimental, v0.5.2 (2026-08-28).** A Blender 4.2+ extension that brings [Scenario](https://scenario.com) image, video, 3D and PBR material generation into the viewport, with a local MCP server so agents (Claude Code, Cursor, Claude Desktop, Codex) can build and generate in the open scene. Pure Python, no bundled wheels, GPL-3.0-or-later. You need a Scenario account and an API key (Pro plan or above).
+**Status: experimental, v0.6.0 (2026-08-28).** A Blender 4.2+ extension that brings [Scenario](https://scenario.com) image, video, 3D and PBR material generation into the viewport, renders the scene as a finished still or clip (Render Image / Render Video, with Prompt Spark writing the look and a camera path planner), edits the selected mesh with Scenario's 3D tools (retexture, retopology, rigging, animation, UV unwrap, segmentation), and runs a local MCP server so agents (Claude Code, Cursor, Claude Desktop, Codex) can build and generate in the open scene. Pure Python, no bundled wheels, GPL-3.0-or-later. You need a Scenario account and an API key (Pro plan or above).
 
 **User guide: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)**, also as a single-file HTML handbook with screenshots: [`docs/user-guide.html`](docs/user-guide.html). Changelog: [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -42,11 +42,11 @@ Quick start: download `scenario-<version>.zip` from the releases (or run `./tool
 
 ## 3D results: one mesh per job
 
-Providers return several variants of one result (Meshy: GLB + OBJ + texture PNGs; Rodin with `material=All`: a shaded GLB and a PBR GLB). The add-on imports one primary mesh (glTF first, then the variant with the most PBR textures), switches the viewport to Material Preview so textures show, and lists the other mesh files in Results with an Import button. Rodin defaults to `PBR`. Root causes and the fix are in `CHANGELOG.md` 0.5.1.
+Providers return several variants of one result (Meshy: GLB + OBJ + texture PNGs; Rodin with `material=All`: a shaded GLB and a PBR GLB). The add-on imports one primary mesh (glTF first, then the variant with the most PBR textures), switches the viewport to Material Preview so textures show, and lists the other mesh files in Generations with an Add button (plus Add to scene and Select for the primary mesh). Rodin defaults to `PBR`. Root causes and the fix are in `CHANGELOG.md` 0.5.1.
 
 ## Floating composer
 
-A pill at the bottom of every 3D viewport shows the current prompt and a Generate button; click it to expand lane tabs, an editable prompt (Enter generates, Esc blurs, Ctrl/Cmd+V pastes), the model chip (opens the N-panel) and the live CU quote. It shares its state with the N-panel. If drawing ever fails repeatedly the composer switches itself off; re-enable it in Preferences.
+A pill at the bottom of every 3D viewport shows the current prompt and a Generate button; click it to expand lane tabs (Image, Video, 3D, Materials, Render Img, Render Vid), an editable prompt with real text selection (click, drag, Shift+arrows, double-click, Ctrl/Cmd+A/C/X/V; Enter generates, Esc blurs), the model chip (opens the model picker), a Settings chip (opens the sidebar) and the live CU quote. The composer is the quick path; every setting lives in the sidebar, which the header "Scenario" button opens. The sidebar tab has four panels: Scenario (lane tabs), Jobs, Generations, Agents (MCP). If drawing ever fails repeatedly the composer switches itself off; re-enable it in Preferences.
 
 ## Install from a repository (updates through Blender)
 
