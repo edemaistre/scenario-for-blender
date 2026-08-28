@@ -172,20 +172,40 @@ class JobManager:
                 self._fail(rec, jobs_api.error_text(job) or rec.status)
             return
 
+    MESH_MIMES = ("model/gltf-binary", "model/gltf+json", "model/x-fbx", "model/obj")
+
     def _download_results(self, client, rec):
+        """Fetch every asset record, then download meshes first. For 3D jobs a failed alternate or texture
+        download is recorded, not fatal, as long as one mesh arrived (providers ship 200+ MB OBJ variants)."""
         out_dir = self.paths.output_for(rec.kind)
         out_dir.mkdir(parents=True, exist_ok=True)
         now = dt.datetime.now()
+        records = []
         for index, asset_id in enumerate(rec.asset_ids):
             asset = assets_api.get_asset(client, asset_id)
             rec.asset_types[asset_id] = assets_api.asset_type(asset)
+            records.append((index, asset_id, asset))
+        if rec.kind == "3d":
+            records.sort(key=lambda item: (0 if (item[2].get("mimeType") or "") in self.MESH_MIMES else 1, item[0]))
+        errors = {}
+        for index, asset_id, asset in records:
             ext = config.ext_for_mime(asset.get("mimeType"))
             dest = out_dir / config.output_filename(rec.kind, rec.model_id, rec.job_id, index, ext, when=now)
             url = asset.get("url")
             if not url:
-                raise ScenarioError(0, f"asset {asset_id} has no url")
-            self.downloader(url, dest)
+                errors[asset_id] = "no url"
+                continue
+            try:
+                self.downloader(url, dest)
+            except (ScenarioError, OSError) as err:
+                errors[asset_id] = str(err)
+                continue
             rec.files.append(str(dest))
+        if errors:
+            rec.meta["download_errors"] = errors
+        has_mesh = any(f.lower().endswith((".glb", ".gltf", ".fbx", ".obj")) for f in rec.files)
+        if errors and not (rec.kind == "3d" and has_mesh):
+            raise ScenarioError(0, "; ".join(list(errors.values())[:2]))
 
     def _update_from_job(self, rec, job):
         rec.status = (job.get("status") or rec.status).lower()

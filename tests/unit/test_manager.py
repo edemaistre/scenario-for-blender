@@ -149,7 +149,9 @@ def test_resume_without_credentials_keeps_records_pending_for_retry(tmp_path):
 
 def test_download_failure_marks_job_failed_but_keeps_asset_ids(tmp_path):
     job = json.loads((FIXTURES / "patina-copper-512" / "job.json").read_text())
-    t = FakeTransport().queue(200, job).queue(200, job).queue(200, {"asset": {"id": "a1", "url": "https://cdn/a1", "mimeType": "image/png", "metadata": {}}})
+    t = FakeTransport().queue(200, job).queue(200, job)
+    for asset_id in job["job"]["metadata"]["assetIds"]:
+        t.queue(200, {"asset": {"id": asset_id, "url": f"https://cdn/{asset_id}", "mimeType": "image/png", "metadata": {"type": "texture-albedo"}}})
 
     def failing_downloader(url, dest, **kw):
         raise OSError("wifi blip")
@@ -160,3 +162,28 @@ def test_download_failure_marks_job_failed_but_keeps_asset_ids(tmp_path):
     failed = events_of("job_failed", manager.drain())[0]
     assert failed.status == "failed" and "download failed" in failed.error
     assert failed.files == [] and len(failed.asset_ids) == 6
+
+
+def test_3d_job_survives_a_failed_alternate_download(tmp_path):
+    job = {"job": {"jobId": "job_3d", "jobType": "custom", "status": "success", "billing": {"cuCost": 160}, "metadata": {"assetIds": ["a_obj", "a_glb", "a_png"]}}}
+    t = FakeTransport().queue(200, job).queue(200, job)
+    t.queue(200, {"asset": {"id": "a_obj", "url": "https://cdn/a.obj", "mimeType": "model/obj", "metadata": {"type": "txt23d"}}})
+    t.queue(200, {"asset": {"id": "a_glb", "url": "https://cdn/a.glb", "mimeType": "model/gltf-binary", "metadata": {"type": "txt23d"}}})
+    t.queue(200, {"asset": {"id": "a_png", "url": "https://cdn/a.png", "mimeType": "image/png", "metadata": {"type": "3d-texture-albedo"}}})
+
+    def downloader(url, dest, **kw):
+        if url.endswith(".obj"):
+            raise OSError("Remote end closed connection without response")
+        dest.write_bytes(b"data")
+        return dest
+
+    manager = make_manager(tmp_path, t, downloader=downloader)
+    manager.submit("3d", "3d", "model_meshy-txt23d", {"prompt": "x"})
+    manager.join(timeout=5)
+    events = manager.drain()
+    done = events_of("job_done", events)
+    assert done, [name for name, _ in events]
+    rec = done[0]
+    assert rec.status == "success"
+    assert [pathlib.Path(f).suffix for f in rec.files] == [".glb", ".png"]  # meshes first, failed OBJ skipped
+    assert "a_obj" in rec.meta["download_errors"]
