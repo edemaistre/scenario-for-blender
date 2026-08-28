@@ -18,6 +18,7 @@ Quick start: download `scenario-<version>.zip` from the releases (or run `./tool
 ## Files
 
 - `docs/USER_GUIDE.md`, `docs/user-guide.html`, `docs/images/`: the user guide (Markdown, and a self-contained HTML handbook with the cropped panel screenshots embedded).
+- `docs/user-guide.src.html` + `tools/build_docs_html.py`: edit the source, run the script to rebuild `docs/user-guide.html` with the images embedded.
 - `docs/superpowers/specs/2026-08-28-scenario-for-blender-design.md`: the v1 design (architecture, lanes, phases, tests).
 - `research/00-synthesis.md`: parity matrix and architecture lessons (workflow output; verification log appended).
 - `research/01-06-[redacted]-*.md`: clean-room behavioural specs of [redacted] Blender 1.5.47 (API layer, UI, Blender integration, MCP bridge, motion/realtime/phonecam, product inventory).

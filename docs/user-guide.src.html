@@ -1,0 +1,381 @@
+<title>Scenario for Blender Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F3F4F8; --surface:#FFFFFF; --surface-2:#EAEDF4; --ink:#171A21; --muted:#5A6272; --line:#D9DDE6;
+  --accent:#3B6CE8; --accent-ink:#FFFFFF; --accent-soft:#E4EBFC; --accent-text:#2A52B8;
+  --warn-soft:#FBF0DA; --warn-text:#7A5200; --ok-soft:#E1F3E8; --ok-text:#1F6B3A;
+  --shadow:0 1px 2px rgba(23,26,33,.06),0 8px 24px rgba(23,26,33,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#1C1E23; --surface:#25282F; --surface-2:#2D3139; --ink:#E8EAEF; --muted:#9AA3B2; --line:#353943;
+    --accent:#7FA3FF; --accent-ink:#0F1730; --accent-soft:#26324D; --accent-text:#A9C0FF;
+    --warn-soft:#3A2F16; --warn-text:#F1C777; --ok-soft:#1D3327; --ok-text:#8DD6A8;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#1C1E23; --surface:#25282F; --surface-2:#2D3139; --ink:#E8EAEF; --muted:#9AA3B2; --line:#353943;
+  --accent:#7FA3FF; --accent-ink:#0F1730; --accent-soft:#26324D; --accent-text:#A9C0FF;
+  --warn-soft:#3A2F16; --warn-text:#F1C777; --ok-soft:#1D3327; --ok-text:#8DD6A8;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-text);text-decoration-thickness:1px;text-underline-offset:3px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+h1,h2,h3{font-family:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;text-wrap:balance;margin:0;line-height:1.1;letter-spacing:-.01em}
+h1{font-size:clamp(2.2rem,4.5vw,3.4rem);font-weight:700}
+h2{font-size:1.75rem;font-weight:700;padding-top:.5rem}
+h3{font-size:1.2rem;font-weight:700;font-family:"IBM Plex Sans",system-ui,sans-serif;letter-spacing:0}
+p,li{max-width:68ch}
+code,kbd,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+code{background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+pre{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:.9rem 1rem;overflow-x:auto;margin:0}
+pre code{background:none;padding:0;font-size:.85rem}
+kbd{background:var(--surface);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 .4em}
+.eyebrow{font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:600}
+
+.shell{display:grid;grid-template-columns:240px minmax(0,1fr);gap:3rem;max-width:1180px;margin:0 auto;padding:2.5rem 2rem 5rem}
+@media (max-width:900px){.shell{grid-template-columns:1fr;gap:1.5rem;padding:1.5rem 1.1rem 4rem}}
+nav.toc{position:sticky;top:1.5rem;align-self:start;font-size:.92rem}
+@media (max-width:900px){nav.toc{position:static}}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.15rem}
+nav.toc a{display:block;padding:.3rem .6rem;border-radius:5px;color:var(--muted);text-decoration:none}
+nav.toc a:hover{background:var(--surface-2);color:var(--ink)}
+nav.toc .sub a{padding-left:1.4rem;font-size:.86rem}
+nav.toc .toc-head{padding:.3rem .6rem .6rem;display:flex;flex-direction:column;gap:.1rem}
+.version{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--muted)}
+
+main{display:flex;flex-direction:column;gap:3.5rem;min-width:0}
+section{display:flex;flex-direction:column;gap:1.1rem}
+header.hero{display:flex;flex-direction:column;gap:1.2rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+.lede{font-size:1.15rem;color:var(--muted);max-width:60ch}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-top:.4rem}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.7rem .9rem;display:flex;flex-direction:column;gap:.15rem}
+.fact b{font-size:.98rem;font-weight:600}
+.fact span{font-size:.8rem;color:var(--muted)}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:2rem;align-items:start}
+.split.wide{grid-template-columns:minmax(0,1fr) 380px}
+@media (max-width:900px){.split,.split.wide{grid-template-columns:1fr}}
+.split figure{position:sticky;top:1.5rem}
+@media (max-width:900px){.split figure{position:static}}
+figure{margin:0;display:flex;flex-direction:column;gap:.5rem}
+figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);background:var(--surface-2)}
+figcaption{font-size:.8rem;color:var(--muted);line-height:1.45}
+figure.strip img{width:100%}
+
+.stack{display:flex;flex-direction:column;gap:.75rem}
+ol.steps{margin:0;padding-left:1.3rem;display:flex;flex-direction:column;gap:.6rem}
+ul.plain{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:.45rem}
+dl.anatomy{margin:0;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.55rem 1.2rem}
+dl.anatomy dt{font-weight:600;white-space:nowrap}
+dl.anatomy dd{margin:0;color:var(--ink)}
+@media (max-width:600px){dl.anatomy{grid-template-columns:1fr}dl.anatomy dd{margin-bottom:.4rem}}
+
+.note{background:var(--accent-soft);color:var(--ink);border-radius:8px;padding:.8rem 1rem;font-size:.95rem;display:flex;gap:.7rem;align-items:baseline}
+.note .tag,.warn .tag{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;color:var(--accent-text);white-space:nowrap}
+.warn{background:var(--warn-soft);color:var(--ink);border-radius:8px;padding:.8rem 1rem;font-size:.95rem;display:flex;gap:.7rem;align-items:baseline}
+.warn .tag{color:var(--warn-text)}
+
+.lane-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.75rem}
+.lane{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.85rem 1rem;display:flex;flex-direction:column;gap:.3rem}
+.lane b{font-weight:600}
+.lane span{font-size:.88rem;color:var(--muted)}
+.lane a{text-decoration:none;color:inherit}
+.lane:hover{border-color:var(--accent)}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:.6rem .9rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.faq{display:flex;flex-direction:column;gap:.5rem}
+details{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:.1rem 1rem}
+summary{cursor:pointer;padding:.65rem 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:1rem}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--muted);font-family:"IBM Plex Mono",monospace}
+details[open] summary::after{content:"\2212"}
+details p{margin:0 0 .8rem;color:var(--ink)}
+
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.4rem .8rem;font-family:"IBM Plex Mono",monospace;font-size:.82rem}
+.tools span{padding:.25rem .5rem;background:var(--surface);border:1px solid var(--line);border-radius:5px}
+.tools span.gated{border-style:dashed}
+footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.4rem 1.5rem}
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Contents">
+  <div class="toc-head">
+    <span class="eyebrow">Handbook</span>
+    <span class="version">v0.5.2 &middot; 2026-08-28</span>
+  </div>
+  <ol>
+    <li><a href="#what">What it does</a></li>
+    <li><a href="#install">Install and connect</a></li>
+    <li><a href="#panel">The panel</a></li>
+    <li><a href="#lanes">Lanes</a></li>
+    <li class="sub"><a href="#image">Image</a></li>
+    <li class="sub"><a href="#video">Video</a></li>
+    <li class="sub"><a href="#threed">3D</a></li>
+    <li class="sub"><a href="#materials">Materials</a></li>
+    <li class="sub"><a href="#r2r">Render-to-real</a></li>
+    <li class="sub"><a href="#generations">Generations</a></li>
+    <li class="sub"><a href="#mcp">MCP for agents</a></li>
+    <li><a href="#composer">Floating composer</a></li>
+    <li><a href="#costs">Costs</a></li>
+    <li><a href="#files">Files and folders</a></li>
+    <li><a href="#trouble">Troubleshooting</a></li>
+    <li><a href="#limits">Known limits</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero" id="what">
+  <span class="eyebrow">Scenario for Blender</span>
+  <h1>Generate images, video, 3D and materials without leaving the viewport.</h1>
+  <p class="lede">Scenario for Blender is a Blender extension that runs Scenario's generation models from the 3D viewport. It feeds them with what is already in your scene (a viewport capture, the scene camera, a playblast, a render) and brings the results back where you work: images as datablocks and textures, meshes at the 3D cursor, PBR materials on the selected objects, videos in your output folder. Every generation shows its price before you press Generate.</p>
+  <div class="facts">
+    <div class="fact"><b>Blender 4.2+</b><span>tested on 5.1, macOS, Windows, Linux</span></div>
+    <div class="fact"><b>Scenario API key</b><span>Pro plan or above, key + secret</span></div>
+    <div class="fact"><b>Pure Python</b><span>no wheels, GPL-3.0, open source</span></div>
+    <div class="fact"><b>MCP built in</b><span>16 tools for Claude Code, Cursor, Codex</span></div>
+  </div>
+</header>
+
+<section id="install">
+  <h2>Install and connect</h2>
+  <div class="split">
+    <div class="stack">
+      <ol class="steps">
+        <li>Download <code>scenario-&lt;version&gt;.zip</code> from the <a href="https://github.com/edemaistre/scenario-for-blender/releases">releases page</a>. Keep it zipped.</li>
+        <li>Drag the zip onto any Blender window, or go to <b>Edit &rsaquo; Preferences &rsaquo; Get Extensions &rsaquo; Install from Disk</b>. Blender installs and enables it. To update, install the new zip the same way, then restart Blender so the new code loads.</li>
+        <li>In Scenario, create an API key: <b>Team &rsaquo; API Keys</b>, Project or Team scope, role Editor. The secret is shown once.</li>
+        <li>In Blender, <b>Edit &rsaquo; Preferences &rsaquo; Add-ons &rsaquo; Scenario</b>: paste the key and the secret, press <b>Test connection</b>. Choose an <b>Output Folder</b> (default <code>~/Downloads/Scenario</code>).</li>
+      </ol>
+      <div class="note"><span class="tag">Where</span><span>Press <kbd>N</kbd> in the 3D viewport and open the <b>Scenario</b> tab. The same form is available from the <b>Scenario</b> button in the viewport header (a compact popover) and from the floating composer at the bottom of the viewport.</span></div>
+      <div class="warn"><span class="tag">Check</span><span>Blender's <b>Allow Online Access</b> (Preferences &rsaquo; System) must be on, otherwise every network operator refuses to run.</span></div>
+    </div>
+    <figure>
+      <img src="{{img:panel-image.png}}" alt="The Scenario tab in the viewport sidebar, Image lane, with a quote on the Generate button and a result">
+      <figcaption>The Scenario tab: account strip, lane tabs, model, prompt, references, parameters, the priced Generate button, Running and Results.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="panel">
+  <h2>The panel</h2>
+  <p>Every lane uses the same form, top to bottom. The parts you edit are built from the model's own schema, so a new model on Scenario appears here with the right controls without an add-on update.</p>
+  <dl class="anatomy">
+    <dt>Account strip</dt><dd>Your team and project, a refresh for the model list, a shortcut to the preferences.</dd>
+    <dt>Lane tabs</dt><dd>Image, Video, 3D, Materials, Render-to-real, MCP, Generations.</dd>
+    <dt>Model</dt><dd>The models usable in this lane, curated ones first, with the one-line description from the Scenario catalog.</dd>
+    <dt>Prompt</dt><dd>One line; the pencil opens a wider editor.</dd>
+    <dt>References</dt><dd>One box per file input the model accepts (image, video, audio, 3D). <b>Add</b> offers File, Viewport still, Camera still, Viewport clip, Camera clip and Render Result. Captures are taken when you press Generate.</dd>
+    <dt>Parameters</dt><dd>A checkbox in front of an optional parameter means "send this value"; unchecked, Scenario uses its default. <code>(cost)</code> marks the ones that change the price.</dd>
+    <dt>Generate (N CU)</dt><dd>The exact price of the form as it stands, refreshed as you edit, computed by a free dry run. "from N CU" means references that will only be uploaded at generate time are not in the quote yet.</dd>
+    <dt>Running, Results</dt><dd>Jobs in flight with progress; finished jobs with the actions of their kind (Show, Apply as texture, Add as plane, Import, Play, Tiling).</dd>
+  </dl>
+</section>
+
+<section id="lanes">
+  <h2>Lanes</h2>
+  <div class="lane-grid">
+    <a class="lane" href="#image"><b>Image</b><span>Text or references to images. Show, apply as texture, add as plane.</span></a>
+    <a class="lane" href="#video"><b>Video</b><span>Text, images or a playblast of your timeline to video.</span></a>
+    <a class="lane" href="#threed"><b>3D</b><span>Text, one image or several views to a mesh at the 3D cursor.</span></a>
+    <a class="lane" href="#materials"><b>Materials</b><span>Patina PBR sets applied to the selected meshes.</span></a>
+    <a class="lane" href="#r2r"><b>Render-to-real</b><span>Concept still, then a finished clip from a grey playblast.</span></a>
+    <a class="lane" href="#generations"><b>Generations</b><span>Cloud history of the project, import anything into the scene.</span></a>
+    <a class="lane" href="#mcp"><b>MCP</b><span>Let an agent see the scene and generate on your behalf.</span></a>
+  </div>
+</section>
+
+<section id="image">
+  <h3>Image</h3>
+  <p>Text or reference images to images with GPT Image 2, Gemini 3.1, Seedream, Z-Image and any other txt2img or img2img model in the catalog. Results open in an Image Editor and appear in Results with <b>Show</b>, <b>Apply as texture</b> (a material with the image as Base Color on the active mesh) and <b>Add as plane</b> (a view-facing plane at the 3D cursor).</p>
+</section>
+
+<section id="video">
+  <h3>Video</h3>
+  <div class="split">
+    <div class="stack">
+      <p>Text, images or your Blender scene to video with Seedance 2.0 and 2.5, Kling, Veo, Wan and the other video models.</p>
+      <ul class="plain">
+        <li><b>Viewport clip</b> and <b>Camera clip</b> references playblast your timeline at 1280&times;720 with overlays hidden when you press Generate. <b>Grey clay capture</b> forces flat single-colour shading so the model reads motion rather than materials.</li>
+        <li><b>Match timeline</b> takes the clip duration from your frame range, rounded up to a value the model accepts. Clips shorter than 4 s are padded (Seedance's minimum); longer ones are trimmed to the model's maximum.</li>
+        <li>Seedance prompts get their <code>@video1</code> / <code>@image1</code> mentions automatically.</li>
+        <li>Results: <b>Play</b> in the system player or <b>Play in Blender</b>.</li>
+      </ul>
+    </div>
+    <figure>
+      <img src="{{img:panel-video.png}}" alt="Video lane with a Camera clip reference, Match timeline, and the Seedance parameters">
+      <figcaption>Video lane with a Camera clip reference and Match timeline.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="threed">
+  <h3>3D</h3>
+  <div class="split">
+    <div class="stack">
+      <p>Three modes: <b>Text</b>, <b>Image</b> (one picture) and <b>Multi-view</b> (several views of the same object, the first one is the front). Meshy 7 and Rodin Gen-2.5 for text; Tripo 3.1, Tripo P1, Meshy 7, Hunyuan 3.1 Pro and Rodin 2.5 for images; Meshy 7 Multi Image, Tripo 3.1 Multi View, Hunyuan 3.1 Pro Multiview and Rodin for multi-view.</p>
+      <p>The result is imported at the 3D cursor into a <b>Scenario</b> collection and the viewport switches to Material Preview so the textures show.</p>
+      <div class="note"><span class="tag">One mesh per job</span><span>Providers return several variants of one result: Meshy sends a GLB with embedded textures, a 200+ MB OBJ and the texture PNGs; Rodin with <code>material = All</code> sends a shaded and a PBR mesh. The add-on imports one primary mesh (the textured GLB) and lists the other files in Results with an <b>Import</b> button. Rodin defaults to PBR.</span></div>
+    </div>
+    <figure>
+      <img src="{{img:panel-3d.png}}" alt="3D lane in Text mode with Meshy 7 selected and its parameters">
+      <figcaption>3D lane, Text mode, Meshy 7.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="materials">
+  <h3>Materials</h3>
+  <div class="split">
+    <div class="stack">
+      <p>Patina turns a prompt or a photo into a seamless PBR set: base color, normal, roughness, metalness, height. Select the meshes to texture, describe the material, choose the maps and size, press Generate. The material arrives as a Principled BSDF with UV mapping and displacement, applied to the meshes you had selected. <b>Tiling</b> in Results scales the mapping.</p>
+      <ul class="plain">
+        <li><b>PATINA Material</b>: prompt to maps, with variation and inpainting options.</li>
+        <li><b>PATINA Image to Maps</b>: a flat texture or photo to a full set.</li>
+        <li><b>PATINA Material Extract</b>: isolate one material from a photo.</li>
+      </ul>
+    </div>
+    <figure>
+      <img src="{{img:panel-materials.png}}" alt="Materials lane with PATINA Material, a copper prompt, map selection and the Generate quote">
+      <figcaption>Materials lane, PATINA Material, oxidised copper.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="r2r">
+  <h3>Render-to-real</h3>
+  <div class="split wide">
+    <div class="stack">
+      <p>Two steps to turn a grey animation into a finished-looking clip.</p>
+      <ol class="steps">
+        <li><b>Concept look.</b> Pick the source (scene camera or viewport), describe the look, optionally add style references, press <b>Render concept</b>. A styled still of your capture comes back.</li>
+        <li><b>Playblast and Generate.</b> The timeline is playblasted (grey clay by default) and sent to Seedance 2.0 with the concept as style reference and a prompt that asks the model to keep the motion and framing of the playblast.</li>
+      </ol>
+      <div class="note"><span class="tag">Tip</span><span>Keep a ground plane in the playblast so the model understands how the subject moves relative to the floor. Motion is followed closely; a plain grey cube over three seconds became the teapot below.</span></div>
+      <figure class="strip">
+        <img src="{{img:render-to-real-result.png}}" alt="Frames of a Seedance 2.0 clip generated from a grey cube playblast and a teapot concept">
+        <figcaption>Seedance 2.0 frames from a 3 s grey-cube playblast and a ceramic teapot concept (76 CU at 480p).</figcaption>
+      </figure>
+    </div>
+    <figure>
+      <img src="{{img:panel-render-to-real.png}}" alt="Render-to-real lane with the concept model, look prompt, Render concept, and the video step">
+      <figcaption>Render-to-real lane: concept step, then video step.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="generations">
+  <h3>Generations</h3>
+  <div class="split wide">
+    <div class="stack">
+      <p>The project's cloud history: prompt, kind, price, status. <b>Import into scene</b> brings a result into Blender, downloading it if needed, also for generations made on the web app or by an agent. <b>Load older</b> pages back in time. This is also the recovery path when a download failed: the job is still there, import it again.</p>
+    </div>
+    <figure>
+      <img src="{{img:panel-generations.png}}" alt="Generations tab listing the project history with thumbnails and Import into scene buttons">
+      <figcaption>Generations: the project history with Import into scene.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="mcp">
+  <h3>MCP for agents</h3>
+  <div class="split wide">
+    <div class="stack">
+      <p>The add-on serves the Model Context Protocol on <code>http://127.0.0.1:9876/mcp</code> with a bearer token that changes every Blender session. Pick a client in the MCP tab and press its button: the setup is copied to the clipboard (a Claude Code command, a Cursor <code>mcp.json</code>, a Claude Desktop stdio snippet, a Codex command, or a curl test).</p>
+      <p><b>Allow connected agents to run Python</b> gates the <code>execute_python</code> tool. Off, agents keep the other fifteen tools.</p>
+      <div class="tools">
+        <span>scene_summary</span><span>object_detail</span><span class="gated">execute_python</span><span>select_objects</span><span>set_frame</span><span>screenshot_viewport</span><span>render_still</span><span>list_models</span><span>model_schema</span><span>estimate_cost</span><span>generate</span><span>job_status</span><span>wait_for_job</span><span>import_result</span><span>capture_reference</span><span>list_generations</span>
+      </div>
+      <p>Headless, without a window:</p>
+      <pre><code>blender --background scene.blend --command scenario-mcp --port 9876 --token &lt;token&gt;</code></pre>
+    </div>
+    <figure>
+      <img src="{{img:panel-mcp.png}}" alt="MCP tab showing the server status, masked token, client setup buttons and the Python toggle">
+      <figcaption>MCP tab: status, token, one-click setups, Python toggle.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="composer">
+  <h2>Floating composer</h2>
+  <figure class="strip">
+    <img src="{{img:composer.png}}" alt="The floating composer expanded in the viewport: lane tabs, prompt, model chip and Generate with its price">
+    <figcaption>The composer expanded, sharing its form with the panel.</figcaption>
+  </figure>
+  <p>The pill at the bottom of every 3D viewport shows the current prompt and a Generate button. Click it to expand: lane tabs, the prompt, the model chip (opens the Scenario tab) and Generate with the price. In the prompt: type, arrows, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>V</kbd> to paste, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> to select all, <kbd>Enter</kbd> to generate, <kbd>Esc</kbd> to leave. Click the chevron or outside the card to collapse. The composer and the panel are two views of the same form.</p>
+  <p>If drawing fails repeatedly the composer switches itself off; re-enable it in Preferences (Floating composer in the viewport).</p>
+</section>
+
+<section id="costs">
+  <h2>Costs</h2>
+  <p>Prices are in Creative Units (CU), charged to the workspace of your API key. They depend on the model and its cost-marked parameters; the quote on the Generate button is exact for the form you see. Figures observed during the build, August 2026:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Generation</th><th>Model</th><th>Observed</th></tr></thead>
+      <tbody>
+        <tr><td>Image</td><td>GPT Image 2, Gemini 3.1, Seedream</td><td class="num">9 to 13 CU</td></tr>
+        <tr><td>PBR material</td><td>PATINA Material, 512 to 2048 px</td><td class="num">6 to 18 CU</td></tr>
+        <tr><td>Image to 3D</td><td>Tripo 3.1</td><td class="num">45 CU</td></tr>
+        <tr><td>Text to 3D</td><td>Rodin Gen-2.5</td><td class="num">80 CU</td></tr>
+        <tr><td>Text to 3D</td><td>Meshy 7</td><td class="num">240 CU</td></tr>
+        <tr><td>Video, 4 s at 480p</td><td>Seedance 2.0</td><td class="num">76 CU</td></tr>
+        <tr><td>Video, 11 s at 720p</td><td>Seedance 2.0</td><td class="num">546 CU</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="files">
+  <h2>Files and folders</h2>
+  <dl class="anatomy">
+    <dt>Results</dt><dd>Your Output Folder, <code>~/Downloads/Scenario</code> by default, in <code>images/</code>, <code>videos/</code>, <code>3d/</code>, <code>materials/</code>, named <code>&lt;date&gt;_&lt;model&gt;_&lt;job&gt;_&lt;n&gt;.&lt;ext&gt;</code>.</dd>
+    <dt>Captures</dt><dd>Stills and playblasts used as references live in the extension cache (<code>captures/</code> under Blender's extension user directory).</dd>
+    <dt>State</dt><dd>The job registry (so unfinished jobs resume after a restart) and the model cache sit in the extension state and cache directories, removed with the extension.</dd>
+    <dt>Your key</dt><dd>Stored in Blender's preferences file. Treat it like any credential and rotate it in Scenario if it leaks.</dd>
+  </dl>
+</section>
+
+<section id="trouble">
+  <h2>Troubleshooting</h2>
+  <div class="faq">
+    <details><summary>"Loading models..." never ends</summary><p>Check the key and secret in Preferences (Test connection) and Blender's Allow Online Access. When the catalog request fails, a message and a Retry button replace the loading text.</p></details>
+    <details><summary>"Prompt is required" or "Add a reference to see the cost"</summary><p>The quote needs a valid form. Fill the prompt, or add the reference the model requires.</p></details>
+    <details><summary>The result does not appear in the scene</summary><p>Open Results. A job whose download failed says so with the reason; fetch it again from Generations &rsaquo; Import into scene. After installing an update, restart Blender so the new version loads.</p></details>
+    <details><summary>A 3D model looks untextured</summary><p>Switch the viewport to Material Preview (the add-on does this on import since 0.5.1) and check in Results which file was imported. Texture PNGs from the provider are saved next to the mesh in <code>3d/</code>.</p></details>
+    <details><summary>Two meshes came out of one job</summary><p>Versions before 0.5.1 imported every variant of a result. Update, or delete the extra object.</p></details>
+    <details><summary>Enter or the Generate button does nothing</summary><p>With <code>SCENARIO_GUI_PROBE=1</code> in the environment (set by the automated screenshot tool) every Generate path is disabled. Start Blender normally.</p></details>
+    <details><summary>Where are the logs?</summary><p>Blender's system console (Window &rsaquo; Toggle System Console on Windows, the terminal you launched Blender from on macOS and Linux). Messages are prefixed <code>scenario</code>.</p></details>
+  </div>
+</section>
+
+<section id="limits">
+  <h2>Known limits</h2>
+  <ul class="plain">
+    <li>The prompt is single-line in the composer; the pencil in the panel opens a wider editor.</li>
+    <li>Captures need the Blender GUI; in <code>--background</code> use the MCP <code>render_still</code> tool instead.</li>
+    <li>Team-scoped keys generate into the first project; a project switcher is planned.</li>
+    <li>Planned for v2: skyboxes on the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion, custom LoRAs, Scenario Workflows, sign in with Scenario, an in-Blender agent chat.</li>
+  </ul>
+  <footer>
+    <span>Scenario for Blender v0.5.2</span>
+    <a href="https://github.com/edemaistre/scenario-for-blender">Source on GitHub</a>
+    <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/docs/USER_GUIDE.md">Markdown guide</a>
+    <span>GPL-3.0-or-later</span>
+  </footer>
+</section>
+</main>
+</div>
