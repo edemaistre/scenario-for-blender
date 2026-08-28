@@ -73,7 +73,8 @@ def set_catalog(records, detailed):
     for scene in bpy.data.scenes:
         for lane in props.GENERATION_LANES:
             lane_state = scene.scenario.lane_state(lane)
-            on_model_changed(bpy.context, lane_state)
+            # a catalog refresh must not re-price forms that are already quoted
+            on_model_changed(bpy.context, lane_state, mark_dirty=False)
 
 
 def ensure_record(model_id):
@@ -88,7 +89,7 @@ def ensure_record(model_id):
     return record
 
 
-def on_model_changed(context, lane_state):
+def on_model_changed(context, lane_state, mark_dirty=True):
     model_id = lane_state.model_id
     if not model_id or model_id == "NONE":
         return
@@ -101,7 +102,8 @@ def on_model_changed(context, lane_state):
     if schema is None:
         return
     params_ui.sync_params(lane_state, schema, model_id)
-    props.mark_estimate_dirty(lane_state)
+    if mark_dirty or lane_state.estimate_state == 'IDLE':
+        props.mark_estimate_dirty(lane_state)
 
 
 @dataclass
@@ -170,6 +172,7 @@ def request_estimate(scene, lane):
         lane_state.estimate_error = request.errors[0]
         return
     key = f"{lane}:{request.model_id}:{time.time():.3f}"
+    log.info("estimate requested %s", key)
     lane_state.estimate_key = key
     lane_state.estimate_state = 'PENDING'
     lane_state.estimate_partial = request.partial

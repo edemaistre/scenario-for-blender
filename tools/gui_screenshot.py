@@ -56,6 +56,11 @@ def _shot():
     ui_region = next(r for r in area.regions if r.type == 'UI')
     print("ui region width at shot:", ui_region.width, "tab:", getattr(ui_region, "active_panel_category", "?"))
     with bpy.context.temp_override(window=window, screen=window.screen, area=area, region=ui_region):
+        try:
+            ui_region.active_panel_category = "Scenario"
+            bpy.ops.wm.redraw_timer(type='DRAW_WIN_SWAP', iterations=2)
+        except Exception as err:
+            print("forced redraw failed:", err)
         bpy.ops.screen.screenshot(filepath=OUT)
     print("screenshot saved", OUT)
     bpy.ops.wm.quit_blender()

@@ -29,6 +29,7 @@ def dispatch(event):
 
 
 def _on_estimate(result):
+    log.info("estimate result %s cu=%s error=%s", result.key, result.cu_cost, result.error)
     for scene in bpy.data.scenes:
         for lane in props.GENERATION_LANES:
             lane_state = scene.scenario.lane_state(lane)

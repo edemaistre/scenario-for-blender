@@ -34,7 +34,7 @@ def sync_params(lane_state, schema, model_id):
             item = lane_state.params.add()
             item.name, item.ptype = spec.name, spec.ptype
             item.model_id, item.lane, item.label = model_id, lane_state.lane, spec.label
-            _apply_default(item, spec)
+            _apply_default(item, spec, schema)
             created = True
         keep[spec.name] = True
         if spec.allowed_values and spec.ptype != "string_array":
@@ -55,13 +55,28 @@ def sync_params(lane_state, schema, model_id):
             lane_state.params.remove(index)
 
 
-def _apply_default(item, spec):
+def _numeric_fallback(spec, schema=None):
+    """A sensible value when the schema has no default: preset, then 1024 for sizes, then the range."""
+    lo = spec.min if spec.min is not None else 0
+    hi = spec.max if spec.max is not None else lo
+    if schema is not None:
+        for preset in schema.resolution_presets:
+            if preset.get("width_param") == spec.name and preset.get("width"):
+                return preset["width"]
+            if preset.get("height_param") == spec.name and preset.get("height"):
+                return preset["height"]
+    if spec.name.lower() in ("width", "height"):
+        return max(lo, min(1024, hi if hi else 1024))
+    return lo
+
+
+def _apply_default(item, spec, schema=None):
     item.has_range = spec.min is not None or spec.max is not None
     item.fmin = float(spec.min) if spec.min is not None else -1e9
     item.fmax = float(spec.max) if spec.max is not None else 1e9
     default = spec.default
     if spec.ptype == "number":
-        value = default if isinstance(default, (int, float)) else (spec.min if spec.min is not None else 0)
+        value = default if isinstance(default, (int, float)) else _numeric_fallback(spec, schema)
         if spec.is_integer:
             item.int_value = int(value)
         else:
