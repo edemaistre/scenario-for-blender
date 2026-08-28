@@ -254,6 +254,9 @@ def perform_captures(context, request, runner=None):
                                                     preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
             if limit:
                 start, end = capture_plan.clip_frames_for(limit, fps, start, end)
+            start, end, padded = capture_plan.ensure_min_frames(start, end, fps)
+            if padded:
+                runtime.set_message(f"Clip padded to {capture_plan.MIN_CLIP_SECONDS:g} s (frames {start} to {end}) for the video model")
             path = capture.new_capture_path("playblast", "mp4")
             info = capture.capture_playblast(context, path, source=base, camera=camera, frame_start=start, frame_end=end, force_solid=force_solid, runner=runner)
             request.files.setdefault(cap["param"], []).append(info["path"])

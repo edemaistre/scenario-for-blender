@@ -32,3 +32,8 @@ def test_render_to_real_prompt_wraps_user_text():
     assert "@video1" in text and "@image1" in text
     assert "grayscale playblast" in text and "cyborg wolf in a ruined city" in text
     assert text.rstrip().endswith(cp.CINEMATIC_SUFFIX)
+
+
+def test_ensure_min_frames_pads_short_clips():
+    assert cp.ensure_min_frames(1, 12, 24) == (1, 48, True)
+    assert cp.ensure_min_frames(10, 100, 24) == (10, 100, False)
