@@ -39,10 +39,22 @@ def _prepare():
     return None
 
 
+def _select_tab():
+    try:
+        window, area = _view3d()
+        ui_region = next(r for r in area.regions if r.type == 'UI')
+        ui_region.active_panel_category = "Scenario"
+        area.tag_redraw()
+        print("tab selected:", ui_region.active_panel_category)
+    except Exception as err:
+        print("tab select failed:", err)
+    return None
+
+
 def _shot():
     window, area = _view3d()
     ui_region = next(r for r in area.regions if r.type == 'UI')
-    print("ui region width at shot:", ui_region.width)
+    print("ui region width at shot:", ui_region.width, "tab:", getattr(ui_region, "active_panel_category", "?"))
     with bpy.context.temp_override(window=window, screen=window.screen, area=area, region=ui_region):
         bpy.ops.screen.screenshot(filepath=OUT)
     print("screenshot saved", OUT)
@@ -51,4 +63,5 @@ def _shot():
 
 
 bpy.app.timers.register(_prepare, first_interval=1.5)
+bpy.app.timers.register(_select_tab, first_interval=max(2.5, DELAY - 2.0))
 bpy.app.timers.register(_shot, first_interval=DELAY)

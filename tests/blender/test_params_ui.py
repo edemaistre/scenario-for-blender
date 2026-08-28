@@ -82,3 +82,17 @@ class ParamsUiTests(unittest.TestCase):
         refs = self.params_ui.collect_file_refs(self.lane, schema)
         self.assertEqual([r.filepath for r in refs["image"]], ["/tmp/a.png"])
         self.assertEqual(refs.get("mask", []), [])
+
+    def test_optional_enum_with_empty_default_starts_disabled(self):
+        catalog = submodule("core.api.catalog")
+        meshy = json.loads((FIXTURES / "models" / "model_meshy-7-txt23d.json").read_text())["model"]
+        schema = self.params.parse_schema(catalog.ModelRecord.from_api(meshy))
+        lane = bpy.context.scene.scenario.lane_state("3d")
+        self.params_ui.sync_params(lane, schema, "model_meshy-7-txt23d")
+        pose = lane.params["poseMode"]
+        self.assertIn(pose.enum_value, ("a-pose", "t-pose"))
+        self.assertFalse(pose.enabled)
+        values, enabled = self.params_ui.collect_values(lane, schema)
+        body = self.params.build_body(schema.specs, values, files={}, enabled=enabled)
+        self.assertNotIn("poseMode", body)
+        self.assertEqual(body["topology"], "triangle")

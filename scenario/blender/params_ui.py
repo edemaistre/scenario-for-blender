@@ -38,11 +38,18 @@ def sync_params(lane_state, schema, model_id):
             created = True
         keep[spec.name] = True
         if spec.allowed_values and spec.ptype != "string_array":
-            runtime.set_enum_items(("param", model_id, spec.name), [(str(v), spec.label_for(v), spec.description) for v in spec.allowed_values])
-            valid = [str(v) for v in spec.allowed_values]
-            default = str(spec.default) if spec.default is not None and str(spec.default) in valid else valid[0]
+            # Blender rejects empty enum identifiers: an empty option means "unset", modelled by the enable toggle.
+            options = [v for v in spec.allowed_values if str(v) != ""]
+            if not options:
+                continue
+            runtime.set_enum_items(("param", model_id, spec.name), [(str(v), spec.label_for(v), spec.description) for v in options])
+            valid = [str(v) for v in options]
+            has_default = spec.default is not None and str(spec.default) in valid
+            default = str(spec.default) if has_default else valid[0]
             if created or item.enum_value not in valid:
                 item.enum_value = default
+            if created and not has_default and not spec.required_always:
+                item.enabled = False
     for index in range(len(lane_state.params) - 1, -1, -1):
         if lane_state.params[index].name not in keep:
             lane_state.params.remove(index)
