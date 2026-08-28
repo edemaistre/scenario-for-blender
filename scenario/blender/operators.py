@@ -226,7 +226,58 @@ class SCENARIO_OT_retile_material(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+class SCENARIO_OT_history_refresh(bpy.types.Operator):
+    bl_idname = "scenario.history_refresh"
+    bl_label = "Refresh generations"
+
+    def execute(self, context):
+        from . import history
+
+        history.refresh()
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_history_older(bpy.types.Operator):
+    bl_idname = "scenario.history_older"
+    bl_label = "Load older"
+
+    def execute(self, context):
+        from . import history
+
+        return {'FINISHED'} if history.older() else {'CANCELLED'}
+
+
+class SCENARIO_OT_import_result(bpy.types.Operator):
+    bl_idname = "scenario.import_result"
+    bl_label = "Import into scene"
+    bl_description = "Download this generation (if needed) and bring it into the scene"
+    job_id: StringProperty()
+    kind: StringProperty(default="image")
+    model_id: StringProperty()
+    prompt: StringProperty()
+
+    def execute(self, context):
+        from . import handlers
+        from ..core.jobs.records import JobRecord
+
+        manager = runtime.ensure_manager()
+        existing = next((r for r in manager.registry.all() if r.job_id == self.job_id and r.files), None)
+        if existing is not None:
+            existing.meta.setdefault("target_objects", [o.name for o in context.selected_objects if o.type == 'MESH'])
+            handlers.dispatch(("job_done", existing))
+            return {'FINISHED'}
+        rec = JobRecord.new(lane=self.kind, kind=self.kind, model_id=self.model_id, body={}, meta={"prompt": self.prompt, "model_name": self.model_id})
+        rec.job_id, rec.status = self.job_id, "in-progress"
+        rec.meta["target_objects"] = [o.name for o in context.selected_objects if o.type == 'MESH']
+        manager.registry.add(rec)
+        manager.registry.save()
+        manager._spawn(manager._poll_job, rec)
+        runtime.state.jobs_view.insert(0, rec)
+        self.report({'INFO'}, "Downloading generation")
+        return {'FINISHED'}
+
+
+CLASSES = (SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

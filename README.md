@@ -35,10 +35,10 @@ A Blender 4.2+ extension bringing Scenario's image, video, 3D and PBR material g
 
 - `make test`: unit tests (pytest, no Blender).
 - `make test-blender`: integration tests inside Blender 5.1.1 headless (requires `./tools/install_dev.sh` first).
-- `SCENARIO_SMOKE=1 python3 tests/smoke/smoke_image.py`: one real generation through the core (spends about 9 to 13 CU).
+- `SCENARIO_SMOKE=1 python3 tests/smoke/smoke_image.py` and `tests/smoke/smoke_material.py`: one real generation each through the core (about 9 and 7 CU).
 - GUI check: `blender tools/blank.blend --python tools/gui_screenshot.py -- out.png image 10`, screenshots reviewed under `~/Developer/scratch/playwright-screenshots/scenario-blender/`.
 
-Credits spent on this project so far: about 26 CU (two Patina probes 12 CU, one Gemini smoke 9 CU, quality-gate fees), cap agreed about $30.
+Credits spent on this project so far: about 33 CU (two Patina probes 12 CU, one Gemini smoke 9 CU, one Patina smoke 6 CU, quality-gate fees), cap agreed about $30.
 
 ## Verified vs assumed
 

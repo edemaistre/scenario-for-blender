@@ -75,6 +75,48 @@ def set_catalog(records, detailed):
             lane_state = scene.scenario.lane_state(lane)
             # a catalog refresh must not re-price forms that are already quoted
             on_model_changed(bpy.context, lane_state, mark_dirty=False)
+    if bpy.context.scene is not None:
+        refresh_3d_models(bpy.context)
+
+
+def _image_inputs(record):
+    return [p for p in record.parameters if p.get("type") in ("file", "file_array") and (p.get("kind") or "image") == "image"]
+
+
+def three_d_models(mode, records):
+    """Bucket 3D models by how they are driven: TEXT (txt23d), IMAGE (one picture), MULTI (several views)."""
+    out = []
+    for record in records:
+        caps = set(record.capabilities)
+        if record.deprecated_successor:
+            continue
+        if mode == 'TEXT':
+            if "txt23d" in caps:
+                out.append(record)
+            continue
+        if "img23d" not in caps:
+            continue
+        inputs = _image_inputs(record)
+        if not inputs:
+            if mode == 'IMAGE':
+                out.append(record)  # list entry without schema yet, assume single image
+            continue
+        multi = any(p.get("type") == "file_array" and (p.get("maxLength") or 2) > 1 for p in inputs)
+        if mode == 'MULTI' and multi:
+            out.append(record)
+        elif mode == 'IMAGE' and (not multi or any(p.get("type") == "file" for p in inputs) or True):
+            out.append(record)
+    return models_for_lane("3d", out)
+
+
+def refresh_3d_models(context=None):
+    scene = getattr(context, "scene", None) or bpy.context.scene
+    if scene is None:
+        return
+    records = three_d_models(scene.scenario.three_d_mode, list(runtime.state.records.values()))
+    runtime.state.lane_models["3d"] = records
+    runtime.set_enum_items(("models", "3d"), [(r.id, r.name, r.short_description) for r in records])
+    on_model_changed(context or bpy.context, scene.scenario.lane_state("3d"))
 
 
 def ensure_record(model_id):

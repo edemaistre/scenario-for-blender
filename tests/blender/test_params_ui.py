@@ -96,3 +96,17 @@ class ParamsUiTests(unittest.TestCase):
         body = self.params.build_body(schema.specs, values, files={}, enabled=enabled)
         self.assertNotIn("poseMode", body)
         self.assertEqual(body["topology"], "triangle")
+
+    def test_optional_params_without_default_start_disabled(self):
+        catalog = submodule("core.api.catalog")
+        gpt = json.loads((FIXTURES / "models" / "model_openai-gpt-image-2.json").read_text())["model"]
+        schema = self.params.parse_schema(catalog.ModelRecord.from_api(gpt))
+        lane = bpy.context.scene.scenario.lane_state("image")
+        self.params_ui.sync_params(lane, schema, "model_openai-gpt-image-2")
+        self.assertFalse(lane.params["width"].enabled)
+        self.assertEqual(lane.params["width"].int_value, 1024)
+        self.assertTrue(lane.params["numOutputs"].enabled)
+        values, enabled = self.params_ui.collect_values(lane, schema)
+        body = self.params.build_body(schema.specs, dict(values, prompt="x"), files={}, enabled=enabled)
+        self.assertNotIn("width", body)
+        self.assertEqual(body["numOutputs"], 1)
