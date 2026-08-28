@@ -35,5 +35,6 @@ def test_render_to_real_prompt_wraps_user_text():
 
 
 def test_ensure_min_frames_pads_short_clips():
-    assert cp.ensure_min_frames(1, 12, 24) == (1, 48, True)
-    assert cp.ensure_min_frames(10, 100, 24) == (10, 100, False)
+    assert cp.ensure_min_frames(1, 12, 24) == (1, 96, True)
+    assert cp.ensure_min_frames(10, 200, 24) == (10, 200, False)
+    assert cp.ensure_min_frames(1, 48, 24, min_seconds=2.0) == (1, 48, False)

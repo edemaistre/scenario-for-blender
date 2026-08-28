@@ -32,7 +32,8 @@ def register():
     if not bpy.app.background:
         mcp_service.start()
     try:
-        bpy.utils.register_cli_command("scenario-mcp", mcp_service.cli)
+        runtime_module = __import__(__package__ + ".runtime", fromlist=["state"])
+        runtime_module.state.cli_handle = bpy.utils.register_cli_command("scenario-mcp", mcp_service.cli)
     except (AttributeError, ValueError, RuntimeError) as err:
         log.debug("cli command not registered: %s", err)
     log.info("Scenario for Blender registered")
@@ -41,10 +42,13 @@ def register():
 def unregister():
     from . import mcp_service, pump, runtime
 
-    try:
-        bpy.utils.unregister_cli_command("scenario-mcp")
-    except (AttributeError, ValueError, RuntimeError, KeyError):
-        pass
+    handle = getattr(runtime.state, "cli_handle", None)
+    if handle is not None:
+        try:
+            bpy.utils.unregister_cli_command(handle)
+        except (AttributeError, ValueError, RuntimeError, TypeError):
+            pass
+        runtime.state.cli_handle = None
     mcp_service.stop()
     pump.stop()
     try:

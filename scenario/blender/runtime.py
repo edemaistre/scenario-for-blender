@@ -37,6 +37,7 @@ class RuntimeState:
         self.mcp = None
         self.mcp_token = ""
         self.mcp_error = ""
+        self.cli_handle = None
 
     def reset(self):
         self.__init__()
