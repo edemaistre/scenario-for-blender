@@ -5,9 +5,12 @@
 Usage: blender [file.blend] --python tools/gui_screenshot.py -- /abs/out.png [lane] [delay_seconds] [prompt]
 Opening a .blend file (any, tools/blank.blend is provided) avoids the splash screen.
 """
+import os
 import sys
 
 import bpy
+
+os.environ["SCENARIO_GUI_PROBE"] = "1"  # the window steals keyboard focus: never let a stray key spend credits
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = argv[0] if argv else "/tmp/scenario-panel.png"

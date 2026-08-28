@@ -60,7 +60,7 @@ class SCENARIO_OT_generate(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return runtime.online() and runtime.credentials().valid
+        return _network_poll(cls, context)
 
     def execute(self, context):
         try:
@@ -73,8 +73,13 @@ class SCENARIO_OT_generate(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def probe_mode():
+    """Automated GUI checks set SCENARIO_GUI_PROBE=1 so a stray Enter or click cannot spend credits."""
+    return os.environ.get("SCENARIO_GUI_PROBE") == "1"
+
+
 def _network_poll(cls, context):
-    return runtime.online() and runtime.credentials().valid
+    return runtime.online() and runtime.credentials().valid and not probe_mode()
 
 
 class SCENARIO_OT_set_lane(bpy.types.Operator):
@@ -348,7 +353,7 @@ class SCENARIO_OT_render_concept(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return runtime.online() and runtime.credentials().valid
+        return _network_poll(cls, context)
 
     def execute(self, context):
         from . import render_to_real
@@ -368,7 +373,7 @@ class SCENARIO_OT_render_video(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return runtime.online() and runtime.credentials().valid
+        return _network_poll(cls, context)
 
     def execute(self, context):
         from . import render_to_real
