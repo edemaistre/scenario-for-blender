@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Open Blender with the Scenario panel visible, screenshot it, quit.
 
-Usage: blender --python tools/gui_screenshot.py -- /abs/out.png [lane] [delay_seconds]
+Usage: blender [file.blend] --python tools/gui_screenshot.py -- /abs/out.png [lane] [delay_seconds]
+Opening a .blend file (any, tools/blank.blend is provided) avoids the splash screen.
 """
 import sys
 
@@ -14,23 +15,34 @@ LANE = argv[1] if len(argv) > 1 else "image"
 DELAY = float(argv[2]) if len(argv) > 2 else 6.0
 
 
-def _prepare():
+def _view3d():
     window = bpy.context.window_manager.windows[0]
     area = next(a for a in window.screen.areas if a.type == 'VIEW_3D')
-    area.spaces.active.show_region_ui = True
-    bpy.context.scene.scenario.lane = LANE
-    ui_region = next(r for r in area.regions if r.type == 'UI')
+    return window, area
+
+
+def _prepare():
     try:
-        ui_region.active_panel_category = "Scenario"
-    except (AttributeError, TypeError):
-        pass
+        window, area = _view3d()
+        space = area.spaces.active
+        space.show_region_ui = True
+        bpy.context.scene.scenario.lane = LANE
+        ui_region = next(r for r in area.regions if r.type == 'UI')
+        try:
+            ui_region.active_panel_category = "Scenario"
+        except (AttributeError, TypeError) as err:
+            print("active_panel_category not settable:", err)
+        area.tag_redraw()
+        print("prepared: sidebar", space.show_region_ui, "ui region width", ui_region.width)
+    except Exception as err:  # keep going, the screenshot tells the rest
+        print("prepare failed:", err)
     return None
 
 
 def _shot():
-    window = bpy.context.window_manager.windows[0]
-    area = next(a for a in window.screen.areas if a.type == 'VIEW_3D')
+    window, area = _view3d()
     ui_region = next(r for r in area.regions if r.type == 'UI')
+    print("ui region width at shot:", ui_region.width)
     with bpy.context.temp_override(window=window, screen=window.screen, area=area, region=ui_region):
         bpy.ops.screen.screenshot(filepath=OUT)
     print("screenshot saved", OUT)
@@ -38,5 +50,5 @@ def _shot():
     return None
 
 
-bpy.app.timers.register(_prepare, first_interval=1.0)
+bpy.app.timers.register(_prepare, first_interval=1.5)
 bpy.app.timers.register(_shot, first_interval=DELAY)
