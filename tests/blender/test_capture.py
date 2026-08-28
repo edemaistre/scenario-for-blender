@@ -29,6 +29,7 @@ class CaptureTests(unittest.TestCase):
         scene.render.resolution_x, scene.render.resolution_y, scene.render.resolution_percentage = 1920, 1080, 50
         scene.render.use_stamp = True
         scene.frame_start, scene.frame_end = 1, 48
+        scene.frame_set(7)
         scene.render.filepath = "//renders/"
         out = self.tmp / "clip.mp4"
         info = self.capture.capture_playblast(bpy.context, str(out), source='VIEWPORT', frame_start=1, frame_end=24, runner=self.fake_runner)
@@ -49,6 +50,7 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual((scene.frame_start, scene.frame_end), (1, 48))
         self.assertEqual(scene.render.filepath, "//renders/")
         self.assertFalse(self.capture.is_video_output(scene.render))
+        self.assertEqual(scene.frame_current, 7)
 
     def test_still_uses_png_and_camera_source_requires_camera(self):
         bpy.ops.object.camera_add()

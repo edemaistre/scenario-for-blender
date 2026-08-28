@@ -39,7 +39,7 @@ def _prepare():
             name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
             capture = importlib.import_module(name + ".blender.capture")
             out_dir = pathlib.Path(OUT).parent
-            clip = capture.capture_playblast(bpy.context, str(out_dir / "gui_playblast.mp4"), source='CAMERA', frame_start=1, frame_end=12)
+            clip = capture.capture_playblast(bpy.context, str(out_dir / "gui_playblast.mp4"), source='CAMERA', frame_start=1, frame_end=72)
             still = capture.capture_still(bpy.context, str(out_dir / "gui_still.png"), source='VIEWPORT')
             for p in (pathlib.Path(clip["path"]), pathlib.Path(still)):
                 print("capture file:", p, p.exists(), p.stat().st_size if p.exists() else 0)

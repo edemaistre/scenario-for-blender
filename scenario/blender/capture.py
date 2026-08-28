@@ -42,6 +42,7 @@ class RenderSettings:
     film_transparent: bool
     camera_name: str
     media_type: str = ""
+    frame_current: int = 1
 
     @classmethod
     def snapshot(cls, scene):
@@ -49,7 +50,7 @@ class RenderSettings:
         return cls(r.resolution_x, r.resolution_y, r.resolution_percentage, r.image_settings.file_format, r.image_settings.color_mode,
                    r.filepath, r.use_stamp, scene.frame_start, scene.frame_end, scene.use_preview_range,
                    r.ffmpeg.format, r.ffmpeg.codec, r.ffmpeg.audio_codec, r.film_transparent, scene.camera.name if scene.camera else "",
-                   getattr(r.image_settings, "media_type", ""))
+                   getattr(r.image_settings, "media_type", ""), scene.frame_current)
 
     def restore(self, scene):
         r = scene.render
@@ -68,6 +69,8 @@ class RenderSettings:
         r.film_transparent = self.film_transparent
         if self.camera_name and bpy.data.objects.get(self.camera_name) is not None:
             scene.camera = bpy.data.objects[self.camera_name]
+        if scene.frame_current != self.frame_current:
+            scene.frame_set(self.frame_current)
 
 
 def set_video_output(render):
