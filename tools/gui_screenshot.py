@@ -28,8 +28,10 @@ def _prepare():
         space = area.spaces.active
         space.show_region_ui = True
         bpy.context.scene.scenario.lane = LANE
-        if PROMPT:
+        if PROMPT and bpy.context.scene.scenario.lane_state(LANE) is not None:
             bpy.context.scene.scenario.lane_state(LANE).prompt = PROMPT
+        if LANE == "history":
+            bpy.ops.scenario.history_refresh()
         ui_region = next(r for r in area.regions if r.type == 'UI')
         try:
             ui_region.active_panel_category = "Scenario"
