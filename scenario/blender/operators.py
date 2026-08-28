@@ -427,7 +427,29 @@ class SCENARIO_OT_mcp_copy(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
+    bl_idname = "scenario.import_mesh_file"
+    bl_label = "Import mesh file"
+    bl_description = "Import this mesh variant at the 3D cursor"
+    bl_options = {'REGISTER', 'UNDO'}
+    filepath: StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def execute(self, context):
+        from . import apply_3d
+
+        if not os.path.exists(self.filepath):
+            self.report({'ERROR'}, "File not found")
+            return {'CANCELLED'}
+        objects = apply_3d.import_model(context, self.filepath, at_cursor=True)
+        self.report({'INFO'}, f"Imported {len(objects)} object(s)")
+        return {'FINISHED'}
+
+
+CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

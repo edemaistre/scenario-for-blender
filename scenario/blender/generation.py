@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 import bpy
 
 from . import params_ui, props, runtime
-from ..core.api.catalog import DEFAULT_MODELS, models_for_lane
+from ..core.api.catalog import DEFAULT_MODELS, MULTIVIEW_HINTS, models_for_lane
 from ..core.api.errors import ScenarioError
 from ..core.schema.params import build_body, missing_required_files, parse_schema, validate
 from ..core.scene import capture_plan
@@ -127,8 +127,16 @@ def _image_inputs(record):
     return [p for p in record.parameters if p.get("type") in ("file", "file_array") and (p.get("kind") or "image") == "image"]
 
 
+def _looks_multiview(record):
+    text = (record.id + " " + record.name).lower()
+    return any(hint in text for hint in MULTIVIEW_HINTS)
+
+
 def three_d_models(mode, records):
-    """Bucket 3D models by how they are driven: TEXT (txt23d), IMAGE (one picture), MULTI (several views)."""
+    """Bucket 3D models by how they are driven: TEXT (txt23d), IMAGE (one picture), MULTI (several views).
+
+    With a schema, a file_array image input that accepts more than one file means multi-view. Without a schema
+    (list entries), the model id and name decide ("multi", "multiview"). Models taking 1 to N images appear in both."""
     out = []
     for record in records:
         caps = set(record.capabilities)
@@ -142,13 +150,15 @@ def three_d_models(mode, records):
             continue
         inputs = _image_inputs(record)
         if not inputs:
-            if mode == 'IMAGE':
-                out.append(record)  # list entry without schema yet, assume single image
+            multi_named = _looks_multiview(record)
+            if (mode == 'MULTI' and multi_named) or (mode == 'IMAGE' and not multi_named):
+                out.append(record)
             continue
         multi = any(p.get("type") == "file_array" and (p.get("maxLength") or 2) > 1 for p in inputs)
-        if mode == 'MULTI' and multi:
+        single = any(p.get("type") == "file" for p in inputs) or any(p.get("type") == "file_array" and (p.get("minLength") or 1) <= 1 for p in inputs)
+        if mode == 'MULTI' and (multi or _looks_multiview(record)):
             out.append(record)
-        elif mode == 'IMAGE' and (not multi or any(p.get("type") == "file" for p in inputs) or True):
+        elif mode == 'IMAGE' and (single or not multi) and not (_looks_multiview(record) and not single):
             out.append(record)
     return models_for_lane("3d", out)
 
@@ -160,7 +170,26 @@ def refresh_3d_models(context=None):
     records = three_d_models(scene.scenario.three_d_mode, list(runtime.state.records.values()))
     runtime.state.lane_models["3d"] = records
     runtime.set_enum_items(("models", "3d"), [(r.id, r.name, r.short_description) for r in records])
-    on_model_changed(context or bpy.context, scene.scenario.lane_state("3d"))
+    lane_state = scene.scenario.lane_state("3d")
+    restore_model_key(lane_state)
+    on_model_changed(context or bpy.context, lane_state)
+    # models known only from the list get their schema in the background so the form and the quote work
+    missing = [r.id for r in records if not r.parameters and r.id not in _pending_models][:12]
+    if missing:
+        request_models(missing)
+
+
+def request_models(model_ids):
+    if not runtime.online():
+        return
+    try:
+        manager = runtime.ensure_manager()
+        catalog = runtime.ensure_catalog()
+    except ScenarioError as err:
+        runtime.set_message(err.reason)
+        return
+    _pending_models.update(model_ids)
+    manager.fetch_models(catalog, list(model_ids))
 
 
 def ensure_record(model_id):

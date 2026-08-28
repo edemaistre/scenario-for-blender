@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 (2026-08-28)
+Fixes from the first hands-on session.
+- **3D results looked untextured (Meshy 7).** Root cause: a Meshy job returns seven assets (a GLB with three embedded PBR textures, a 205 MB OBJ whose `.mtl` arrives under a `.bin` name, and four texture PNGs); the importer loaded every file it could open, so an untextured OBJ copy sat exactly on top of the textured GLB. Now one primary mesh is imported per job (glTF first, then the variant with the most PBR textures), the viewport switches to Material Preview, and the other mesh files stay on disk with an Import button in Results.
+- **Two robots from Rodin Gen-2.5.** Root cause: the schema default `material = All` makes Rodin return a baked "Shaded" GLB and a PBR GLB; both were imported. Rodin now defaults to `PBR` in the add-on (curated parameter override), and the single-mesh import above covers the other variants.
+- **Image to 3D and Multi-view to 3D.** Models known only from the catalog list had no schema, so they never appeared in Multi-view and their forms stayed empty. The dedicated multi-view models (Meshy 7 Multi Image, Tripo 3.1 Multi View, Hunyuan 3.1 Pro Multiview) and Tripo P1 are curated defaults now, list-only models are classified by name, and schemas of the visible models load in the background when a mode is selected.
+
 ## 0.5.0 (P4, 2026-08-28)
 - Floating composer in the viewport: collapsed pill with the prompt and Generate, expanded card with lane tabs, an editable prompt (caret, arrows, Home/End, paste, select all, Enter to generate, Esc to blur), model chip and the live CU quote; shares its state with the N-panel; a circuit breaker removes it after repeated draw errors and the preference re-enables it.
 - Review fixes (36-agent adversarial review of P0+P1): API clients are resolved on the main thread before any worker starts, jobs that cannot be resumed without a key are retried once a key exists, registry snapshots are thread-safe and per-process, download failures no longer leave half a material behind, catalog failures show a message instead of "Loading models..." forever, model selection is stored by id (no drift when the catalog changes), edit-mode safety and undo for scene operators, online-access checks on every network operator, non-curated models load in the background, no more disk writes during cost estimates.

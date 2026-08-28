@@ -74,17 +74,31 @@ def import_model(context, path, at_cursor=True, collection_name="Scenario"):
     return new_objects
 
 
+def _material_preview():
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == 'VIEW_3D' and area.spaces.active.shading.type == 'SOLID':
+                area.spaces.active.shading.type = 'MATERIAL'
+
+
 def on_3d_result(rec):
-    imported = []
+    """Import ONE mesh per job. Providers ship variants of the same result (Meshy: GLB + OBJ + texture PNGs;
+    Rodin with material=All: a shaded GLB and a PBR GLB); importing them all stacked an untextured copy on top of
+    the textured one. The best variant (glTF, most PBR textures) is imported, the others stay on disk and are
+    offered as alternates in Results."""
+    primary, alternates = placement.pick_primary_mesh(rec.files)
+    rec.meta["primary_mesh"] = primary or ""
+    rec.meta["mesh_alternates"] = alternates
+    if primary is None:
+        runtime.set_message("The job returned no importable mesh (GLB, FBX or OBJ)")
+        return []
     prompt = (rec.meta.get("prompt") or "").strip()
-    for path in rec.files:
-        if placement.importer_for(path) is None:
-            log.info("skipping non-mesh result %s", path)
-            continue
-        objects = import_model(bpy.context, path, at_cursor=True)
-        meshes = [o for o in objects if o.type == 'MESH']
-        if prompt and len(meshes) == 1:
-            meshes[0].name = f"Scenario {prompt[:40]}"
-        imported.extend(objects)
-    runtime.set_message(f"Imported {len(imported)} object(s) at the 3D cursor")
-    return imported
+    objects = import_model(bpy.context, primary, at_cursor=True)
+    meshes = [o for o in objects if o.type == 'MESH']
+    if prompt and len(meshes) == 1:
+        meshes[0].name = f"Scenario {prompt[:40]}"
+    textured = sum(1 for o in meshes for s in o.material_slots if s.material and any(n.type == 'TEX_IMAGE' and n.image for n in s.material.node_tree.nodes))
+    _material_preview()
+    extra = f", {len(alternates)} other mesh file(s) kept on disk" if alternates else ""
+    runtime.set_message(f"Imported {len(meshes)} mesh(es) at the 3D cursor ({'textured' if textured else 'no textures'}){extra}")
+    return objects

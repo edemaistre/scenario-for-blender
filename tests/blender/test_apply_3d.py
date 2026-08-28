@@ -47,3 +47,22 @@ class Apply3DTests(unittest.TestCase):
         rec.meta["prompt"] = "a cube"
         objects = self.apply_3d.on_3d_result(rec)
         self.assertGreaterEqual(len(objects), 1)
+
+    def test_on_3d_result_imports_only_the_primary_mesh_and_keeps_alternates(self):
+        records = submodule("core.jobs.records")
+        obj_path = self.tmp / "cube.obj"
+        bpy.ops.mesh.primitive_cube_add(location=(1, 1, 1))
+        bpy.ops.wm.obj_export(filepath=str(obj_path), export_selected_objects=True)
+        bpy.ops.object.delete()
+        png = self.tmp / "tex.png"
+        png.write_bytes(b"png")
+        rec = records.JobRecord.new(lane="3d", kind="3d", model_id="model_meshy-7-txt23d", body={})
+        rec.files = [str(self.glb), str(obj_path), str(png)]
+        rec.meta["prompt"] = "a cube"
+        before = len([o for o in bpy.data.objects if o.type == 'MESH'])
+        objects = self.apply_3d.on_3d_result(rec)
+        after = len([o for o in bpy.data.objects if o.type == 'MESH'])
+        self.assertEqual(after - before, 1)
+        self.assertEqual(rec.meta["primary_mesh"], str(self.glb))
+        self.assertEqual(rec.meta["mesh_alternates"], [str(obj_path)])
+        self.assertTrue(hasattr(bpy.ops.scenario, "import_mesh_file"))
