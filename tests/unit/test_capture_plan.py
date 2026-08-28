@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2026 Scenario Inc.
+# SPDX-License-Identifier: GPL-3.0-or-later
+from scenario.core.scene import capture_plan as cp
+
+
+def test_frame_span_uses_preview_range_when_asked():
+    assert cp.frame_span(1, 250, 24) == (1, 250, 250 / 24)
+    assert cp.frame_span(1, 250, 24, use_preview=True, preview_start=10, preview_end=57) == (10, 57, 48 / 24)
+
+
+def test_choose_duration_rounds_up_and_clamps():
+    allowed = (-1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    assert cp.choose_duration(2.0, allowed) == (4, "padded to the 4 s minimum")
+    assert cp.choose_duration(6.2, allowed) == (7, "")
+    assert cp.choose_duration(40.0, allowed) == (15, "trimmed to the 15 s maximum")
+    assert cp.choose_duration(5.0, (-1,)) == (-1, "")
+
+
+def test_clip_frames_for_limit():
+    assert cp.clip_frames_for(15, 24, 1, 1000) == (1, 360)
+    assert cp.clip_frames_for(15, 24, 1, 100) == (1, 100)
+
+
+def test_tag_prompt_adds_missing_mentions_once():
+    assert cp.tag_prompt("a wolf running", True, True).startswith("@video1 @image1 ")
+    assert cp.tag_prompt("use @image1 as style", False, True) == "use @image1 as style"
+    assert cp.tag_prompt("", True, False) == "@video1"
+
+
+def test_render_to_real_prompt_wraps_user_text():
+    text = cp.render_to_real_prompt("cyborg wolf in a ruined city")
+    assert "@video1" in text and "@image1" in text
+    assert "grayscale playblast" in text and "cyborg wolf in a ruined city" in text
+    assert text.rstrip().endswith(cp.CINEMATIC_SUFFIX)
