@@ -1,11 +1,198 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Stub, filled in Task 10."""
+"""N-panel: account strip, lane tabs, schema-driven lane forms, running jobs, results."""
+import os
+
+import bpy
+
+from . import generation, params_ui, props, runtime
+
+LANE_PLACEHOLDER = {"video": "Video lane arrives in P2", "render": "Render-to-real arrives in P2", "mcp": "MCP server arrives in P3", "history": "Generations history arrives in P1"}
+GENERATE_LANES = ("image", "3d", "material")
+
+
+def draw_account_strip(layout, context):
+    creds = runtime.credentials()
+    row = layout.row(align=True)
+    if not creds.valid:
+        row.label(text="Add your API key in Preferences", icon='ERROR')
+        row.operator("preferences.addon_show", text="", icon='PREFERENCES').module = runtime.PACKAGE
+        return False
+    if not runtime.online():
+        row.label(text="Online access is disabled", icon='ERROR')
+        return False
+    row.label(text=runtime.state.account_label or "Scenario", icon='CHECKMARK')
+    row.operator("scenario.refresh_catalog", text="", icon='FILE_REFRESH')
+    row.operator("preferences.addon_show", text="", icon='PREFERENCES').module = runtime.PACKAGE
+    return True
+
+
+def draw_references(layout, lane_state, schema):
+    refs = params_ui.collect_file_refs(lane_state, schema)
+    for spec in schema.specs:
+        if not spec.is_file:
+            continue
+        box = layout.box()
+        header = box.row()
+        count = len(refs.get(spec.name, []))
+        label = spec.label + (" (required)" if spec.required_always else "")
+        header.label(text=f"{label}  {count}" + (f"/{spec.max_length}" if spec.max_length else ""), icon='IMAGE_DATA' if spec.kind == 'image' else 'FILE')
+        add = header.operator_menu_enum("scenario.add_reference", "source", text="Add", icon='ADD')
+        add.lane, add.param_name = lane_state.lane, spec.name
+        for index, ref in enumerate(lane_state.references):
+            if ref.param_name != spec.name:
+                continue
+            row = box.row(align=True)
+            row.label(text=ref.label or ref.filepath or ref.source, icon='DOT')
+            remove = row.operator("scenario.remove_reference", text="", icon='X')
+            remove.lane, remove.index = lane_state.lane, index
+
+
+def generate_button_text(lane_state):
+    if lane_state.estimate_state == 'READY':
+        prefix = "from " if lane_state.estimate_partial else ""
+        return f"Generate  ({prefix}{lane_state.estimate_cu:g} CU)"
+    if lane_state.estimate_state == 'PENDING':
+        return "Generate  (estimating...)"
+    return "Generate"
+
+
+def draw_generate_lane(layout, context, lane):
+    lane_state = context.scene.scenario.lane_state(lane)
+    if not runtime.state.catalog_loaded:
+        layout.label(text="Loading models...", icon='TIME')
+        return
+    layout.prop(lane_state, "model_id", text="Model")
+    record = runtime.state.records.get(lane_state.model_id)
+    if record is not None and record.short_description:
+        layout.label(text=record.short_description[:70], icon='INFO')
+    schema = generation.schema_for(lane_state.model_id)
+    if schema is None:
+        layout.label(text=lane_state.last_error or "Model schema not loaded", icon='ERROR')
+        return
+    row = layout.row(align=True)
+    row.prop(lane_state, "prompt", text="")
+    row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
+    draw_references(layout, lane_state, schema)
+    params_ui.draw_params(layout, lane_state, schema)
+    if lane == "material":
+        meshes = [o for o in context.selected_objects if o.type == 'MESH']
+        if meshes:
+            layout.label(text=f"Applies to {len(meshes)} selected mesh(es)", icon='MATERIAL')
+        else:
+            layout.label(text="Select a mesh to apply the material on arrival", icon='INFO')
+    row = layout.row(align=True)
+    row.scale_y = 1.4
+    row.operator("scenario.generate", text=generate_button_text(lane_state), icon='PLAY').lane = lane
+    if lane_state.estimate_state in ('ERROR', 'UNAVAILABLE') and lane_state.estimate_error:
+        layout.label(text=lane_state.estimate_error[:80], icon='INFO')
+    if lane_state.last_error:
+        layout.label(text=lane_state.last_error[:80], icon='ERROR')
+
+
+class SCENARIO_PT_main(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Scenario"
+    bl_label = "Scenario"
+
+    def draw(self, context):
+        layout = self.layout
+        if not draw_account_strip(layout, context):
+            return
+        scenario = context.scene.scenario
+        grid = layout.grid_flow(columns=4, align=True)
+        grid.prop(scenario, "lane", expand=True)
+        lane = scenario.lane
+        if lane in GENERATE_LANES:
+            draw_generate_lane(layout, context, lane)
+        else:
+            layout.label(text=LANE_PLACEHOLDER.get(lane, ""), icon='INFO')
+        if runtime.state.last_message:
+            layout.label(text=runtime.state.last_message[:80])
+
+
+class SCENARIO_PT_jobs(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Scenario"
+    bl_label = "Running"
+    bl_parent_id = "SCENARIO_PT_main"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        return any(not r.is_terminal for r in runtime.state.jobs_view)
+
+    def draw(self, context):
+        for rec in runtime.state.jobs_view:
+            if rec.is_terminal:
+                continue
+            row = self.layout.row()
+            row.label(text=f"{rec.meta.get('model_name', rec.model_id)}  {rec.status} {int(rec.progress * 100)}%", icon='TIME')
+
+
+class SCENARIO_PT_results(bpy.types.Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Scenario"
+    bl_label = "Results"
+    bl_parent_id = "SCENARIO_PT_main"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator("scenario.open_output_folder", icon='FILE_FOLDER')
+        shown = 0
+        for rec in runtime.state.jobs_view:
+            if not rec.is_terminal:
+                continue
+            box = layout.box()
+            title = rec.meta.get("prompt") or rec.meta.get("model_name") or rec.model_id
+            box.label(text=title[:60], icon='CHECKMARK' if rec.is_success else 'ERROR')
+            if rec.error:
+                box.label(text=rec.error[:70])
+            for path in rec.files[:6]:
+                if rec.kind == "image":
+                    icon_id = _thumbnail(path)
+                    row = box.row(align=True)
+                    if icon_id:
+                        row.template_icon(icon_value=icon_id, scale=3.0)
+                    col = row.column(align=True)
+                    col.operator("scenario.show_image", text="Show").filepath = path
+                    col.operator("scenario.apply_texture", text="Apply as texture").filepath = path
+                    col.operator("scenario.add_plane", text="Add as plane").filepath = path
+                elif rec.kind == "material":
+                    if path == rec.files[0]:
+                        box.label(text="PBR material", icon='MATERIAL')
+                        mat_name = f"Scenario {(rec.meta.get('prompt') or rec.model_id).strip()[:40]}"
+                        if bpy.data.materials.get(mat_name):
+                            box.operator("scenario.retile_material", text="Tiling", icon='UV').material_name = mat_name
+                else:
+                    box.label(text=os.path.basename(path), icon='FILE')
+            shown += 1
+            if shown >= 8:
+                break
+        if shown == 0:
+            layout.label(text="Nothing generated yet")
+
+
+def _thumbnail(path):
+    if not os.path.exists(path) or not path.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+        return 0
+    previews = runtime.previews()
+    if path not in previews:
+        previews.load(path, path, 'IMAGE')
+    return previews[path].icon_id
+
+
+CLASSES = (SCENARIO_PT_main, SCENARIO_PT_jobs, SCENARIO_PT_results)
 
 
 def register():
-    pass
+    for cls in CLASSES:
+        bpy.utils.register_class(cls)
 
 
 def unregister():
-    pass
+    for cls in reversed(CLASSES):
+        bpy.utils.unregister_class(cls)

@@ -109,6 +109,7 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     estimate_dirty_at: FloatProperty(default=0.0)
     estimate_key: StringProperty()
     estimate_error: StringProperty()
+    estimate_partial: BoolProperty(default=False, description="The quote excludes references that are not uploaded yet")
     last_error: StringProperty()
 
 
