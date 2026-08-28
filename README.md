@@ -1,6 +1,8 @@
 # Scenario for Blender
 
-**Status: experimental, v0.5.0 (2026-08-28).** A Blender 4.2+ extension that brings [Scenario](https://scenario.com) image, video, 3D and PBR material generation into the viewport, with a local MCP server so agents (Claude Code, Cursor, Claude Desktop, Codex) can build and generate in the open scene. Pure Python, no bundled wheels, GPL-3.0-or-later. You need a Scenario account and an API key (Pro plan or above).
+**Status: experimental, v0.5.2 (2026-08-28).** A Blender 4.2+ extension that brings [Scenario](https://scenario.com) image, video, 3D and PBR material generation into the viewport, with a local MCP server so agents (Claude Code, Cursor, Claude Desktop, Codex) can build and generate in the open scene. Pure Python, no bundled wheels, GPL-3.0-or-later. You need a Scenario account and an API key (Pro plan or above).
+
+**User guide: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)**, also as a single-file HTML handbook with screenshots: [`docs/user-guide.html`](docs/user-guide.html). Changelog: [`CHANGELOG.md`](CHANGELOG.md).
 
 Quick start: download `scenario-<version>.zip` from the releases (or run `./tools/build.sh`), drag it onto Blender, paste your key in Preferences > Add-ons > Scenario, press N in the 3D viewport and open the Scenario tab. Details, tests and the agent setup are below; the design lives in `docs/superpowers/specs/`, the delivery plans in `docs/superpowers/plans/`, and the clean-room research that shaped it in `research/`.
 
@@ -15,6 +17,7 @@ Quick start: download `scenario-<version>.zip` from the releases (or run `./tool
 
 ## Files
 
+- `docs/USER_GUIDE.md`, `docs/user-guide.html`, `docs/images/`: the user guide (Markdown, and a self-contained HTML handbook with the cropped panel screenshots embedded).
 - `docs/superpowers/specs/2026-08-28-scenario-for-blender-design.md`: the v1 design (architecture, lanes, phases, tests).
 - `research/00-synthesis.md`: parity matrix and architecture lessons (workflow output; verification log appended).
 - `research/01-06-[redacted]-*.md`: clean-room behavioural specs of [redacted] Blender 1.5.47 (API layer, UI, Blender integration, MCP bridge, motion/realtime/phonecam, product inventory).
