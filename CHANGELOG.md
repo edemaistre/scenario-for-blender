@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 (P4, 2026-08-28)
+- Floating composer in the viewport: collapsed pill with the prompt and Generate, expanded card with lane tabs, an editable prompt (caret, arrows, Home/End, paste, select all, Enter to generate, Esc to blur), model chip and the live CU quote; shares its state with the N-panel; a circuit breaker removes it after repeated draw errors and the preference re-enables it.
+- Review fixes (36-agent adversarial review of P0+P1): API clients are resolved on the main thread before any worker starts, jobs that cannot be resumed without a key are retried once a key exists, registry snapshots are thread-safe and per-process, download failures no longer leave half a material behind, catalog failures show a message instead of "Loading models..." forever, model selection is stored by id (no drift when the catalog changes), edit-mode safety and undo for scene operators, online-access checks on every network operator, non-curated models load in the background, no more disk writes during cost estimates.
+
 ## 0.4.0 (P3, 2026-08-28)
 - Local MCP server (Streamable HTTP on 127.0.0.1, per-session bearer token) started with the add-on; tool calls run on Blender's main thread through the pump, with a 120 s timeout instead of a frozen client.
 - 16 tools: scene_summary, object_detail, execute_python (preference-gated, quit and factory-reset calls blocked), select_objects, set_frame, screenshot_viewport, render_still, list_models, model_schema, estimate_cost, generate, job_status, wait_for_job, import_result, capture_reference, list_generations.

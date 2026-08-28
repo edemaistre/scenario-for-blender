@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Job records and the persisted registry (survives Blender restarts)."""
 import json
+import os
 import pathlib
 import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 
 from ..api import jobs as jobs_api
 
@@ -44,7 +45,14 @@ class JobRecord:
         return jobs_api.is_success(self.status)
 
     def to_dict(self):
-        return asdict(self)
+        """Snapshot copies of the mutable containers: another worker may be appending to them right now."""
+        data = {name: getattr(self, name) for name in self.__dataclass_fields__}
+        data["asset_ids"] = list(self.asset_ids)
+        data["asset_types"] = dict(self.asset_types)
+        data["files"] = list(self.files)
+        data["body"] = dict(self.body)
+        data["meta"] = dict(self.meta)
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -74,7 +82,7 @@ class JobRegistry:
         with self._lock:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             payload = [r.to_dict() for r in sorted(self._records.values(), key=lambda r: r.created_at)]
-            tmp = self.path.with_suffix(".json.tmp")
+            tmp = self.path.with_name(f"{self.path.name}.{os.getpid()}.tmp")
             tmp.write_text(json.dumps(payload), encoding="utf-8")
             tmp.replace(self.path)
 

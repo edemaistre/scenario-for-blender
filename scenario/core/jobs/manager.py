@@ -13,7 +13,7 @@ from .. import config
 from ..api import assets as assets_api
 from ..api import generate as generate_api
 from ..api import jobs as jobs_api
-from ..api.errors import ScenarioError
+from ..api.errors import NetworkError, ScenarioError
 from .records import JobRecord
 
 log = logging.getLogger("scenario.jobs")
@@ -39,28 +39,54 @@ class JobManager:
         self.events = queue.Queue()
         self._threads = []
         self._stop = threading.Event()
+        self.resume_pending = []
 
     # -- public API (main thread) -----------------------------------------
     def submit(self, lane, kind, model_id, body, files=None, array_params=(), meta=None):
+        client = self.client_factory()  # resolved on the calling (main) thread; workers never touch bpy
         rec = JobRecord.new(lane=lane, kind=kind, model_id=model_id, body=body, meta=meta)
         self.registry.add(rec)
         self.registry.save()
-        self._spawn(self._run_job, rec, dict(files or {}), set(array_params))
+        self._spawn(self._run_job, client, rec, dict(files or {}), set(array_params))
         return rec
 
     def estimate(self, key, model_id, body):
-        self._spawn(self._run_estimate, key, model_id, dict(body))
+        self._spawn(self._run_estimate, self.client_factory(), key, model_id, dict(body))
 
     def fetch_catalog(self, catalog, privacy="public", model_ids=()):
         self._spawn(self._run_catalog, catalog, privacy, tuple(model_ids))
 
-    def resume(self):
-        for rec in self.registry.active():
+    def fetch_models(self, catalog, model_ids):
+        """Fetch detailed records for a few models without re-fetching the list."""
+        self._spawn(self._run_models, catalog, tuple(model_ids))
+
+    def track(self, rec, client=None):
+        """Poll a job that is already submitted (resume, import from Generations)."""
+        self._spawn(self._poll_job, client or self.client_factory(), rec)
+
+    def resume(self, records=None):
+        pending = []
+        for rec in (records if records is not None else self.registry.active()):
             if rec.job_id:
-                self._spawn(self._poll_job, rec)
+                pending.append(rec)
             else:
                 rec.status, rec.error = "failed", "Blender closed before the job was submitted"
-                self.registry.save()
+        self.registry.save()
+        self.resume_pending = []
+        if not pending:
+            return
+        try:
+            client = self.client_factory()
+        except ScenarioError as err:
+            self.resume_pending = pending  # retried by the pump once credentials are valid
+            self.events.put(("error", err.reason))
+            return
+        for rec in pending:
+            self._spawn(self._poll_job, client, rec)
+
+    def retry_resume(self):
+        if self.resume_pending:
+            self.resume(list(self.resume_pending))
 
     def drain(self):
         out = []
@@ -97,8 +123,7 @@ class JobManager:
             log.exception("worker %s failed", target.__name__)
             self.events.put(("error", str(err)))
 
-    def _run_job(self, rec, files, array_params):
-        client = self.client_factory()
+    def _run_job(self, client, rec, files, array_params):
         try:
             for param_name, paths in files.items():
                 ids = [self.uploader(client, p) for p in paths]
@@ -112,10 +137,9 @@ class JobManager:
         rec.job_id = job.get("jobId")
         self._update_from_job(rec, job)
         self.events.put(("job", rec))
-        self._poll_job(rec)
+        self._poll_job(client, rec)
 
-    def _poll_job(self, rec):
-        client = self.client_factory()
+    def _poll_job(self, client, rec):
         while not self._stop.is_set():
             self.sleep(self.poll_interval)
             try:
@@ -133,8 +157,14 @@ class JobManager:
             if rec.is_success:
                 try:
                     self._download_results(client, rec)
-                except ScenarioError as err:
-                    self._fail(rec, f"download: {err}")
+                except (ScenarioError, OSError) as err:
+                    # the cloud job succeeded and the credits are spent: keep the assets reachable from Generations
+                    rec.files = []
+                    rec.status = "failed"
+                    rec.error = f"download failed ({err}); the result is on Scenario, use Generations to import it again"
+                    rec.updated_at = time.time()
+                    self.registry.save()
+                    self.events.put(("job_failed", rec))
                     return
                 self.registry.save()
                 self.events.put(("job_done", rec))
@@ -177,8 +207,7 @@ class JobManager:
         self.registry.save()
         self.events.put(("job_failed", rec))
 
-    def _run_estimate(self, key, model_id, body):
-        client = self.client_factory()
+    def _run_estimate(self, client, key, model_id, body):
         try:
             est = generate_api.estimate(client, model_id, body)
             self.events.put(("estimate", EstimateResult(key=key, cu_cost=est.cu_cost)))
@@ -186,11 +215,24 @@ class JobManager:
             self.events.put(("estimate", EstimateResult(key=key, error=err.reason)))
 
     def _run_catalog(self, catalog, privacy, model_ids):
-        records = catalog.fetch_list(privacy=privacy)
+        try:
+            records = catalog.fetch_list(privacy=privacy)
+        except (ScenarioError, OSError) as err:
+            self.events.put(("catalog_failed", str(getattr(err, "reason", err))))
+            return
         detailed = []
         for model_id in model_ids:
             try:
                 detailed.append(catalog.get(model_id))
-            except ScenarioError as err:
+            except (ScenarioError, OSError) as err:
                 log.warning("model %s: %s", model_id, err)
         self.events.put(("catalog", {"privacy": privacy, "records": records, "detailed": detailed}))
+
+    def _run_models(self, catalog, model_ids):
+        detailed, failed = [], {}
+        for model_id in model_ids:
+            try:
+                detailed.append(catalog.get(model_id, refresh=True))
+            except (ScenarioError, OSError) as err:
+                failed[model_id] = str(getattr(err, "reason", err))
+        self.events.put(("models", {"detailed": detailed, "failed": failed}))
