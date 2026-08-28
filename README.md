@@ -19,7 +19,26 @@ A Blender 4.2+ extension bringing Scenario's image, video, 3D and PBR material g
 - `Scenario-Blender-Plugin-PRD.docx`: the February 2026 PRD (kept as-is).
 - `versions/`: previous states of deliverables (v0 = idea-stage README).
 - `.env.local` (git-ignored): dev credentials for the "Blender Plugin Tests" project.
-- `scenario/` (from P0): the extension source. `tests/`, `tools/`: tests and build scripts.
+- `scenario/`: the extension source (`core/` is plain Python, `blender/` is the bpy glue). `blender_manifest.toml` at its root.
+- `tests/unit/` (pytest, no Blender), `tests/blender/` (run inside `blender --background`), `tests/smoke/` (opt-in, spends credits), `tests/fixtures/` (recorded API records and a real Patina job).
+- `tools/build.sh`, `tools/install_dev.sh`, `tools/record_fixtures.py`, `tools/gui_screenshot.py`, `tools/blank.blend`. `dist/` (ignored) holds built zips.
+- `docs/superpowers/plans/`: P0 and P1 implementation plans (executed task by task).
+- `CHANGELOG.md`: what shipped per phase.
+
+## Run it
+
+1. `./tools/install_dev.sh` (builds, validates and installs the zip into Blender's `user_default` repository and enables it). Restart running Blender instances.
+2. Blender > Edit > Preferences > Add-ons > Scenario: paste an API key and secret (Scenario portal > Team > API Keys, Project or Team scope), press Test connection.
+3. In the 3D viewport press N, open the Scenario tab (or the Scenario button in the viewport header), pick a model, type a prompt, read the CU price on Generate, generate.
+
+## Tests
+
+- `make test`: unit tests (pytest, no Blender).
+- `make test-blender`: integration tests inside Blender 5.1.1 headless (requires `./tools/install_dev.sh` first).
+- `SCENARIO_SMOKE=1 python3 tests/smoke/smoke_image.py`: one real generation through the core (spends about 9 to 13 CU).
+- GUI check: `blender tools/blank.blend --python tools/gui_screenshot.py -- out.png image 10`, screenshots reviewed under `~/Developer/scratch/playwright-screenshots/scenario-blender/`.
+
+Credits spent on this project so far: about 26 CU (two Patina probes 12 CU, one Gemini smoke 9 CU, quality-gate fees), cap agreed about $30.
 
 ## Verified vs assumed
 

@@ -1,0 +1,25 @@
+schema_version = "1.0.0"
+
+id = "scenario"
+version = "0.1.0"
+name = "Scenario"
+tagline = "AI images, video, 3D and PBR materials from Scenario"
+maintainer = "Scenario Inc. <support@scenario.com>"
+type = "add-on"
+website = "https://scenario.com"
+tags = ["3D View", "Material", "Import-Export"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+copyright = ["2026 Scenario Inc."]
+
+[permissions]
+network = "Generate with your Scenario account (api.cloud.scenario.com)"
+files = "Save generated media to disk and import it into the scene"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/*.zip",
+  ".DS_Store",
+]

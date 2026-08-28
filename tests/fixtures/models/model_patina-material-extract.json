@@ -1,0 +1,408 @@
+{
+ "model": {
+  "id": "model_patina-material-extract",
+  "userId": "c452b44467bd7f9d443c631491b6948b",
+  "authorId": "c452b44467bd7f9d443c631491b6948b",
+  "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+  "createdAt": "2026-08-21T11:43:12.794Z",
+  "updatedAt": "2026-08-21T17:14:19.694Z",
+  "name": "PATINA Material Extract",
+  "shortDescription": "Isolates and flattens one material from a photo of a real surface into a clean, seamlessly tiling PBR set: base color, normal, roughness, metalness, and height maps.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "img2img"
+  ],
+  "source": "other",
+  "status": "trained",
+  "trainingProgress": {},
+  "parameters": {},
+  "trainingImagesNumber": 0,
+  "trainingImagePairs": [],
+  "tags": [
+   "Material Extraction",
+   "PBR",
+   "Patina AI",
+   "Texture",
+   "sc:texture",
+   "sc:third-party"
+  ],
+  "collectionIds": [],
+  "exampleAssetIds": [
+   "asset_W5mKhu7Dpufu4pdpnbwrocQT",
+   "asset_AJi37gdFpPfYro8jHVTWjbGc",
+   "asset_rvAG3j5C9oBqSdKCR89gWXLi",
+   "asset_dsTwugEDTLJTbLWVkgFTeWGu",
+   "asset_waoYjqKtpFFEZgc2oT6hmpnx",
+   "asset_kdP1tvhmv8sq1QBUaX5cCbdq",
+   "asset_e71PGUqH5mdYqgWkV9tt3CX4",
+   "asset_2YZaksAMvdvvjff79WRWMyBV",
+   "asset_7WP6U5hdLqzUgdPXNQzjbRtU",
+   "asset_9pXEUrFp5rDQBySEw5KFm8eR",
+   "asset_8mRNteKPPjKM2GKG78YsDKMx",
+   "asset_4nGj1vrjSAZoGB14E8cHxCnW",
+   "asset_5B7yrGYKXe1vDhVfjUySV7eq",
+   "asset_UGS94c2FqaMytmZ44Nvr6Rq4",
+   "asset_mFEUGKP4wZ2oSEgb4tn2aPGb",
+   "asset_zozewzzFtqVQ2qtPjqvRgrGD",
+   "asset_QVUjgRRbQAUXtu1U7JE92kMx",
+   "asset_CBYodrkatgG6ebaXykLEwwsP",
+   "asset_zEmjTwQd5e4FXvLksHPHjBo9",
+   "asset_1azhRBZ6JwAZH2J9uRfKfwBw",
+   "asset_cm1rpTEtM5VfYPnyYKhmQaTt",
+   "asset_8mfQ8jDWw87QazvAQDNyNKxy",
+   "asset_rbzg8Mfr9DdHmMSNt1TxjdJT",
+   "asset_gxt3Y5fgnQiCQdJ5HREk2jpn",
+   "asset_LcRbRUcy5cKn8nswdZJRS7Yh",
+   "asset_drzuyXHQgow2QnNVSjXPkK2z",
+   "asset_qCBwzBdNGgqR3yNvLHWmeEU9",
+   "asset_cL8fo4wVZZYF63CkC4dnWErs",
+   "asset_gMqo1HwYWY9D6VKY71M18uby",
+   "asset_D26AuHo2F8V68gyDAwtHGC3W",
+   "asset_RYXeozfcHeAPoCJ9nuwsnSBU",
+   "asset_tnTNT57NLxsBWKZC2ZNgEM3X",
+   "asset_kbNAhcbBQ6Msi7THuihqXJtM",
+   "asset_fakzK7LzWZJVyWvQL548y1FS",
+   "asset_KiqkAiQywXCg9jMBCWDe4QmK",
+   "asset_myUKyEj2FbhRo4vKLfwcYNmw",
+   "asset_krQa23ErUVYhLiqXhux49yGB",
+   "asset_vkZuYMHixKx4JktWuffPwUyq",
+   "asset_BjCzY2b4PM4zuD2qshePPkeN",
+   "asset_GQXgz5THGCdJAaPLbMJiPKTF",
+   "asset_vkEug8KDBdxPp5Debify6MFW",
+   "asset_UwtWo8WH3rbbteprMFuT6fbe",
+   "asset_KQKKk1ZQ2R6c84Z3ASiD7NQE",
+   "asset_H6tmqGUW7i97TmZsL1MoeGmw",
+   "asset_p7FKMx3JuGwZ2rKmbipVdbgk",
+   "asset_KK1qSkHf761bf7o31srFVYvC",
+   "asset_kBD7QUuHDJqDHegMbFcaoh56",
+   "asset_DjjoB1U3swsEP5vUsJT7aSBT",
+   "asset_JxCnJrySKuPMeni1VcXtdX54",
+   "asset_sJFGYSZteMmd9xsNFDaNZmhc",
+   "asset_yJCP8rgbQL16AVGhnM6iPXqw",
+   "asset_HUEjBi8T4hubLj5tWrYfpCWn",
+   "asset_bt5qg55oKfuHb9nCy3pjsZ76",
+   "asset_y3h6d51zT5bdyk6woYrstqpw",
+   "asset_ho4kfap2EEYmoWrY55Unwcxa",
+   "asset_zhCjYL1MT5232DbC2WRyZ15F",
+   "asset_bFhLojWp2WZopjvX527A4mvZ",
+   "asset_zMNQwqbzKDdggq3Wb8W3Vcaw",
+   "asset_gmsLQUF8KBGs9VhZRdzLvTLi",
+   "asset_D1nDBYDzQbASNELnB7ijonsq",
+   "asset_AfvpoERkA2eTgPbbF32XY9M2",
+   "asset_tBwQ2yRwke95SZt5NRm6Ztdg",
+   "asset_BaWJnA3tVTqSp8rChrrhX5wA",
+   "asset_T3gvEcjbVJAwoGefhGD9vrra",
+   "asset_XzPGFTmtUnA6cCok3FwE38JZ",
+   "asset_vGMjauP2WVPyHaz69u6Brqpq",
+   "asset_dUaGkWGw58eesLLx7DHNokUT",
+   "asset_QZFj7RkSRpeeAHtcduGxuZeh",
+   "asset_Gip1GVW1VHwmGzNqzDrZAArD",
+   "asset_naF9wZS2gdvPuwna3n7e36HP",
+   "asset_cuahuY7h87Rs8H3qUuM5UDxi",
+   "asset_xhd7saa4sYpX4EP9NXBGwTu4",
+   "asset_LAQduJZJfXzwN72Wc3rZacBt",
+   "asset_TTRAYFLUyJbjNiZSVdWdGYD6",
+   "asset_hCxPzmvegAgPqoBPiymAJXmR",
+   "asset_zytcNEYzFW5TXpTU4rsHwRkP",
+   "asset_RcCqiCbbDCARJ1LTWvScPvFd",
+   "asset_7pnxQyHGnmDPZ8yahVqyGt88",
+   "asset_6UfBmLWqZwuqtnaBcAF4eDA8",
+   "asset_yfMBApghFSA79eaFLJkdZWCC",
+   "asset_EepRBmakaPcpcSbjjUXLFGcf",
+   "asset_3spP24WdKGv5dVaFxnJfz8Xs",
+   "asset_Yd1SiVYrsbQw7SsLGdhhWd1U",
+   "asset_f3P4XewJHEwZHmgBf8aXDZrF",
+   "asset_t1ntwqNTAezNSnKPSFoL5KYE",
+   "asset_R7zk2tr61tkkRdXpZj2TGCSM",
+   "asset_QnyiVyzTu6gXdXRP8FtJtT7o",
+   "asset_wXDdpGp5vL3BiMHX7apLkNv5",
+   "asset_PSRjUCEaCVrUschNV5h5KVVC",
+   "asset_tf7khT92XT1eYis2vC4ohuma",
+   "asset_q5zTJYzB4xXctyfwmYTyco4G",
+   "asset_WKmcTARg8fqFDZETz8TVdHnr",
+   "asset_qe5G5ZgJFifLPNDG74NYSH6V",
+   "asset_UVSmjNPYyaPtye9GQXVkcyRP",
+   "asset_tPQgB21YnsEyaaHFPqkpwttu",
+   "asset_VcgQoecY96sFZNUDSFrwwoZ1",
+   "asset_Xyxrg7x81DoDm5d7Q18KEEdQ",
+   "asset_QxGLhT65DHp8MSXYbVX6fnQJ",
+   "asset_51nZERGZvUNbaaBCGxZUNxzL",
+   "asset_Wz7XbZuJsgGDg1KiF2sJbCRq",
+   "asset_z2hGsbHtsqZdsnUNz6ajzBSm",
+   "asset_ayPQBFygbqtYyt57MGWqq5WR",
+   "asset_FcJUeg42dmqB48zL1u3b5AZY",
+   "asset_1xYtxQJjfYFkqSyt3ENHM1A3",
+   "asset_rbrApn75vgtMH63zVwMY29dE",
+   "asset_3uRC46Hgba2MzMXCinSys37b",
+   "asset_u6BWsaAiUR1zaQvVGQv3rdLu",
+   "asset_rHeYzbaFnAHvEnRnyvJEQRSH",
+   "asset_yviYMKy1LDiqByTmztrDf93E",
+   "asset_7dxTeNxeHmPANq5xf7gtQWSq",
+   "asset_uHLPzE4CUMEMjRzmXwYDt7JB",
+   "asset_aHBzKbRT41ZysifJ9uug21oV",
+   "asset_n9CGPMC11NJQCGuHuZg4TVhr",
+   "asset_PUD452HUko8tuSeMQkWrJ6TP",
+   "asset_Z86ZNiNZBYmBAvnahRvBgFGs",
+   "asset_xfYRWW7RCaTKWVRBKkjZLrki",
+   "asset_2jgju7innfU4jmffkAUwjwx8",
+   "asset_CBq1NfHnVrGCxDLnBUsuwvQg",
+   "asset_1pKw5GBTBnmmaaQ4JvF31cq4",
+   "asset_HubVfG38Hmw8U5fv9gWS28iV"
+  ],
+  "custom": true,
+  "accessRestrictions": 50,
+  "complianceMetadata": {
+   "enterpriseStatus": "Ready",
+   "modelProvider": "Patina AI",
+   "maintainer": "Fal",
+   "dataProcessingComment": "temporaryRetention",
+   "licenseTerms": "https://fal.ai/terms",
+   "subProcessor": "Fal"
+  },
+  "inputs": [
+   {
+    "description": "Describe which material to extract from the photo, for example the brick wall or the wooden floor.",
+    "label": "Prompt",
+    "maxLength": 2048,
+    "name": "prompt",
+    "costImpact": false,
+    "prompt": true,
+    "required": {
+     "always": true
+    },
+    "type": "string",
+    "promptSpark": true
+   },
+   {
+    "description": "A photo that contains the material you want. Perspective, shadows, and surrounding scene are flattened into a seamless texture.",
+    "kind": "image",
+    "label": "Image",
+    "name": "image",
+    "costImpact": false,
+    "parent": true,
+    "required": {
+     "always": true
+    },
+    "type": "file"
+   },
+   {
+    "description": "How much to transform the extracted material while making it tileable. Higher values change it more.",
+    "default": 0.6,
+    "group": "Settings",
+    "label": "Image Strength",
+    "max": 1,
+    "min": 0.01,
+    "name": "imageStrength",
+    "costImpact": false,
+    "step": 0.01,
+    "type": "number"
+   },
+   {
+    "description": "Output width in pixels. Upscaling applies to PBR maps only, not the base texture.",
+    "default": 1024,
+    "group": "Settings",
+    "label": "Width",
+    "max": 2048,
+    "min": 512,
+    "name": "width",
+    "costImpact": true,
+    "step": 16,
+    "type": "number"
+   },
+   {
+    "description": "Output height in pixels. Upscaling applies to PBR maps only, not the base texture.",
+    "default": 1024,
+    "group": "Settings",
+    "label": "Height",
+    "max": 2048,
+    "min": 512,
+    "name": "height",
+    "costImpact": true,
+    "step": 16,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "basecolor",
+     "normal",
+     "roughness",
+     "metalness",
+     "height"
+    ],
+    "description": "Which PBR maps to predict. Deselect all to skip PBR estimation and only extract the texture.",
+    "default": [
+     "basecolor",
+     "normal",
+     "roughness",
+     "metalness",
+     "height"
+    ],
+    "group": "Settings",
+    "label": "Maps",
+    "maxLength": 5,
+    "name": "maps",
+    "costImpact": true,
+    "type": "string_array"
+   },
+   {
+    "allowedValues": [
+     0,
+     2,
+     4
+    ],
+    "description": "Seamless upscale for predicted PBR maps. 0 keeps map resolution, 2 doubles it, 4 quadruples it (up to 8K from a 2048 texture). The base texture is not upscaled.",
+    "default": 0,
+    "group": "Settings",
+    "label": "Upscale Factor",
+    "name": "upscaleFactor",
+    "costImpact": true,
+    "type": "number"
+   },
+   {
+    "allowedValues": [
+     "both",
+     "horizontal",
+     "vertical"
+    ],
+    "description": "Which directions the extracted material repeats seamlessly. Both repeats in every direction; Horizontal repeats left-to-right; Vertical repeats top-to-bottom.",
+    "default": "both",
+    "group": "Settings",
+    "label": "Tiling Mode",
+    "name": "tilingMode",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "description": "Number of texture variations to extract from the same photo.",
+    "default": 1,
+    "group": "Settings",
+    "label": "Image Count",
+    "max": 4,
+    "min": 1,
+    "name": "numOutputs",
+    "costImpact": true,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "Number of denoising steps for texture generation. Higher values take longer.",
+    "default": 8,
+    "group": "Settings",
+    "label": "Inference Steps",
+    "max": 8,
+    "min": 1,
+    "name": "numInferenceSteps",
+    "costImpact": false,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "Expand the prompt for richer material detail.",
+    "default": true,
+    "group": "Settings",
+    "label": "Enable Prompt Expansion",
+    "name": "enablePromptExpansion",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "description": "Seamless-tiling window in latent space. 64 \u2248 512px, 128 \u2248 1024px, 256 \u2248 2048px. Match this to the output resolution for cleaner repeats.",
+    "default": 128,
+    "group": "Settings",
+    "label": "Tile Size",
+    "max": 256,
+    "min": 32,
+    "name": "tileSize",
+    "costImpact": false,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "How far the tiling window steps between passes. Smaller than tile size adds overlap and usually smoother seams; larger is faster but can show a grid.",
+    "default": 64,
+    "group": "Settings",
+    "label": "Tile Stride",
+    "max": 128,
+    "min": 16,
+    "name": "tileStride",
+    "costImpact": false,
+    "step": 1,
+    "type": "number"
+   },
+   {
+    "description": "A number that makes results repeatable. Reusing the same seed and settings produces the same extract; leave it empty for a different result each time.",
+    "group": "Settings",
+    "label": "Seed",
+    "max": 2147483647,
+    "min": 0,
+    "name": "seed",
+    "costImpact": false,
+    "type": "number"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "upscaleFactor": {
+     "0": "None",
+     "2": "2x",
+     "4": "4x"
+    },
+    "maps": {
+     "roughness": "Roughness",
+     "normal": "Normal",
+     "height": "Height",
+     "basecolor": "Base Color",
+     "metalness": "Metalness"
+    },
+    "tilingMode": {
+     "horizontal": "Horizontal",
+     "vertical": "Vertical",
+     "both": "Both"
+    }
+   },
+   "resolutionComponent": {
+    "presets": [
+     {
+      "height": 512,
+      "width": 512,
+      "label": "1:1 (512x512)"
+     },
+     {
+      "height": 1024,
+      "label": "1:1 (1024x1024)",
+      "width": 1024
+     },
+     {
+      "height": 2048,
+      "label": "1:1 (2048x2048)",
+      "width": 2048
+     },
+     {
+      "label": "4:3 (1024x768)",
+      "width": 1024,
+      "height": 768
+     },
+     {
+      "label": "3:4 (768x1024)",
+      "width": 768,
+      "height": 1024
+     },
+     {
+      "width": 1024,
+      "label": "16:9 (1024x576)",
+      "height": 576
+     },
+     {
+      "label": "9:16 (576x1024)",
+      "width": 576,
+      "height": 1024
+     }
+    ],
+    "label": "Dimensions",
+    "heightInput": "height",
+    "widthInput": "width"
+   }
+  }
+ }
+}

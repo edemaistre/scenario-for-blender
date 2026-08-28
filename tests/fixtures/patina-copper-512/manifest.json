@@ -1,0 +1,55 @@
+{
+ "jobId": "job_KWxxsnSdVXDFZRMsoCvLTmKY",
+ "modelId": "model_patina-material",
+ "prompt": "weathered copper patina with verdigris streaks",
+ "assets": [
+  {
+   "assetId": "asset_4Aufp4GxmMozUQUL36d5C6Jr",
+   "type": "inference-txt2img-texture",
+   "file": "base.png",
+   "bytes": 529021,
+   "width": 512,
+   "height": 512
+  },
+  {
+   "assetId": "asset_HEggSb5AZ752kptfVqvNnGqk",
+   "type": "texture-height",
+   "file": "height.png",
+   "bytes": 85719,
+   "width": 512,
+   "height": 512
+  },
+  {
+   "assetId": "asset_KM1wwfmngzJYyzEVJUWXUMpB",
+   "type": "texture-albedo",
+   "file": "albedo.png",
+   "bytes": 533647,
+   "width": 512,
+   "height": 512
+  },
+  {
+   "assetId": "asset_RyS3ZHPXJVoafNJ3m9MQGKfz",
+   "type": "texture-metallic",
+   "file": "metallic.png",
+   "bytes": 13368,
+   "width": 512,
+   "height": 512
+  },
+  {
+   "assetId": "asset_brLaqEpi3bxaGr3cZV7ogyvo",
+   "type": "texture-smoothness",
+   "file": "smoothness.png",
+   "bytes": 211017,
+   "width": 512,
+   "height": 512
+  },
+  {
+   "assetId": "asset_mTKssKxfYUfAECx8MFzWPhMd",
+   "type": "texture-normal",
+   "file": "normal.png",
+   "bytes": 370280,
+   "width": 512,
+   "height": 512
+  }
+ ]
+}

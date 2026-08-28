@@ -1,0 +1,195 @@
+{
+ "model": {
+  "id": "model_meshy-7-txt23d",
+  "userId": "c452b44467bd7f9d443c631491b6948b",
+  "authorId": "c452b44467bd7f9d443c631491b6948b",
+  "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+  "createdAt": "2026-08-25T07:05:52.801Z",
+  "updatedAt": "2026-08-25T17:16:26.345Z",
+  "name": "Meshy 7 - Text-to-3D",
+  "shortDescription": "Meshy 7 text-to-3D: higher-fidelity geometry than Meshy 6, optional Ultra mode for finer surface detail, and 2K/4K/8K PBR texturing in one generation.",
+  "type": "custom",
+  "privacy": "public",
+  "capabilities": [
+   "txt23d"
+  ],
+  "source": "other",
+  "status": "trained",
+  "trainingProgress": {},
+  "parameters": {},
+  "trainingImagesNumber": 0,
+  "trainingImagePairs": [],
+  "tags": [
+   "3d",
+   "Meshy",
+   "Meshy 7",
+   "PBR",
+   "Ultra",
+   "game-ready",
+   "sc:third-party",
+   "text-to-3d"
+  ],
+  "collectionIds": [],
+  "exampleAssetIds": [
+   "asset_j1z3hsMpm13QUJ5nt53cAMpD",
+   "asset_vwm11KibqNTQSWeWofQaa1Gv",
+   "asset_sjCV7ursWnBeEsjXNB7yyUEC",
+   "asset_5pPA8z1dounKfpugL5YtRYk5",
+   "asset_R7b5dSVVrfnTxEkv4UnhPPNP",
+   "asset_wWHfDNwgPcHM1eMb8ED3gx1N",
+   "asset_GTCnffdkZsjxHiZ7DuyYb8VJ",
+   "asset_EB9ccXMYDF9Ecxq6qK4hThYR",
+   "asset_igwuEtcEVedpcEwcHHmeTSen",
+   "asset_29oz6eYZhKqKqTHqZJX5hGD1",
+   "asset_agyn3CTpJTuujguZcqGyJhqQ",
+   "asset_TkoSYgwfwhf2zFjVfsUnkAh7",
+   "asset_M33zoqHdXeqPQDmfykUhu2rd",
+   "asset_ofJt9qJvXvRT48yWZVtHynah",
+   "asset_WZGpjFb6hbfDnZN7MqvowSgV",
+   "asset_mZZgVPU88GLr8TzYsQMD5gyq",
+   "asset_cAGwn8sDwFRmJ9iVQH7WC6im",
+   "asset_usgZyrfdy8FyBGmgdrNpyjfk",
+   "asset_32Y4fZx81SZxvwiS75XR9ZKq",
+   "asset_W458wHZjvU9orTPo4FThzCcx",
+   "asset_Lg1RZ52tfMQmbZGNLRmondYk",
+   "asset_W4BthMuMd1p1dcLGCMbeEkyZ",
+   "asset_LfgxjHhthpUUkm9o9ffZsvo6"
+  ],
+  "custom": true,
+  "accessRestrictions": 50,
+  "complianceMetadata": {
+   "enterpriseStatus": "Ready",
+   "licenseTerms": "https://www.meshy.ai/terms-of-use",
+   "modelProvider": "Meshy",
+   "subProcessor": "Provider",
+   "maintainer": "Scenario",
+   "dataProcessingComment": "temporaryRetention"
+  },
+  "inputs": [
+   {
+    "description": "Describe the object you want to generate as a 3D model.",
+    "label": "Prompt",
+    "maxLength": 600,
+    "name": "prompt",
+    "costImpact": false,
+    "prompt": true,
+    "required": {
+     "always": true
+    },
+    "type": "string",
+    "promptSpark": true
+   },
+   {
+    "description": "Enable Ultra generation for higher-fidelity geometry with finer surface detail. Adds cost.",
+    "default": false,
+    "label": "Ultra Mode",
+    "name": "ultraMode",
+    "costImpact": true,
+    "type": "boolean"
+   },
+   {
+    "description": "Provide a text description to guide the texturing process. The Style Prompt is only used when no Style Image is provided. If you upload an image, this text prompt will be ignored.",
+    "default": "",
+    "label": "Style Prompt",
+    "maxLength": 600,
+    "name": "texturePrompt",
+    "costImpact": false,
+    "prompt": true,
+    "type": "string"
+   },
+   {
+    "description": "Upload a reference image to guide the visual style of the generated texture. This will override the Style Prompt.",
+    "kind": "image",
+    "label": "Style Image",
+    "name": "textureImage",
+    "costImpact": false,
+    "parent": true,
+    "type": "file"
+   },
+   {
+    "allowedValues": [
+     "triangle",
+     "quad"
+    ],
+    "description": "Choose the mesh structure type used for the generated model (e.g., triangles or quads).",
+    "default": "triangle",
+    "label": "Topology",
+    "name": "topology",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "allowedValues": [
+     "2k",
+     "4k",
+     "8k"
+    ],
+    "description": "Base color texture resolution for the refine phase: 2K (2048), 4K (4096), or 8K (8192). At 8K, PBR maps are generated at 4K and no emission map is produced. 8K is only supported with triangle topology when remeshing.",
+    "default": "2k",
+    "label": "Texture Resolution",
+    "name": "textureResolution",
+    "costImpact": true,
+    "type": "string"
+   },
+   {
+    "description": "Generate advanced PBR maps (metallic, roughness, normal) for more realistic materials. Meshy 7 does not produce an emission map.",
+    "default": true,
+    "label": "Enable PBR",
+    "name": "enablePbr",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "allowedValues": [
+     "",
+     "a-pose",
+     "t-pose"
+    ],
+    "description": "Specify the pose mode for the generated model. Accepts 'A-Pose', 'T-Pose', or empty string (default).",
+    "default": "",
+    "label": "Pose Mode",
+    "name": "poseMode",
+    "costImpact": false,
+    "type": "string"
+   },
+   {
+    "description": "Enable remeshing to improve mesh quality and control polycount. Disable to keep the raw, unprocessed mesh (recommended for highest quality on Meshy 7).",
+    "default": false,
+    "label": "Remesh",
+    "name": "shouldRemesh",
+    "costImpact": false,
+    "type": "boolean"
+   },
+   {
+    "description": "Specify the target number of polygons in the generated model. The actual number of polygons may deviate from the target depending on the complexity of the geometry. Only applies when Remesh is enabled.",
+    "default": 30000,
+    "label": "Target Polycount",
+    "max": 300000,
+    "min": 100,
+    "name": "targetPolycount",
+    "costImpact": false,
+    "type": "number"
+   }
+  ],
+  "uiConfig": {
+   "selects": {
+    "textureResolution": {
+     "8k": "8K",
+     "2k": "2K",
+     "4k": "4K"
+    },
+    "poseMode": {
+     "t-pose": "T-Pose",
+     "a-pose": "A-Pose"
+    },
+    "aiModel": {
+     "meshy-7": "Meshy 7"
+    },
+    "topology": {
+     "triangle": "Triangle",
+     "quad": "Quad"
+    }
+   }
+  }
+ }
+}
