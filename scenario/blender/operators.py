@@ -277,7 +277,33 @@ class SCENARIO_OT_import_result(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+class SCENARIO_OT_play_video(bpy.types.Operator):
+    bl_idname = "scenario.play_video"
+    bl_label = "Play"
+    bl_description = "Open the video with the system player"
+    filepath: StringProperty()
+
+    def execute(self, context):
+        from . import apply_video
+
+        apply_video.play_with_os(self.filepath)
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_play_video_blender(bpy.types.Operator):
+    bl_idname = "scenario.play_video_blender"
+    bl_label = "Play in Blender"
+    bl_description = "Open the video in Blender's animation player"
+    filepath: StringProperty()
+
+    def execute(self, context):
+        from . import apply_video
+
+        apply_video.play_with_blender(self.filepath)
+        return {'FINISHED'}
+
+
+CLASSES = (SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

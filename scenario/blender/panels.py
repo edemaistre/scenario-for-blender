@@ -7,9 +7,9 @@ import bpy
 
 from . import generation, params_ui, props, runtime
 
-LANE_PLACEHOLDER = {"video": "Video lane arrives in P2", "render": "Render-to-real arrives in P2", "mcp": "MCP server arrives in P3"}
+LANE_PLACEHOLDER = {"render": "Render-to-real arrives in P2", "mcp": "MCP server arrives in P3"}
 KIND_ICON = {"image": 'IMAGE_DATA', "video": 'FILE_MOVIE', "3d": 'MESH_DATA', "material": 'MATERIAL'}
-GENERATE_LANES = ("image", "3d", "material")
+GENERATE_LANES = ("image", "video", "3d", "material")
 
 
 def draw_account_strip(layout, context):
@@ -49,6 +49,25 @@ def draw_references(layout, lane_state, schema):
             remove.lane, remove.index = lane_state.lane, index
 
 
+def draw_clip_options(layout, context, lane_state, schema):
+    from ..core.scene import capture_plan
+
+    has_video_input = any(s.is_file and s.kind == "video" for s in schema.specs)
+    uses_capture = any(r.source in props.CAPTURE_SOURCES for r in lane_state.references)
+    if not has_video_input and not uses_capture:
+        return
+    box = layout.box()
+    box.label(text="Blender input", icon='RENDER_ANIMATION')
+    scene = context.scene
+    fps = scene.render.fps / (scene.render.fps_base or 1.0)
+    start, end, seconds = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
+                                                  preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
+    box.label(text=f"Clip: frames {start} to {end}, {seconds:.1f} s at 1280x720")
+    if schema.by_name("duration") is not None:
+        box.prop(lane_state, "match_timeline")
+    box.prop(lane_state, "force_solid")
+
+
 def generate_button_text(lane_state):
     if lane_state.estimate_state == 'READY':
         prefix = "from " if lane_state.estimate_partial else ""
@@ -78,6 +97,8 @@ def draw_generate_lane(layout, context, lane):
     row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
     draw_references(layout, lane_state, schema)
     params_ui.draw_params(layout, lane_state, schema)
+    if lane == "video":
+        draw_clip_options(layout, context, lane_state, schema)
     if lane == "material":
         meshes = [o for o in context.selected_objects if o.type == 'MESH']
         if meshes:
@@ -191,6 +212,10 @@ class SCENARIO_PT_results(bpy.types.Panel):
                     col.operator("scenario.show_image", text="Show").filepath = path
                     col.operator("scenario.apply_texture", text="Apply as texture").filepath = path
                     col.operator("scenario.add_plane", text="Add as plane").filepath = path
+                elif rec.kind == "video":
+                    row = box.row(align=True)
+                    row.operator("scenario.play_video", text="Play", icon='PLAY').filepath = path
+                    row.operator("scenario.play_video_blender", text="Play in Blender", icon='BLENDER').filepath = path
                 elif rec.kind == "material":
                     if path == rec.files[0]:
                         box.label(text="PBR material", icon='MATERIAL')
