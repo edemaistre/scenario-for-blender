@@ -68,6 +68,11 @@ def process_pending():
         server.process_pending()
 
 
+def masked_token():
+    token = runtime.state.mcp_token or ""
+    return (token[:4] + "...") if len(token) > 8 else token
+
+
 def _blender_python():
     candidates = [os.path.join(sys.prefix, "bin", f"python{sys.version_info.major}.{sys.version_info.minor}"), os.path.join(sys.prefix, "bin", "python3")]
     for path in candidates:

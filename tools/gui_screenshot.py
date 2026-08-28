@@ -33,6 +33,29 @@ def _prepare():
             bpy.context.scene.scenario.lane_state(LANE).prompt = PROMPT
         if LANE == "history":
             bpy.ops.scenario.history_refresh()
+        if ACTION == "mcpproof":
+            import importlib
+            import json
+            import subprocess
+            name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
+            service = importlib.import_module(name + ".blender.mcp_service")
+            st = service.status()
+            print("mcp status:", st["running"], st["url"])
+
+            def _curl(payload):
+                cmd = ["curl", "-s", "-X", "POST", st["url"], "-H", f"Authorization: Bearer {st['token']}", "-H", "Content-Type: application/json", "-d", json.dumps(payload)]
+                return subprocess.run(cmd, capture_output=True, text=True, timeout=60).stdout
+
+            def _proof():
+                listed = json.loads(_curl({"jsonrpc": "2.0", "id": 1, "method": "tools/list"}))
+                print("mcpproof tools:", [t["name"] for t in listed["result"]["tools"]])
+                summary = json.loads(_curl({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "scene_summary", "arguments": {}}}))
+                text = summary["result"]["content"][0]["text"]
+                print("mcpproof scene_summary objects:", [o["name"] for o in json.loads(text)["objects"]])
+                return None
+
+            import threading
+            threading.Thread(target=_proof, daemon=True).start()
         if ACTION == "capture":
             import importlib
             import pathlib
