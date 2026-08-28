@@ -343,7 +343,48 @@ class SCENARIO_OT_render_video(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+class SCENARIO_OT_mcp_start(bpy.types.Operator):
+    bl_idname = "scenario.mcp_start"
+    bl_label = "Start MCP server"
+
+    def execute(self, context):
+        from . import mcp_service
+
+        server = mcp_service.start()
+        if server is None:
+            self.report({'ERROR'}, runtime.state.mcp_error or "Could not start")
+            return {'CANCELLED'}
+        self.report({'INFO'}, f"MCP server on {server.url}")
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_mcp_stop(bpy.types.Operator):
+    bl_idname = "scenario.mcp_stop"
+    bl_label = "Stop MCP server"
+
+    def execute(self, context):
+        from . import mcp_service
+
+        mcp_service.stop()
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_mcp_copy(bpy.types.Operator):
+    bl_idname = "scenario.mcp_copy"
+    bl_label = "Copy MCP setup"
+    bl_description = "Copy the connection setup for this client to the clipboard"
+    kind: StringProperty(default="claude_code")
+
+    def execute(self, context):
+        from . import mcp_service
+
+        text = mcp_service.client_configs().get(self.kind, "")
+        context.window_manager.clipboard = text
+        self.report({'INFO'}, f"Copied {self.kind.replace('_', ' ')} setup")
+        return {'FINISHED'}
+
+
+CLASSES = (SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_render_concept, SCENARIO_OT_render_video, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

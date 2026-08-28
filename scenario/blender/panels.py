@@ -7,7 +7,7 @@ import bpy
 
 from . import generation, params_ui, props, runtime
 
-LANE_PLACEHOLDER = {"mcp": "MCP server arrives in P3"}
+LANE_PLACEHOLDER = {}
 KIND_ICON = {"image": 'IMAGE_DATA', "video": 'FILE_MOVIE', "3d": 'MESH_DATA', "material": 'MATERIAL'}
 GENERATE_LANES = ("image", "video", "3d", "material")
 
@@ -139,6 +139,30 @@ def draw_history(layout, context):
         layout.operator("scenario.history_older", icon='TRIA_DOWN')
 
 
+def draw_mcp_lane(layout, context):
+    from . import mcp_service
+
+    st = mcp_service.status()
+    box = layout.box()
+    box.label(text="Let agents build in this Blender", icon='PLUGIN')
+    if st["running"]:
+        box.label(text=f"Running on {st['url']}", icon='CHECKMARK')
+        box.label(text=f"Token {mcp_service.masked_token()}  ({st['calls']} tool calls served)")
+        box.operator("scenario.mcp_stop", icon='PAUSE')
+    else:
+        box.label(text=st["error"] or "Stopped", icon='ERROR' if st["error"] else 'INFO')
+        box.operator("scenario.mcp_start", icon='PLAY')
+    prefs = runtime.prefs()
+    if prefs is not None:
+        box.prop(prefs, "mcp_allow_python")
+    box = layout.box()
+    box.label(text="Connect a client (copies the setup)", icon='COPYDOWN')
+    col = box.column(align=True)
+    for kind, label in (("claude_code", "Claude Code"), ("cursor", "Cursor"), ("claude_desktop", "Claude Desktop (stdio)"), ("codex", "Codex"), ("curl", "curl test")):
+        col.operator("scenario.mcp_copy", text=label, icon='CONSOLE').kind = kind
+    box.label(text="Tools: scene, objects, Python, screenshots, models, cost, generate, import", icon='INFO')
+
+
 class SCENARIO_PT_main(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -157,6 +181,8 @@ class SCENARIO_PT_main(bpy.types.Panel):
             draw_generate_lane(layout, context, lane)
         elif lane == "history":
             draw_history(layout, context)
+        elif lane == "mcp":
+            draw_mcp_lane(layout, context)
         elif lane == "render":
             from . import render_to_real
 
