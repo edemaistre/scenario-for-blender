@@ -13,7 +13,7 @@ GENERATE_LANES = ("image", "video", "3d", "material", "audio")
 SOURCE_ICON = {'FILE': 'FILE_IMAGE', 'VIEWPORT': 'RESTRICT_VIEW_OFF', 'CAMERA': 'CAMERA_DATA', 'VIEWPORT_CLIP': 'RENDER_ANIMATION', 'CAMERA_CLIP': 'RENDER_ANIMATION',
                'RENDER': 'RENDER_RESULT', 'ASSET': 'URL', 'MESH': 'MESH_DATA'}
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
-MESH_EXTS = (".glb", ".gltf", ".fbx", ".obj")
+MESH_EXTS = (".glb", ".gltf", ".fbx", ".obj", ".spz", ".ply")
 AUDIO_EXTS = (".mp3", ".wav", ".ogg", ".m4a", ".flac")
 
 
@@ -286,6 +286,8 @@ def draw_result(layout, rec):
         return
     row = box.row(align=True)
     row.label(text=rec.meta.get("model_name") or rec.model_id, icon='NODE_MATERIAL')
+    reload = row.operator("scenario.reload_generation", text="", icon='FILE_REFRESH')
+    reload.local_id = rec.local_id
     details = row.operator("scenario.result_details", text="", icon='INFO')
     details.local_id = rec.local_id
     asset_id = _primary_asset(rec)
@@ -306,10 +308,13 @@ def draw_result(layout, rec):
             if icon_id:
                 row.template_icon(icon_value=icon_id, scale=3.0)
             col = row.column(align=True)
-            col.operator("scenario.show_image", text="Show").filepath = path
-            col.operator("scenario.apply_texture", text="Apply as texture").filepath = path
-            col.operator("scenario.add_plane", text="Add as plane").filepath = path
-            col.operator("scenario.use_first_frame", text="Use as video first frame", icon='FILE_MOVIE').filepath = path
+            col.operator("scenario.show_image", text="View image", icon='ZOOM_ALL').filepath = path
+            col.operator("scenario.convert_to_3d", text="Convert to 3D", icon='MESH_DATA').filepath = path
+            col.operator_menu_enum("scenario.use_as_reference", "target", text="Use as reference", icon='IMAGE_REFERENCE').filepath = path
+            col.operator("scenario.remove_background", text="Remove background", icon='MOD_MASK').filepath = path
+            sub = col.row(align=True)
+            sub.operator("scenario.apply_texture", text="Apply as texture").filepath = path
+            sub.operator("scenario.add_plane", text="Add as plane").filepath = path
     elif rec.kind == "3d":
         primary = rec.meta.get("primary_mesh") or next((p for p in rec.files if p.lower().endswith(MESH_EXTS)), "")
         if primary:

@@ -37,6 +37,7 @@ def show_in_image_editor(image):
         for area in window.screen.areas:
             if area.type == 'IMAGE_EDITOR':
                 area.spaces.active.image = image
+                _fit_view(window, area)
                 area.tag_redraw()
                 return True
     if not wm.windows:
@@ -49,10 +50,30 @@ def show_in_image_editor(image):
         area = new_window.screen.areas[0]
         area.type = 'IMAGE_EDITOR'
         area.spaces.active.image = image
+        _fit_view(new_window, area)
         return True
     except (RuntimeError, IndexError) as err:
         log.warning("could not open an image window: %s", err)
         return False
+
+
+def _fit_view(window, area):
+    """Show the whole image (the editor keeps the previous zoom, which crops a portrait image to a square)."""
+    region = next((r for r in area.regions if r.type == 'WINDOW'), None)
+    if region is None:
+        return
+
+    def _fit():
+        try:
+            with bpy.context.temp_override(window=window, screen=window.screen, area=area, region=region):
+                bpy.ops.image.view_all(fit_view=True)
+        except (RuntimeError, TypeError) as err:
+            log.debug("view_all failed: %s", err)
+        return None
+
+    _fit()
+    if not bpy.app.background:
+        bpy.app.timers.register(_fit, first_interval=0.05)  # a fresh window has no size yet on its first draw
 
 
 def material_with_image(name, image):

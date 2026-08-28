@@ -6,6 +6,17 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.8.1] - 2026-08-29
+
+### Added
+- **Gaussian splat worlds load into Blender**: Marble and HY World return `.spz` files (Niantic's compressed splat format, 2.3 million splats for a Marble world), which Blender cannot open. A pure-Python SPZ reader turns them into a coloured point cloud (a mesh of splat centres with a colour attribute and a Geometry Nodes "points" modifier sized from the splat scales), Y-up converted to Z-up, subsampled to one million points for interactivity. Worlds downloaded before this version as `.bin` are recognised by content, so "Add to scene" works on them too. `.ply` results go through Blender's PLY importer.
+- **Image actions** in Generations: **View image** (was "Show") now shows the whole image instead of the editor's previous zoom; **Convert to 3D** opens the 3D tab in Image mode with the picture attached; **Use as reference** sends it to the Image, Video, 3D, Render Image or Render Video lane; **Remove background** runs a background removal model on it (Bria, 851 Labs, Photoroom, Ideogram...), the cut-out lands in Generations.
+- **Reload parameters** (the refresh button on a generation): lane, model, prompt, every setting sent, and the references (local files, else asset ids) come back into the form.
+- **Generation settings from the composer**: the Settings chip opens a dialog with the current lane's full form (model, prompt, references, parameters) right where the composer is, instead of only revealing the sidebar. Opening the sidebar tab also retries when Blender refuses the tab switch on the first draw.
+
+### Changed
+- Composer card: no empty band under the buttons (height fits the three rows); the corner grip is gone, the corner shows a resize cursor and a light mark only when the pointer reaches it.
+
 ## [0.8.0] - 2026-08-29
 
 ### Added

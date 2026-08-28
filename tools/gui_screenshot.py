@@ -58,6 +58,10 @@ def _prepare():
                 cube.select_set(True)
                 bpy.context.view_layer.objects.active = cube
             bpy.context.scene.scenario.three_d_mode = 'EDIT'
+        if ACTION == "settings":
+            region = next(r for r in area.regions if r.type == 'WINDOW')
+            with bpy.context.temp_override(window=window, area=area, region=region):
+                bpy.ops.scenario.quick_settings('INVOKE_DEFAULT', lane=LANE)
         if ACTION == "picker":
             # open the model picker dialog over the viewport
             region = next(r for r in area.regions if r.type == 'WINDOW')

@@ -13,12 +13,22 @@ def open_sidebar(area):
         return False
     space = area.spaces.active
     space.show_region_ui = True
-    for region in area.regions:
-        if region.type == 'UI':
-            try:
-                region.active_panel_category = "Scenario"
-            except (AttributeError, TypeError):
-                pass  # read-only right after startup on some builds; the tab keeps its last state
+
+    def _select_tab():
+        for region in area.regions:
+            if region.type == 'UI':
+                try:
+                    region.active_panel_category = "Scenario"
+                    region.tag_redraw()
+                    return True
+                except (AttributeError, TypeError, ReferenceError):
+                    return False
+        return False
+
+    if not _select_tab() and not bpy.app.background:
+        # the category is read-only until the region has drawn once (a sidebar that was hidden): retry after a redraw
+        bpy.app.timers.register(lambda: (None if _select_tab() else None), first_interval=0.1)
+    area.tag_redraw()
     return True
 
 

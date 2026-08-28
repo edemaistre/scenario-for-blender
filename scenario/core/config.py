@@ -13,6 +13,7 @@ _MIME_EXT = {
     "image/png": "png", "image/jpeg": "jpg", "image/jpg": "jpg", "image/webp": "webp", "image/gif": "gif",
     "image/avif": "avif", "image/tiff": "tif", "video/mp4": "mp4", "video/webm": "webm",
     "model/gltf-binary": "glb", "model/gltf+json": "gltf", "model/x-fbx": "fbx", "model/obj": "obj",
+    "model/spz": "spz", "model/ply": "ply", "application/x-ply": "ply", "model/splat": "splat", "model/stl": "stl", "model/usd": "usdz",
     "model/x-3d-vox": "vox", "audio/mpeg": "mp3", "audio/wav": "wav", "audio/x-wav": "wav", "audio/ogg": "ogg",
     "application/octet-stream": "bin",
 }

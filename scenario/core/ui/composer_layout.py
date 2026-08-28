@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 MARGIN = 24
 PILL_WIDTH, PILL_HEIGHT = 320, 44
-CARD_WIDTH, CARD_HEIGHT = 820, 150
+CARD_WIDTH, CARD_HEIGHT = 820, 132  # pad + tabs + gap + prompt + gap + model row + pad: no empty band under the buttons
 TAB_HEIGHT, ROW_GAP, PAD = 24, 8, 12
 GENERATE_WIDTH, MODEL_WIDTH, COLLAPSE_SIZE, SETTINGS_WIDTH = 190, 200, 20, 84
 RESIZE_SIZE, MIN_CARD_WIDTH, MIN_PILL_WIDTH, MIN_VISIBLE, DRAG_THRESHOLD = 16, 420, 200, 40, 4

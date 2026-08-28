@@ -5,12 +5,20 @@ import json
 import pathlib
 import struct
 
-_IMPORTERS = {".glb": "gltf", ".gltf": "gltf", ".fbx": "fbx", ".obj": "obj"}
-_FORMAT_RANK = {"gltf": 0, "fbx": 1, "obj": 2}
+_IMPORTERS = {".glb": "gltf", ".gltf": "gltf", ".fbx": "fbx", ".obj": "obj", ".spz": "spz", ".ply": "ply"}
+_FORMAT_RANK = {"gltf": 0, "fbx": 1, "obj": 2, "ply": 3, "spz": 4}  # splats come last: they are worlds, not meshes
 
 
 def importer_for(path):
-    return _IMPORTERS.get(pathlib.Path(str(path)).suffix.lower())
+    suffix = pathlib.Path(str(path)).suffix.lower()
+    kind = _IMPORTERS.get(suffix)
+    if kind is None and suffix in (".bin", ""):
+        # splats downloaded before 0.8.1 kept a generic extension (mime model/spz was unknown): recognise them by content
+        from . import spz
+
+        if spz.sniff_spz(path):
+            return "spz"
+    return kind
 
 
 def bottom_center_offset(bbox_min, bbox_max, target):

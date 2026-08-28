@@ -116,7 +116,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 <nav class="toc" aria-label="Contents">
   <div class="toc-head">
     <span class="eyebrow">Handbook</span>
-    <span class="version">v0.8.1 &middot; 2026-08-29</span>
+    <span class="version">v0.8.0 &middot; 2026-08-29</span>
   </div>
   <ol>
     <li><a href="#what">What it does</a></li>
@@ -183,7 +183,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
       <dl class="anatomy">
         <dt>Scenario</dt><dd>What to generate. Lane tabs with Scenario's modality icons: Image, Video, 3D, Materials, Audio, Render Image, Render Video. Below them, the form of the lane; the 3D tab has an Edit mode for the selected mesh.</dd>
         <dt>Jobs</dt><dd>What is running, all lanes together, with a count in the header: "Prompt Spark is writing the look", "uploading and submitting", "rendering 40%".</dd>
-        <dt>Generations</dt><dd>What came back. Each entry: type icon, start of the prompt, price, a collapse arrow; then the model, the asset id (one click copies it), a failure marker when something went wrong, the output thumbnail and the actions of its kind. The info button opens <b>Details</b>: prompt, settings sent, references with their asset ids, result assets, files, errors; the refresh button <b>reloads the parameters</b> into the form (lane, model, prompt, settings, references). Then, with the globe toggle on, the project's cloud history with Import into scene and Load older.</dd>
+        <dt>Generations</dt><dd>What came back. Each entry: type icon, start of the prompt, price, a collapse arrow; then the model, the asset id (one click copies it), a failure marker when something went wrong, the output thumbnail and the actions of its kind. The info button opens <b>Details</b>: prompt, settings sent, references with their asset ids, result assets, files, errors. Then, with the globe toggle on, the project's cloud history with Import into scene and Load older.</dd>
         <dt>Agents (MCP)</dt><dd>The local MCP server: status, token, one-click client setups, the Python permission.</dd>
       </dl>
       <p>The tabs answer "what do I want to make"; the panels below answer "what is running" and "what did I get", whatever the lane.</p>
@@ -230,7 +230,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
 
 <section id="image">
   <h3>Image</h3>
-  <p>Text or reference images to images with GPT Image 2, Gemini 3.1, Seedream, Z-Image and any other txt2img or img2img model in the catalog. Results open in an Image Editor (whole image visible) and appear in Generations with <b>View image</b>, <b>Convert to 3D</b> (the 3D tab opens in Image mode with the picture attached), <b>Use as reference</b> (to the Image, Video, 3D, Render Image or Render Video lane), <b>Remove background</b> (a background removal model runs on it, the cut-out lands in Generations), <b>Apply as texture</b> and <b>Add as plane</b>.</p>
+  <p>Text or reference images to images with GPT Image 2, Gemini 3.1, Seedream, Z-Image and any other txt2img or img2img model in the catalog. Results open in an Image Editor and appear in Generations with <b>Show</b>, <b>Apply as texture</b> (a material with the image as Base Color on the active mesh), <b>Add as plane</b> (a view-facing plane at the 3D cursor) and <b>Use as video first frame</b>.</p>
 </section>
 
 <section id="video">
@@ -257,7 +257,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
   <div class="split">
     <div class="stack">
       <p>Four modes: <b>Text</b>, <b>Image</b> (one picture), <b>Multi-view</b> (several views of the same object, the first one is the front) and <b>Edit</b> (Scenario's 3D tools on the selected mesh, described below). Meshy 7 and Rodin Gen-2.5 for text; Tripo 3.1, Tripo P1, Meshy 7, Hunyuan 3.1 Pro and Rodin 2.5 for images; Meshy 7 Multi Image, Tripo 3.1 Multi View, Hunyuan 3.1 Pro Multiview and Rodin for multi-view.</p>
-      <p>The result is imported at the 3D cursor into a <b>Scenario</b> collection and the viewport switches to Material Preview so the textures show. In Generations, <b>Add to scene</b> imports the primary mesh again at the cursor, <b>Select</b> selects the objects the job created and the bin <b>deletes</b> them (after a confirmation); the objects carry the generation's id, so both work after renames. Worlds (Marble, HY World) come back as Gaussian splats (<code>.spz</code>, millions of splats); Blender cannot render splats, so they load as a coloured point cloud: the splat centres with their colours, sized points through a Geometry Nodes modifier, one million points kept for interactivity.</p>
+      <p>The result is imported at the 3D cursor into a <b>Scenario</b> collection and the viewport switches to Material Preview so the textures show. In Generations, <b>Add to scene</b> imports the primary mesh again at the cursor, <b>Select</b> selects the objects the job created and the bin <b>deletes</b> them (after a confirmation); the objects carry the generation's id, so both work after renames.</p>
       <div class="note"><span class="tag">One mesh per job</span><span>Providers return several variants of one result: Meshy sends a GLB with embedded textures, a 200+ MB OBJ and the texture PNGs; Rodin with <code>material = All</code> sends a shaded and a PBR mesh. The add-on imports one primary mesh (the textured GLB) and lists the other files with an <b>Add</b> button. Rodin defaults to PBR.</span></div>
     </div>
     <figure>
@@ -404,7 +404,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
     <img src="{{img:composer-collapsed.png}}" alt="The collapsed composer: the prompt field and a Generate button in the card's style" style="max-width:420px">
     <figcaption>Collapsed: the same field and button, ready for the next prompt.</figcaption>
   </figure>
-  <p>The pill at the bottom of every 3D viewport shows the current prompt in a field and a Generate button, in the same style as the expanded card. Drag it anywhere; a click without moving expands it. The expanded card moves the same way (drag its background), resizes from its bottom-right corner (a resize cursor appears when the pointer reaches it), and a double-click on its background puts it back; the position is remembered in the preferences. Click the pill to expand: lane tabs (Image, Video, 3D, Materials, Render Image, Render Video), the prompt, the model chip (opens the model picker), a <b>Settings</b> chip (a dialog with the lane's full form: model, prompt, references, parameters) and Generate with the price. The composer is the quick path: it uses the settings of the current lane as they stand in the sidebar or in that dialog.</p>
+  <p>The pill at the bottom of every 3D viewport shows the current prompt in a field and a Generate button, in the same style as the expanded card. Drag it anywhere; a click without moving expands it. The expanded card moves the same way (drag its background), resizes from the grip in its bottom-right corner, and a double-click on its background puts it back; the position is remembered in the preferences. Click the pill to expand: lane tabs (Image, Video, 3D, Materials, Render Image, Render Video), the prompt, the model chip (opens the model picker), a <b>Settings</b> chip (opens the sidebar) and Generate with the price. The composer is the quick path: it uses the settings of the current lane as they stand in the sidebar.</p>
   <p>Editing the prompt: click to place the caret, drag or <kbd>Shift</kbd>+arrows to select, double-click selects a word, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects all, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd> copies, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>X</kbd> cuts, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>V</kbd> pastes, typing replaces the selection, <kbd>Enter</kbd> generates, <kbd>Esc</kbd> leaves. The minus button in the top-right corner collapses the card; clicking outside also does. If drawing ever fails repeatedly the composer switches itself off; re-enable it in Preferences (Floating composer in the viewport).</p>
 </section>
 
@@ -466,7 +466,7 @@ footer{border-top:1px solid var(--line);padding-top:1.2rem;font-size:.88rem;colo
     <li>Team-scoped keys generate into the first project; a project switcher is planned. Skyboxes, custom LoRAs, Scenario Workflows and sign-in with Scenario are still planned.</li>
   </ul>
   <footer>
-    <span>Scenario for Blender v0.8.1</span>
+    <span>Scenario for Blender v0.8.0</span>
     <a href="https://github.com/edemaistre/scenario-for-blender">Source on GitHub</a>
     <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/CHANGELOG.md">Changelog</a>
     <a href="https://github.com/edemaistre/scenario-for-blender/blob/main/docs/USER_GUIDE.md">Markdown guide</a>

@@ -515,6 +515,255 @@ def _wrap(text, width):
     return lines[:12]
 
 
+def _first_image_spec(schema):
+    specs = [s for s in schema.specs if s.is_file and (s.kind or "image") == "image"]
+    arrays = [s for s in specs if s.ptype == "file_array"]
+    return (arrays or specs or [None])[0]
+
+
+def _add_file_reference(context, lane, filepath, param_name=None):
+    """Attach a local image to the first image input of the lane's current model; returns the parameter name or None."""
+    scene = context.scene
+    lane_state = scene.scenario.lane_state(lane)
+    schema = generation.schema_for(lane_state.model_id)
+    if schema is None:
+        return None
+    spec = schema.by_name(param_name) if param_name else _first_image_spec(schema)
+    if spec is None:
+        return None
+    if spec.ptype == "file":
+        for index in range(len(lane_state.references) - 1, -1, -1):
+            if lane_state.references[index].param_name == spec.name:
+                lane_state.references.remove(index)  # a single input holds one file
+    ref = lane_state.references.add()
+    ref.param_name, ref.source, ref.filepath, ref.label = spec.name, 'FILE', filepath, os.path.basename(filepath)
+    props.mark_estimate_dirty(lane_state)
+    return spec.name
+
+
+REFERENCE_TARGETS = [
+    ('3d', "3D (image to 3D)", "Open the 3D tab in Image mode with this picture as the reference"),
+    ('image', "Image", "Add this picture to the Image lane's references"),
+    ('video', "Video", "Add this picture to the Video lane's references"),
+    ('render_image', "Render Image (style)", "Add this picture as a style reference of Render Image"),
+    ('render_video', "Render Video (style)", "Add this picture as a style reference of Render Video"),
+]
+
+
+class SCENARIO_OT_use_as_reference(bpy.types.Operator):
+    bl_idname = "scenario.use_as_reference"
+    bl_label = "Use as reference"
+    bl_description = "Send this image to another lane as a reference and open that lane"
+    filepath: StringProperty()
+    target: EnumProperty(items=REFERENCE_TARGETS, default='3d')
+
+    def execute(self, context):
+        if not os.path.exists(self.filepath):
+            self.report({'ERROR'}, "File not found")
+            return {'CANCELLED'}
+        scene = context.scene
+        lane = self.target
+        if lane == "3d":
+            scene.scenario.three_d_mode = 'IMAGE'
+        scene.scenario.lane = lane
+        name = _add_file_reference(context, lane, self.filepath)
+        if name is None:
+            self.report({'WARNING'}, "The current model of that lane takes no image; pick another model, the file is not attached")
+            return {'CANCELLED'}
+        self.report({'INFO'}, f"Added to {lane} as {name}")
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_convert_to_3d(bpy.types.Operator):
+    bl_idname = "scenario.convert_to_3d"
+    bl_label = "Convert to 3D"
+    bl_description = "Open the 3D tab in Image mode with this picture as the reference, ready to generate a mesh"
+
+    filepath: StringProperty()
+
+    def execute(self, context):
+        if not os.path.exists(self.filepath):
+            self.report({'ERROR'}, "File not found")
+            return {'CANCELLED'}
+        scene = context.scene
+        scene.scenario.three_d_mode = 'IMAGE'
+        scene.scenario.lane = "3d"
+        lane_state = scene.scenario.lane_state("3d")
+        name = _add_file_reference(context, "3d", self.filepath)
+        if name is None:
+            self.report({'WARNING'}, "Pick an image-to-3D model first (the current one takes no image)")
+            return {'CANCELLED'}
+        if not lane_state.prompt.strip():
+            lane_state.prompt = ""
+        runtime.set_message("Image attached: choose the model and press Generate to get the mesh")
+        return {'FINISHED'}
+
+
+BACKGROUND_MODELS = ("model_bria-remove-background", "model_851-labs-background-remover", "model_photoroom-remove-background", "model_ideogram-remove-background",
+                     "model_pixelcut-remove-background", "model_recraft-remove-background")
+
+
+class SCENARIO_OT_remove_background(bpy.types.Operator):
+    bl_idname = "scenario.remove_background"
+    bl_label = "Remove background"
+    bl_description = "Run a background removal model on this image (spends credits); the cut-out lands in Generations"
+    filepath: StringProperty()
+
+    @classmethod
+    def poll(cls, context):
+        return _network_poll(cls, context)
+
+    def execute(self, context):
+        from ..core.api.model_filter import categories_of
+        from ..core.schema.params import build_body
+
+        if not os.path.exists(self.filepath):
+            self.report({'ERROR'}, "File not found")
+            return {'CANCELLED'}
+        records = runtime.state.records
+        candidates = [records[m] for m in BACKGROUND_MODELS if m in records]
+        if not candidates:
+            candidates = [r for r in runtime.state.lane_models.get("image", []) if "remove_background" in categories_of(r) or "remove-background" in (r.name.lower().replace(" ", "-"))]
+        if not candidates:
+            self.report({'ERROR'}, "No background removal model in the catalog")
+            return {'CANCELLED'}
+        record = candidates[0]
+        try:
+            record = generation.ensure_record(record.id)
+        except ScenarioError as err:
+            self.report({'WARNING'}, err.reason + "; try again in a moment")
+            return {'CANCELLED'}
+        schema = generation.schema_for(record.id)
+        spec = _first_image_spec(schema) if schema else None
+        if spec is None:
+            self.report({'ERROR'}, f"{record.name} takes no image input")
+            return {'CANCELLED'}
+        body = build_body(schema.specs, {}, {})
+        manager = runtime.ensure_manager()
+        rec = manager.submit("image", "image", record.id, body, files={spec.name: [self.filepath]},
+                             array_params={spec.name} if spec.ptype == "file_array" else set(),
+                             meta={"prompt": f"Background removed: {os.path.basename(self.filepath)}", "model_name": record.name, "inputs": [self.filepath]})
+        runtime.state.jobs_view.insert(0, rec)
+        self.report({'INFO'}, f"Removing the background with {record.name}")
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_reload_generation(bpy.types.Operator):
+    bl_idname = "scenario.reload_generation"
+    bl_label = "Reload parameters"
+    bl_description = "Put this generation's lane, model, prompt, settings and references back into the form"
+    local_id: StringProperty()
+
+    def execute(self, context):
+        from . import params_ui
+
+        rec = next((r for r in runtime.state.jobs_view if r.local_id == self.local_id), None)
+        if rec is None:
+            self.report({'ERROR'}, "This generation is no longer in the session list")
+            return {'CANCELLED'}
+        scene = context.scene
+        lane = rec.lane if rec.lane in props.GENERATION_LANES else {"image": "image", "video": "video", "3d": "3d", "material": "material", "audio": "audio"}.get(rec.kind, "image")
+        if lane == "edit3d":
+            scene.scenario.three_d_mode = 'EDIT'
+            scene.scenario.lane = "3d"
+        else:
+            scene.scenario.lane = lane
+        lane_state = scene.scenario.lane_state(lane)
+        valid = [item[0] for item in runtime.enum_items(("models", lane))]
+        if rec.model_id in valid:
+            lane_state.model_id = rec.model_id
+        lane_state.model_key = rec.model_id
+        schema = generation.schema_for(rec.model_id)
+        look = rec.meta.get("look") if lane in ("render_image", "render_video") else None
+        lane_state.prompt = look if look is not None else str(rec.meta.get("prompt") or rec.body.get(schema.prompt_name if schema else "prompt") or "")
+        if schema is None:
+            self.report({'WARNING'}, "Model schema not loaded yet; lane, model and prompt restored")
+            return {'FINISHED'}
+        params_ui.sync_params(lane_state, schema, rec.model_id)
+        restored = 0
+        for spec in schema.specs:
+            if spec.is_prompt or spec.is_file:
+                continue
+            index = lane_state.params.find(spec.name)
+            if index < 0:
+                continue
+            item = lane_state.params[index]
+            if spec.name not in rec.body:
+                item.enabled = bool(spec.required_always)
+                continue
+            value = rec.body[spec.name]
+            item.enabled = True
+            if spec.ptype == "string_array":
+                params_ui.set_multi_selection(item, value if isinstance(value, list) else [value])
+            elif spec.allowed_values:
+                if str(value) in [i[0] for i in runtime.enum_items(("param", rec.model_id, spec.name))]:
+                    item.enum_value = str(value)
+            elif spec.ptype == "number":
+                if spec.is_integer:
+                    item.int_value = int(value)
+                else:
+                    item.float_value = float(value)
+            elif spec.ptype == "boolean":
+                item.bool_value = bool(value)
+            else:
+                item.str_value = str(value)
+            restored += 1
+        lane_state.references.clear()
+        inputs = [p for p in (rec.meta.get("inputs") or []) if isinstance(p, str) and os.path.exists(p)]
+        for spec in schema.specs:
+            if not spec.is_file:
+                continue
+            value = rec.body.get(spec.name)
+            ids = value if isinstance(value, list) else ([value] if value else [])
+            local = [p for p in inputs if (spec.kind or "image") in ("image", "video", "audio", "3d") and p.lower().endswith(tuple(_EXTS.get(spec.kind or "image", ())))]
+            if lane in ("render_image", "render_video") and spec.name in {c.get("param") for c in []}:
+                continue
+            if local:
+                for path in local[:spec.max_length or len(local)]:
+                    ref = lane_state.references.add()
+                    ref.param_name, ref.source, ref.filepath, ref.label = spec.name, 'FILE', path, os.path.basename(path)
+                inputs = [p for p in inputs if p not in local]
+            else:
+                for asset_id in ids:
+                    if isinstance(asset_id, str) and asset_id.startswith("asset_"):
+                        ref = lane_state.references.add()
+                        ref.param_name, ref.source, ref.asset_id, ref.label = spec.name, 'ASSET', asset_id, asset_id
+        props.mark_estimate_dirty(lane_state)
+        self.report({'INFO'}, f"Restored {rec.meta.get('model_name') or rec.model_id}: prompt, {restored} setting(s), {len(lane_state.references)} reference(s)")
+        return {'FINISHED'}
+
+
+_EXTS = {"image": (".png", ".jpg", ".jpeg", ".webp"), "video": (".mp4", ".mov", ".webm"), "audio": (".mp3", ".wav", ".ogg", ".m4a"), "3d": (".glb", ".gltf", ".fbx", ".obj")}
+
+
+class SCENARIO_OT_quick_settings(bpy.types.Operator):
+    bl_idname = "scenario.quick_settings"
+    bl_label = "Generation settings"
+    bl_description = "The settings of the current lane (model, prompt, references, parameters) in a dialog"
+    lane: StringProperty(default="image")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=560, title=f"{dict((i[0], i[1]) for i in props.LANE_ITEMS).get(self.lane, self.lane)} settings", confirm_text="Done")
+
+    def draw(self, context):
+        from . import panels, render_lanes
+
+        layout = self.layout
+        if not runtime.state.catalog_loaded:
+            panels.draw_loading(layout)
+            return
+        lane = self.lane if self.lane in props.GENERATION_LANES else "image"
+        if lane == "render_image":
+            render_lanes.draw_render_image_lane(layout, context)
+        elif lane == "render_video":
+            render_lanes.draw_render_video_lane(layout, context)
+        else:
+            panels.draw_generate_lane(layout, context, lane)
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
 class SCENARIO_OT_add_sound_strip(bpy.types.Operator):
     bl_idname = "scenario.add_sound_strip"
     bl_label = "Add to sequencer"
@@ -666,7 +915,8 @@ class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
 
 
 CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_use_first_frame, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects,
-           SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_delete_result_objects, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
+           SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_delete_result_objects,
+           SCENARIO_OT_use_as_reference, SCENARIO_OT_convert_to_3d, SCENARIO_OT_remove_background, SCENARIO_OT_reload_generation, SCENARIO_OT_quick_settings, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
 

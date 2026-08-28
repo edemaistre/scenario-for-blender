@@ -28,6 +28,14 @@ def _run_importer(kind, path):
         bpy.ops.import_scene.fbx(filepath=path)
     elif kind == "obj":
         bpy.ops.wm.obj_import(filepath=path)
+    elif kind == "spz":
+        from . import apply_splat
+
+        apply_splat.import_spz(bpy.context, path)
+    elif kind == "ply":
+        from . import apply_splat
+
+        apply_splat.import_ply(bpy.context, path)
     else:
         raise RuntimeError(f"no importer for {path}")
 
@@ -143,5 +151,9 @@ def on_3d_result(rec):
     _material_preview()
     extra = f", {len(alternates)} other mesh file(s) kept on disk" if alternates else ""
     where = f"next to {source.name}" if source is not None else "at the 3D cursor"
+    if any(o.get("scenario_splat_points") for o in objects):
+        pts = next(o for o in objects if o.get("scenario_splat_points"))
+        runtime.set_message(f"World loaded as a point cloud: {pts['scenario_splat_kept']:,} of {pts['scenario_splat_points']:,} splats {where}")
+        return objects
     runtime.set_message(f"Imported {len(meshes)} mesh(es) {where} ({'textured' if textured else 'no textures'}){extra}")
     return objects

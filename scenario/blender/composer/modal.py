@@ -153,6 +153,10 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
                 return {'RUNNING_MODAL'}
             hit = layout.hit(*state.mouse)
             if hit != state.hover:
+                if hit == ("resize",):
+                    _cursor(context, 'MOVE_X')  # the corner shows a resize cursor instead of a permanent grip
+                elif state.hover == ("resize",):
+                    _cursor(context, None)
                 state.hover = hit
                 _redraw(context)
             if hit is None and not state.focused:
@@ -223,7 +227,11 @@ class SCENARIO_OT_composer_modal(bpy.types.Operator):
                 except (RuntimeError, AttributeError):
                     pass
             elif kind == "settings":
-                _open_sidebar(context)
+                # the generation settings of the current lane, in a dialog right here
+                try:
+                    bpy.ops.scenario.quick_settings('INVOKE_DEFAULT', lane=state.lane_for(scene))
+                except (RuntimeError, AttributeError):
+                    _open_sidebar(context)
             _redraw(context)
             return {'RUNNING_MODAL'}
         if not state.focused:

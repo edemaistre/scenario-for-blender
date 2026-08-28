@@ -233,8 +233,8 @@ def draw_composer():
         blf.size(FONT, font_px)
         tw = blf.dimensions(FONT, label)[0]
         text(gr.x + max(8 * scale, (gr.w - tw) / 2), gr.y + (gr.h - font_px) / 2 + 2 * scale, font_px, label, TEXT, max_width=gr.w - 12 * scale)
-        if layout.resize_rect is not None:
-            _grip(layout.resize_rect, scale, hovered=(state.hover == ("resize",)) or state.drag_mode == "resize")
+        if layout.resize_rect is not None and ((state.hover == ("resize",)) or state.drag_mode == "resize"):
+            _grip(layout.resize_rect, scale, hovered=True)  # the corner only shows itself when the pointer reaches it
         note = status_note(lane_state)
         if note and gr.x - note_x > 40 * scale:
             text(note_x, mr.y + (mr.h - font_px) / 2 + 2 * scale, int(11 * scale), note, MUTED, max_width=gr.x - note_x - 10 * scale)

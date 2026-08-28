@@ -184,7 +184,7 @@ class JobManager:
                 self._fail(rec, jobs_api.error_text(job) or rec.status)
             return
 
-    MESH_MIMES = ("model/gltf-binary", "model/gltf+json", "model/x-fbx", "model/obj")
+    MESH_MIMES = ("model/gltf-binary", "model/gltf+json", "model/x-fbx", "model/obj", "model/spz", "model/ply", "application/x-ply")
 
     def _download_results(self, client, rec):
         """Fetch every asset record, then download meshes first. For 3D jobs a failed alternate or texture
