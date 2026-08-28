@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Bridge between ParamSpec schemas and the ScenarioParamValue collection, plus drawing."""
-from . import runtime
+from . import props, runtime
 
 SEP = ","
 
@@ -33,7 +33,7 @@ def sync_params(lane_state, schema, model_id):
                 lane_state.params.remove(lane_state.params.find(spec.name))
             item = lane_state.params.add()
             item.name, item.ptype = spec.name, spec.ptype
-            item.model_id, item.lane, item.label = model_id, lane_state.lane, spec.label
+            item.model_id, item.lane, item.label = model_id, props.lane_of(lane_state), spec.label
             _apply_default(item, spec, schema)
             created = True
         keep[spec.name] = True
@@ -157,7 +157,7 @@ def draw_params(layout, lane_state, schema, exclude=()):
                 selected = set(multi_selection(item))
                 for value in spec.allowed_values:
                     op = grid.operator("scenario.toggle_multi", text=spec.label_for(value), depress=str(value) in selected)
-                    op.lane, op.param_name, op.value = lane_state.lane, spec.name, str(value)
+                    op.lane, op.param_name, op.value = props.lane_of(lane_state), spec.name, str(value)
             elif spec.allowed_values:
                 sub.prop(item, "enum_value", text=label)
             else:

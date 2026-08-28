@@ -113,6 +113,15 @@ class Catalog:
         return [ModelRecord.from_api(m) for m in json.loads(path.read_text(encoding="utf-8"))]
 
     # -- single records -----------------------------------------------------
+    def load_cached(self, model_id):
+        path = self.cache_dir / "models" / f"{model_id}.json"
+        if not path.exists():
+            return None
+        try:
+            return ModelRecord.from_api(json.loads(path.read_text(encoding="utf-8")))
+        except (ValueError, OSError):
+            return None
+
     def get(self, model_id, refresh=False):
         path = self.cache_dir / "models" / f"{model_id}.json"
         if path.exists() and not refresh:

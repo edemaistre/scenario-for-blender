@@ -19,6 +19,7 @@ LANE_ITEMS = [
 ]
 GENERATION_LANES = ("image", "video", "3d", "material", "render")
 LANE_ATTR = {"image": "image", "video": "video", "3d": "three_d", "material": "material", "render": "render"}
+ATTR_LANE = {attr: lane for lane, attr in LANE_ATTR.items()}
 REFERENCE_SOURCES = [
     ('FILE', "File", "An image or video file on disk"),
     ('VIEWPORT', "Viewport still", "Capture the active 3D viewport as an image at generate time"),
@@ -30,11 +31,23 @@ REFERENCE_SOURCES = [
 ]
 CAPTURE_SOURCES = ('VIEWPORT', 'CAMERA', 'VIEWPORT_CLIP', 'CAMERA_CLIP')
 CLIP_SOURCES = ('VIEWPORT_CLIP', 'CAMERA_CLIP')
+ADDABLE_SOURCES = [item for item in REFERENCE_SOURCES if item[0] != 'ASSET']  # asset ids come from the MCP tools, not the Add menu
 
 
 def mark_estimate_dirty(lane_state):
     lane_state.estimate_state = 'PENDING'
     lane_state.estimate_dirty_at = time.time()
+    lane_state.estimate_key = ""  # a quote already in flight belongs to the previous form
+
+
+def lane_of(lane_state):
+    """Lane name derived from where the state lives on the scene, so drawing never has to write it."""
+    try:
+        path = lane_state.path_from_id()
+    except (ValueError, AttributeError):
+        return lane_state.lane or "image"
+    attr = path.rsplit(".", 1)[-1]
+    return ATTR_LANE.get(attr, lane_state.lane or "image")
 
 
 def _param_items(self, context):
@@ -90,12 +103,14 @@ class ScenarioReference(bpy.types.PropertyGroup):
 
 
 def _model_items(self, context):
-    return runtime.enum_items(("models", self.lane))
+    return runtime.enum_items(("models", lane_of(self)))
 
 
 def _on_model_change(self, context):
     from . import generation
 
+    if self.model_id and self.model_id != "NONE":
+        self.model_key = self.model_id
     generation.on_model_changed(context, self)
 
 
@@ -112,6 +127,7 @@ def _on_mode_change(self, context):
 class ScenarioLaneState(bpy.types.PropertyGroup):
     lane: StringProperty()
     model_id: EnumProperty(name="Model", items=_model_items, update=_on_model_change)
+    model_key: StringProperty(description="Chosen model id, the source of truth that survives catalog changes")
     prompt: StringProperty(name="Prompt", description="What to generate", update=_on_prompt_update)
     params: CollectionProperty(type=ScenarioParamValue)
     references: CollectionProperty(type=ScenarioReference)
@@ -144,10 +160,7 @@ class ScenarioSceneProps(bpy.types.PropertyGroup):
         attr = LANE_ATTR.get(lane)
         if attr is None:
             return None
-        state = getattr(self, attr)
-        if not state.lane:
-            state.lane = lane
-        return state
+        return getattr(self, attr)
 
 
 CLASSES = (ScenarioParamValue, ScenarioReference, ScenarioLaneState, ScenarioSceneProps)

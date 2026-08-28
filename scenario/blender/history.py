@@ -1,8 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Scenario Inc.
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Generations panel data: cloud job pages merged with local records."""
-import threading
-
 from . import runtime
 from ..core import history as core_history
 from ..core.api import assets as assets_api
@@ -25,9 +23,8 @@ def _kinds():
     return kinds
 
 
-def _fetch(manager, token, append):
+def _fetch(manager, client, token, append):
     try:
-        client = runtime.make_client()
         rows, next_token = jobs_api.list_jobs(client, page_size=50, token=token)
         for asset_id in core_history.prompt_asset_ids(rows)[:MAX_PROMPT_LOOKUPS]:
             if asset_id in _prompt_texts:
@@ -46,7 +43,7 @@ def _fetch(manager, token, append):
 
 def refresh():
     manager = runtime.ensure_manager()
-    threading.Thread(target=_fetch, args=(manager, None, False), daemon=True, name="scenario-history").start()
+    manager._spawn(_fetch, manager, runtime.make_client(), None, False)
     return manager
 
 
@@ -55,7 +52,7 @@ def older():
     if not token:
         return False
     manager = runtime.ensure_manager()
-    threading.Thread(target=_fetch, args=(manager, token, True), daemon=True, name="scenario-history").start()
+    manager._spawn(_fetch, manager, runtime.make_client(), token, True)
     return True
 
 

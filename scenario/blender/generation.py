@@ -71,13 +71,56 @@ def set_catalog(records, detailed):
         runtime.set_enum_items(("models", lane), [(r.id, r.name, r.short_description) for r in lane_records])
     runtime.state.catalog_loaded = True
     runtime.state.catalog_loading = False
+    runtime.state.catalog_error = ""
     for scene in bpy.data.scenes:
         for lane in props.GENERATION_LANES:
             lane_state = scene.scenario.lane_state(lane)
+            restore_model_key(lane_state)
             # a catalog refresh must not re-price forms that are already quoted
             on_model_changed(bpy.context, lane_state, mark_dirty=False)
     if bpy.context.scene is not None:
         refresh_3d_models(bpy.context)
+
+
+def restore_model_key(lane_state):
+    """Point the enum back at the model the user chose (stored by id), if the rebuilt list still has it."""
+    key = lane_state.model_key
+    if not key:
+        return
+    valid = [item[0] for item in runtime.enum_items(("models", props.lane_of(lane_state)))]
+    if key in valid and lane_state.model_id != key:
+        lane_state.model_id = key
+
+
+def set_models(detailed, failed):
+    for rec in detailed:
+        runtime.state.records[rec.id] = rec
+        _schemas.pop(rec.id, None)
+    for model_id, reason in failed.items():
+        runtime.set_message(f"{model_id}: {reason}")
+    _pending_models.difference_update([r.id for r in detailed] + list(failed))
+    for scene in bpy.data.scenes:
+        for lane in props.GENERATION_LANES:
+            lane_state = scene.scenario.lane_state(lane)
+            if lane_state.model_id in [r.id for r in detailed]:
+                on_model_changed(bpy.context, lane_state)
+
+
+_pending_models = set()
+
+
+def request_model(model_id):
+    """Fetch a model record in the background; the 'models' event finishes the job."""
+    if model_id in _pending_models or not runtime.online():
+        return
+    try:
+        manager = runtime.ensure_manager()
+        catalog = runtime.ensure_catalog()
+    except ScenarioError as err:
+        runtime.set_message(err.reason)
+        return
+    _pending_models.add(model_id)
+    manager.fetch_models(catalog, [model_id])
 
 
 def _image_inputs(record):
@@ -121,11 +164,22 @@ def refresh_3d_models(context=None):
 
 
 def ensure_record(model_id):
-    """Return a detailed record (with parameters); fetch synchronously if only the list entry is known."""
+    """Return a detailed record (with parameters), from memory or the disk cache; never hits the network on the main thread.
+
+    Callers that can wait use request_model() and react to the 'models' event. MCP tools run this off the main
+    thread through the executor and may fetch synchronously."""
     record = runtime.state.records.get(model_id)
     if record is not None and record.parameters:
         return record
     catalog = runtime.ensure_catalog()
+    cached = catalog.load_cached(model_id)
+    if cached is not None and cached.parameters:
+        runtime.state.records[model_id] = cached
+        _schemas.pop(model_id, None)
+        return cached
+    if runtime.on_main_thread():
+        request_model(model_id)
+        raise ScenarioError(0, "Loading the model description")
     record = catalog.get(model_id)
     runtime.state.records[model_id] = record
     _schemas.pop(model_id, None)
@@ -139,8 +193,9 @@ def on_model_changed(context, lane_state, mark_dirty=True):
     try:
         ensure_record(model_id)
     except ScenarioError as err:
-        lane_state.last_error = err.reason
+        lane_state.last_error = "" if err.reason.startswith("Loading") else err.reason
         return
+    lane_state.last_error = ""
     schema = schema_for(model_id)
     if schema is None:
         return
@@ -184,9 +239,12 @@ def build_request(scene, lane, for_estimate=False):
             elif ref.source == 'FILE' and ref.filepath:
                 files.setdefault(spec.name, []).append(bpy.path.abspath(ref.filepath))
             elif ref.source == 'RENDER':
-                path = _save_render_result(scene)
-                if path:
-                    files.setdefault(spec.name, []).append(path)
+                if for_estimate:
+                    captures.append({"param": spec.name, "source": 'RENDER', "camera": None})  # quoted like a pending file, no disk write
+                else:
+                    path = _save_render_result(scene)
+                    if path:
+                        files.setdefault(spec.name, []).append(path)
             elif ref.source in props.CAPTURE_SOURCES:
                 captures.append({"param": spec.name, "source": ref.source, "camera": ref.asset_id or None})
     body = build_body(schema.specs, values, asset_ids, enabled=enabled)
@@ -224,7 +282,8 @@ def apply_match_timeline(scene, lane_state, schema):
         item = lane_state.params[index]
         if item.enum_value != str(value):
             item.enum_value = str(value)
-        item.enabled = True
+        if not item.enabled:
+            item.enabled = True
     return value, note, seconds
 
 
@@ -245,6 +304,8 @@ def perform_captures(context, request, runner=None):
         limit = max(numeric) if numeric else None
     for cap in request.captures:
         source = cap["source"]
+        if source == 'RENDER':
+            continue
         camera = bpy.data.objects.get(cap["camera"]) if cap.get("camera") else None
         base = 'CAMERA' if source.startswith('CAMERA') else 'VIEWPORT'
         force_solid = bool(lane_state.force_solid) if lane_state is not None else False

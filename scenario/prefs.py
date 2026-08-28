@@ -13,7 +13,7 @@ class ScenarioPreferences(bpy.types.AddonPreferences):
     api_key: StringProperty(name="API Key", subtype='PASSWORD', description="Scenario API key (Project or Team scoped). Created in the Scenario portal")
     api_secret: StringProperty(name="API Secret", subtype='PASSWORD', description="Shown once when the key is created")
     output_dir: StringProperty(name="Output Folder", subtype='DIR_PATH', default="~/Downloads/Scenario", description="Generated files are saved here, one subfolder per kind")
-    composer_enabled: BoolProperty(name="Floating composer in the viewport", default=True)
+    composer_enabled: BoolProperty(name="Floating composer in the viewport", default=True, update=lambda self, context: __import__(__package__ + ".blender.composer", fromlist=["set_enabled"]).set_enabled(self.composer_enabled))
     mcp_port: IntProperty(name="MCP Port", default=9876, min=1024, max=65535)
     mcp_allow_python: BoolProperty(name="Allow connected agents to run Python", default=True, description="Agents connected through the local MCP server may execute bpy code in this Blender")
     log_level: EnumProperty(name="Log Level", items=[('INFO', "Info", ""), ('DEBUG', "Debug", "")], default='INFO')

@@ -33,6 +33,17 @@ def _prepare():
             bpy.context.scene.scenario.lane_state(LANE).prompt = PROMPT
         if LANE == "history":
             bpy.ops.scenario.history_refresh()
+        if ACTION == "composer":
+            import importlib
+            name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
+            runtime = importlib.import_module(name + ".blender.runtime")
+            state = runtime.state.composer
+            state.expanded = True
+            state.sync_from_lane(bpy.context.scene)
+            state.focused = True
+            state.field.end()
+            for a in bpy.context.window_manager.windows[0].screen.areas:
+                a.tag_redraw()
         if ACTION == "mcpproof":
             import importlib
             import json

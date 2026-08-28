@@ -104,3 +104,59 @@ def test_resume_polls_unfinished_jobs(tmp_path):
     manager.join(timeout=5)
     assert events_of("job_failed", manager.drain())[0].status == "canceled"
     assert t.calls[0]["url"].endswith("/jobs/job_9")
+
+
+def test_submit_without_credentials_raises_before_any_record(tmp_path):
+    from scenario.core.api.errors import ScenarioError
+
+    def broken():
+        raise ScenarioError(0, "Add your Scenario API key")
+
+    registry = JobRegistry(paths(tmp_path).registry_file)
+    manager = JobManager(broken, registry, paths(tmp_path), sleep=lambda s: None)
+    try:
+        manager.submit("image", "image", "m", {})
+        assert False, "expected ScenarioError"
+    except ScenarioError:
+        pass
+    assert registry.all() == []
+
+
+def test_resume_without_credentials_keeps_records_pending_for_retry(tmp_path):
+    from scenario.core.api.errors import ScenarioError
+
+    registry = JobRegistry(paths(tmp_path).registry_file)
+    rec = JobRecord.new(lane="image", kind="image", model_id="m", body={})
+    rec.job_id, rec.status = "job_r", "in-progress"
+    registry.add(rec)
+    calls = {"n": 0}
+
+    def factory():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ScenarioError(0, "no key yet")
+        return ScenarioClient("k", "s", transport=FakeTransport().queue(200, {"job": {"jobId": "job_r", "status": "success", "metadata": {"assetIds": []}}}), sleep=lambda s: None)
+
+    manager = JobManager(factory, registry, paths(tmp_path), sleep=lambda s: None)
+    manager.resume()
+    assert [r.job_id for r in manager.resume_pending] == ["job_r"]
+    assert rec.status == "in-progress"
+    manager.retry_resume()
+    manager.join(timeout=5)
+    assert manager.resume_pending == []
+    assert any(name == "job_done" for name, _ in manager.drain())
+
+
+def test_download_failure_marks_job_failed_but_keeps_asset_ids(tmp_path):
+    job = json.loads((FIXTURES / "patina-copper-512" / "job.json").read_text())
+    t = FakeTransport().queue(200, job).queue(200, job).queue(200, {"asset": {"id": "a1", "url": "https://cdn/a1", "mimeType": "image/png", "metadata": {}}})
+
+    def failing_downloader(url, dest, **kw):
+        raise OSError("wifi blip")
+
+    manager = make_manager(tmp_path, t, downloader=failing_downloader)
+    rec = manager.submit("material", "material", "model_patina-material", {"prompt": "x"})
+    manager.join(timeout=5)
+    failed = events_of("job_failed", manager.drain())[0]
+    assert failed.status == "failed" and "download failed" in failed.error
+    assert failed.files == [] and len(failed.asset_ids) == 6

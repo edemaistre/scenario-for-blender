@@ -80,7 +80,11 @@ def generate_button_text(lane_state):
 def draw_generate_lane(layout, context, lane):
     lane_state = context.scene.scenario.lane_state(lane)
     if not runtime.state.catalog_loaded:
-        layout.label(text="Loading models...", icon='TIME')
+        if runtime.state.catalog_error:
+            layout.label(text=runtime.state.catalog_error[:70], icon='ERROR')
+            layout.operator("scenario.refresh_catalog", text="Retry loading models", icon='FILE_REFRESH')
+        else:
+            layout.label(text="Loading models...", icon='TIME')
         return
     if lane == "3d":
         layout.row(align=True).prop(context.scene.scenario, "three_d_mode", expand=True)
@@ -90,7 +94,7 @@ def draw_generate_lane(layout, context, lane):
         layout.label(text=record.short_description[:70], icon='INFO')
     schema = generation.schema_for(lane_state.model_id)
     if schema is None:
-        layout.label(text=lane_state.last_error or "Model schema not loaded", icon='ERROR')
+        layout.label(text=lane_state.last_error or "Loading the model description...", icon='ERROR' if lane_state.last_error else 'TIME')
         return
     row = layout.row(align=True)
     row.prop(lane_state, "prompt", text="")
@@ -252,7 +256,7 @@ class SCENARIO_PT_results(bpy.types.Panel):
                 elif rec.kind == "material":
                     if path == rec.files[0]:
                         box.label(text="PBR material", icon='MATERIAL')
-                        mat_name = f"Scenario {(rec.meta.get('prompt') or rec.model_id).strip()[:40]}"
+                        mat_name = rec.meta.get("material_name") or f"Scenario {(rec.meta.get('prompt') or rec.model_id).strip()[:40]}"
                         if bpy.data.materials.get(mat_name):
                             box.operator("scenario.retile_material", text="Tiling", icon='UV').material_name = mat_name
                 else:
