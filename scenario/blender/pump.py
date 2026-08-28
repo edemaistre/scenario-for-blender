@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Main-thread pump: drains the job manager's event queue from a bpy.app.timers callback."""
 import logging
-import time
 
 import bpy
 
@@ -59,7 +58,7 @@ def _process():
             manager.retry_resume()
     if not runtime.state.catalog_loaded and not runtime.state.catalog_loading and not runtime.state.catalog_error and runtime.credentials().valid:
         generation.request_catalog()
-    now = time.time()
+    now = props.clock()
     for scene in bpy.data.scenes:
         for lane in props.GENERATION_LANES:
             if lane != scene.scenario.lane:

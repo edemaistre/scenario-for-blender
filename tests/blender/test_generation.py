@@ -66,3 +66,11 @@ class GenerationTests(unittest.TestCase):
         self.handlers.dispatch(("job_done", rec))
         self.assertTrue(any(img.filepath.endswith("albedo.png") for img in bpy.data.images))
         self.assertTrue(any(r.job_id == "job_done_1" for r in self.runtime.state.jobs_view))
+
+    def test_estimate_dirty_timestamp_fits_a_float_property(self):
+        props = submodule("blender.props")
+        lane = bpy.context.scene.scenario.lane_state("image")
+        props.mark_estimate_dirty(lane)
+        self.assertLess(lane.estimate_dirty_at, 1e6)  # relative clock, not an epoch (FloatProperty is 32-bit)
+        self.assertGreaterEqual(props.clock() - lane.estimate_dirty_at, 0.0)
+        self.assertEqual(lane.estimate_key, "")

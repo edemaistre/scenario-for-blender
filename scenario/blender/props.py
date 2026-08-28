@@ -34,9 +34,18 @@ CLIP_SOURCES = ('VIEWPORT_CLIP', 'CAMERA_CLIP')
 ADDABLE_SOURCES = [item for item in REFERENCE_SOURCES if item[0] != 'ASSET']  # asset ids come from the MCP tools, not the Add menu
 
 
+_T0 = time.monotonic()
+
+
+def clock():
+    """Seconds since the add-on loaded. Blender FloatProperty is 32-bit: an epoch timestamp (1.8e9) would round to
+    the nearest 128 s and make debounce comparisons fail at random, so timers stored on properties use this small clock."""
+    return time.monotonic() - _T0
+
+
 def mark_estimate_dirty(lane_state):
     lane_state.estimate_state = 'PENDING'
-    lane_state.estimate_dirty_at = time.time()
+    lane_state.estimate_dirty_at = clock()
     lane_state.estimate_key = ""  # a quote already in flight belongs to the previous form
 
 
