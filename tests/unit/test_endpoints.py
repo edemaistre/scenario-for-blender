@@ -95,3 +95,10 @@ def test_kind_and_mime_for_path():
     assert assets.kind_for_path("a.PNG") == "image" and assets.mime_for_path("a.PNG") == "image/png"
     assert assets.kind_for_path("b.mp4") == "video" and assets.kind_for_path("c.glb") == "3d"
     assert assets.kind_for_path("d.wav") == "audio" and assets.mime_for_path("e.glb") == "model/gltf-binary"
+
+
+def test_error_text_reads_metadata_error_and_hint():
+    job = {"status": "failure", "metadata": {"error": "An internal error occurred. id: error_x", "hint": "Try a longer clip"}}
+    assert jobs.error_text(job) == "An internal error occurred. id: error_x Try a longer clip"
+    assert jobs.error_text({"status": "failure"}) is None
+    assert jobs.error_text({"error": "top"}) == "top"

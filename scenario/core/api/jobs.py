@@ -55,8 +55,12 @@ def cu_cost(job):
 
 
 def error_text(job):
+    """Failure reason: top-level keys first, then metadata.error and metadata.hint (where the API puts them)."""
+    job = job or {}
     for key in ("error", "errorMessage", "failureReason", "reason"):
-        value = (job or {}).get(key)
+        value = job.get(key)
         if value:
             return str(value)
-    return None
+    meta = job.get("metadata") or {}
+    parts = [str(meta[k]) for k in ("error", "hint") if meta.get(k)]
+    return " ".join(parts) if parts else None

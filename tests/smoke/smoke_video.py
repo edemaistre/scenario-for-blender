@@ -34,7 +34,7 @@ tmp = pathlib.Path(tempfile.mkdtemp(prefix="scenario-smoke-video-"))
 paths = config.Paths(state_dir=tmp / "state", cache_dir=tmp / "cache", output_dir=tmp / "out")
 record = Catalog(client, paths.cache_dir).get("model_bytedance-seedance-2-0")
 schema = parse_schema(record)
-clip = ROOT / "tests" / "fixtures" / "smoke" / "playblast_12f.mp4"
+clip = ROOT / "tests" / "fixtures" / "smoke" / "playblast_72f.mp4"  # 3 s at 24 fps: Seedance needs at least 2 s
 print("uploading playblast", clip.stat().st_size, "bytes")
 clip_asset = assets.upload_file(client, clip, kind="video")
 print("clip asset:", clip_asset)
