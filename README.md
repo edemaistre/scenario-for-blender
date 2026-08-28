@@ -31,6 +31,14 @@ A Blender 4.2+ extension bringing Scenario's image, video, 3D and PBR material g
 2. Blender > Edit > Preferences > Add-ons > Scenario: paste an API key and secret (Scenario portal > Team > API Keys, Project or Team scope), press Test connection.
 3. In the 3D viewport press N, open the Scenario tab (or the Scenario button in the viewport header), pick a model, type a prompt, read the CU price on Generate, generate.
 
+## Floating composer
+
+A pill at the bottom of every 3D viewport shows the current prompt and a Generate button; click it to expand lane tabs, an editable prompt (Enter generates, Esc blurs, Ctrl/Cmd+V pastes), the model chip (opens the N-panel) and the live CU quote. It shares its state with the N-panel. If drawing ever fails repeatedly the composer switches itself off; re-enable it in Preferences.
+
+## Install from a repository (updates through Blender)
+
+`./tools/build_repo.sh` builds `dist/repo/` (index.json, the zip, an HTML listing). Host that folder on any static HTTPS server, then in Blender: Preferences > Get Extensions > Repositories > add the `index.json` URL (requires Allow Online Access). Updates then appear in Blender's own updater. The Extensions store itself is not an option for an account-gated add-on (ToS 3.10 / 4.3), see the spec.
+
 ## Agents (MCP)
 
 The add-on runs a local MCP server (default `http://127.0.0.1:9876/mcp`, bearer token shown in the MCP tab, new token per Blender session). Copy a setup from the MCP tab:
@@ -49,7 +57,7 @@ Agents get scene tools (summary, object detail, select, set frame, screenshots, 
 - `SCENARIO_SMOKE=1 python3 tests/smoke/smoke_image.py`, `smoke_material.py`, `smoke_video.py`: one real generation each through the core (about 9, 7 and 76 CU; the video smoke aborts if its dry run exceeds 150 CU).
 - GUI check: `blender tools/blank.blend --python tools/gui_screenshot.py -- out.png image 10`, screenshots reviewed under `~/Developer/scratch/playwright-screenshots/scenario-blender/`.
 
-Credits spent on this project so far: about 185 CU (two Patina probes 12 CU, Gemini smoke 9 CU, Patina smoke 6 CU, Seedance smoke 76 CU plus one failed 76 CU attempt on a 0.5 s clip, quality-gate fees), cap agreed about $30.
+Credits spent on this project so far: about 185 CU (no new spend in P3/P4) (two Patina probes 12 CU, Gemini smoke 9 CU, Patina smoke 6 CU, Seedance smoke 76 CU plus one failed 76 CU attempt on a 0.5 s clip, quality-gate fees), cap agreed about $30.
 
 ## Verified vs assumed
 
