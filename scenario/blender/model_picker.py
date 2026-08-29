@@ -302,14 +302,13 @@ def chip_rows(chips, per_row=CHIPS_PER_ROW):
 
 
 def _centered_cells(parent, struct, prop, values):
-    """One justified cell per value (a column that fills its share of the width); inside each, the icon glued to its
-    label and the pair centred. The only Blender layout that gives full-width cells and centred content together."""
-    row = parent.row(align=True)
+    """One justified cell per value spanning the full width (an equal share, edge to edge); inside each, the icon
+    glued to its label with the pair centred. `grid_flow(even_columns=True)` forces the equal full-width cells."""
+    grid = parent.grid_flow(row_major=True, columns=max(1, len(values)), even_columns=True, align=True)
     for value in values:
-        cell = row.column(align=True)
-        centered = cell.row(align=True)
-        centered.alignment = 'CENTER'
-        centered.prop_enum(struct, prop, value)
+        cell = grid.row(align=True)
+        cell.alignment = 'CENTER'
+        cell.prop_enum(struct, prop, value)
 
 
 def draw_filters(layout, wm):
@@ -421,11 +420,12 @@ def draw_model_row(layout, lane_state, lane):
     else:
         label = "Choose a model..." if runtime.state.catalog_loaded else "Loading models..."
         icon_kwargs = {"icon": 'VIEWZOOM'}
-    mid = row.column(align=True)  # a column expands to fill the bar; the centred row inside centres the button
-    centered = mid.row(align=True)
+    # the button area is forced to most of the width by a split; the centred row inside centres the icon+name in the bar
+    area = row.split(factor=0.86, align=True)
+    centered = area.row(align=True)
     centered.alignment = 'CENTER'
     centered.operator("scenario.pick_model", text=label, **icon_kwargs).lane = lane
-    row.prop(lane_state, "model_id", text="", icon_only=True)
+    area.prop(lane_state, "model_id", text="", icon_only=True)
 
 
 CLASSES = (ScenarioPickerItem, SCENARIO_UL_models, SCENARIO_OT_pick_model)

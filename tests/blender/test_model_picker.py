@@ -72,7 +72,7 @@ def fake_records():
 class FakeLayout:
     """Records the UILayout calls a draw function makes: containers (row, column, box, split) return a child that records
     its own calls, everything else is logged as (name, args, kwargs). Attributes like `alignment` are plain attributes."""
-    CONTAINERS = ("row", "column", "box", "split")
+    CONTAINERS = ("row", "column", "box", "split", "grid_flow")
 
     def __init__(self, kind="layout", **kwargs):
         self.kind, self.kwargs, self.children, self.calls = kind, kwargs, [], []

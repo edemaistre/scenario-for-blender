@@ -57,17 +57,16 @@ def draw_model_row(layout, lane_state, lane):
 
 
 def draw_enum_tabs(layout, struct, prop, rows):
-    """Tab rows where each cell fills its share of the width (justified), and inside every cell the icon is glued to
-    its label with the pair centred. A column per value expands to an equal width; a CENTER-aligned row inside it
-    shrinks the button to its content and centres it. This is the only Blender layout that gives both at once."""
+    """Tab rows that span the full width (each cell an equal share, edge to edge) with the icon glued to its label and
+    the pair centred inside the cell. `grid_flow(even_columns=True)` forces equal full-width cells whatever their
+    content; a CENTER-aligned row inside each centres the button. A plain column shrinks to content instead."""
     col = layout.column(align=True)
     for values in rows:
-        row = col.row(align=True)
+        grid = col.grid_flow(row_major=True, columns=len(values), even_columns=True, align=True)
         for value in values:
-            cell = row.column(align=True)
-            centered = cell.row(align=True)
-            centered.alignment = 'CENTER'
-            centered.prop_enum(struct, prop, value)
+            cell = grid.row(align=True)
+            cell.alignment = 'CENTER'
+            cell.prop_enum(struct, prop, value)
 
 
 def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
