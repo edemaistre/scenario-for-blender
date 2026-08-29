@@ -91,23 +91,34 @@ def _prepare():
             fail.error = "The model file is too large for processing. Try reducing the resolution or simplifying the geometry of your input, then retry the generation. [Error ID: error_Uq14k1SGmKWhPfv4HZ4hyZRN]"
             runtime.state.jobs_view.extend([fail, ok])
         if ACTION == "blockout":
-            # build a sample greybox and frame it, and show the 3D tab (with the Blockout button)
+            # build a sample greybox (rich primitives + category colours) and frame it, on the Blockout tab
             import importlib
             name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
             blockout = importlib.import_module(name + ".blender.blockout")
             for o in list(bpy.context.scene.objects):
                 if o.type == 'MESH':
                     bpy.data.objects.remove(o, do_unlink=True)
-            boxes = [
-                {"name": "Ground", "position": [0, 0, -0.1], "size": [12, 12, 0.2]},
-                {"name": "Well", "position": [0, 0, 0.6], "size": [1.6, 1.6, 1.2]},
-                {"name": "Gate", "position": [0, -5.5, 2.0], "size": [4, 0.5, 4]},
-                {"name": "Stall A", "position": [-3.5, 2.5, 1.0], "size": [2.4, 2, 2]},
-                {"name": "Stall B", "position": [3.5, 2.5, 1.0], "size": [2.4, 2, 2]},
-                {"name": "Tower", "position": [4.5, -3.5, 3.0], "size": [2, 2, 6]},
+            def E(nm, cat, prim, pos, sz, rot=0, grp="Blockout"):
+                return {"name": nm, "category": cat, "primitive": prim, "position": pos, "size": sz, "rotation": rot, "group": grp}
+            els = [
+                E("Ground", "floor", "plane", [0, 0, -0.05], [16, 16, 0.1], grp="Ground"),
+                E("Well", "water", "cylinder", [0, 0, 0.6], [1.8, 1.8, 1.2], grp="Center"),
+                E("Gate", "structure", "box", [0, -6.5, 2.0], [4.5, 0.5, 4], grp="Walls"),
+                E("Wall L", "wall", "box", [-6, 0, 1.5], [0.4, 12, 3], grp="Walls"),
+                E("Wall R", "wall", "box", [6, 0, 1.5], [0.4, 12, 3], grp="Walls"),
+                E("Stall A", "furniture", "box", [-3.5, 3, 1.0], [2.4, 2, 1.6], rot=15, grp="Market"),
+                E("Stall B", "furniture", "box", [3.5, 3, 1.0], [2.4, 2, 1.6], rot=-15, grp="Market"),
+                E("Awning A", "prop", "wedge", [-3.5, 3, 2.2], [2.6, 2.2, 0.8], rot=15, grp="Market"),
+                E("Tower", "structure", "cylinder", [5, -5, 3.5], [2.2, 2.2, 7], grp="Tower"),
+                E("Spire", "structure", "cone", [5, -5, 8.2], [2.4, 2.4, 2.4], grp="Tower"),
+                E("Tree", "vegetation", "sphere", [-5, -4, 2.2], [2.4, 2.4, 2.4], grp="Nature"),
+                E("Trunk", "vegetation", "cylinder", [-5, -4, 0.8], [0.4, 0.4, 1.6], grp="Nature"),
             ]
-            blockout.build_blockout(bpy.context, boxes)
-            bpy.context.scene.scenario.lane = '3d'
+            blockout.build_blockout(bpy.context, els)
+            import json as _json
+            bpy.context.scene.scenario_blockout.plan_json = _json.dumps(els)  # so the tab shows the plan summary
+            bpy.context.scene.scenario_blockout.prompt = "a medieval market square: a central well, a stone gate, stalls, a watchtower"
+            bpy.context.scene.scenario.lane = 'blockout'
             for a in bpy.context.window_manager.windows[0].screen.areas:
                 if a.type == 'VIEW_3D':
                     for region in a.regions:

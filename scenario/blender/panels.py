@@ -208,7 +208,6 @@ def draw_generate_lane(layout, context, lane):
     lane_state = context.scene.scenario.lane_state(lane)
     if lane == "3d":
         layout.row(align=True).prop(context.scene.scenario, "three_d_mode", expand=True)
-        layout.operator("scenario.blockout", text="Blockout from prompt", icon='MESH_CUBE')  # grey-box the scene from text
         if context.scene.scenario.three_d_mode == 'EDIT':
             draw_edit3d_lane(layout, context)
             return
@@ -435,6 +434,40 @@ def draw_history(layout, context, shown_ids=()):
 
 # -- panels -------------------------------------------------------------------
 
+def draw_blockout_tab(layout, context):
+    """Prompt to Blockout: describe a scene, the Scenario LLM designs a greybox, then refine or rebuild it."""
+    from . import blockout as bo
+    from ..core.scene import blockout as core
+
+    props = context.scene.scenario_blockout
+    box = layout.box()
+    box.label(text="Prompt to Blockout", icon='MESH_CUBE')
+    box.prop(props, "prompt", text="")
+    row = box.row(align=True)
+    row.prop(props, "scene_type", text="")
+    row.prop(props, "scale", text="")
+    box.operator("scenario.blockout_design", text="Design blockout", icon='MOD_BUILD')
+
+    plan = bo.stored_plan(context.scene)
+    if plan:
+        summary = core.plan_summary(plan)
+        info = layout.box()
+        info.label(text=f"{summary['total']} elements  ·  {len(summary['by_group'])} group(s)", icon='OUTLINER_OB_GROUP_INSTANCE')
+        grid = info.grid_flow(columns=2, align=True, even_columns=True)
+        for cat, count in sorted(summary["by_category"].items(), key=lambda kv: (-kv[1], kv[0])):
+            label = core.CATEGORIES.get(cat, core.CATEGORIES[core.DEFAULT_CATEGORY])[0]
+            grid.label(text=f"{label}: {count}", icon='LAYER_ACTIVE')
+        actions = info.row(align=True)
+        actions.operator("scenario.blockout_build", text="Rebuild", icon='FILE_REFRESH')
+        actions.operator("scenario.blockout_clear", text="Clear", icon='TRASH')
+        refine = layout.box()
+        refine.label(text="Refine", icon='GREASEPENCIL')
+        rrow = refine.row(align=True)
+        rrow.prop(props, "refine", text="", placeholder="add a second floor, taller tower, more stalls...")
+        rrow.operator("scenario.blockout_refine", text="Refine", icon='MOD_BUILD')
+    layout.label(text="Boxes land in the 'Blockout' collection, coloured by type. About 0.5 CU per design.", icon='INFO')
+
+
 class SCENARIO_PT_main(bpy.types.Panel):
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -447,10 +480,12 @@ class SCENARIO_PT_main(bpy.types.Panel):
         if not draw_account_strip(layout, context):
             return
         scenario = context.scene.scenario
-        draw_enum_tabs(layout, scenario, "lane", (("image", "video", "3d"), ("audio", "material"), ("render_image", "render_video")))
+        draw_enum_tabs(layout, scenario, "lane", (("image", "video", "3d"), ("audio", "material"), ("render_image", "render_video"), ("blockout",)))
         layout.separator(factor=0.5)  # breathing room between the tabs and the lane form
         lane = scenario.lane
-        if not runtime.state.catalog_loaded:
+        if lane == "blockout":
+            draw_blockout_tab(layout, context)
+        elif not runtime.state.catalog_loaded:
             draw_loading(layout)
         elif lane in GENERATE_LANES:
             draw_generate_lane(layout, context, lane)

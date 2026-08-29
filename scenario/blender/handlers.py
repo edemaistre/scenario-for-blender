@@ -38,10 +38,10 @@ def dispatch(event):
             prompt_tools.on_prompt_event(payload)
         except ImportError:
             runtime.set_message("Prompt tools are not installed")
-    elif name == "blockout":
+    elif name == "blockout_plan":
         from . import blockout
 
-        blockout.on_blockout_event(payload)
+        blockout.on_blockout_plan(payload)
     elif name == "error":
         runtime.set_message(str(payload))
 

@@ -31,7 +31,7 @@ class RenderLanesTests(unittest.TestCase):
     def test_lane_tabs_have_no_generations_or_mcp(self):
         props = submodule("blender.props")
         ids = [item[0] for item in props.LANE_ITEMS]
-        self.assertEqual(ids, ["image", "video", "3d", "material", "audio", "render_image", "render_video"])
+        self.assertEqual(ids, ["image", "video", "3d", "material", "audio", "render_image", "render_video", "blockout"])
         self.assertIsNotNone(self.scene.scenario.lane_state("render_image"))
         self.assertIsNotNone(self.scene.scenario.lane_state("edit3d"))
 

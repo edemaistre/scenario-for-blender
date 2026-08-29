@@ -18,8 +18,9 @@ LANE_ITEMS = [
     ('audio', "Audio", "Speech, music and sound effects; results can go on the sequencer"),
     ('render_image', "Render Image", "Render the viewport or the camera view as a finished still: capture + optional style images + look prompt"),
     ('render_video', "Render Video", "Render a playblast of the timeline as a finished clip: captured video + optional images + look prompt"),
+    ('blockout', "Blockout", "Prompt to Blockout: design a greybox of a whole scene from a description, then refine or replace it with generated 3D assets"),
 ]
-TAB_ICON = {"image": "image", "video": "video", "3d": "3d", "material": "image", "audio": "audio", "render_image": "image", "render_video": "video"}
+TAB_ICON = {"image": "image", "video": "video", "3d": "3d", "material": "image", "audio": "audio", "render_image": "image", "render_video": "video", "blockout": "3d"}
 # Every lane a request can be built for (the tabs plus edit3d, reached through the 3D tab's Edit mode).
 GENERATION_LANES = ("image", "video", "3d", "material", "audio", "render_image", "render_video", "edit3d")
 LANE_ATTR = {"image": "image", "video": "video", "3d": "three_d", "material": "material", "audio": "audio", "render_image": "render_image", "render_video": "render_video", "edit3d": "edit3d"}
@@ -272,16 +273,36 @@ class ScenarioSceneProps(bpy.types.PropertyGroup):
         return getattr(self, attr)
 
 
-CLASSES = (ScenarioParamValue, ScenarioReference, ScenarioLaneState, ScenarioSceneProps)
+def _blockout_scene_types(self, context):
+    from ..core.scene import blockout
+    return [(k, label, desc) for k, label, desc in blockout.SCENE_TYPES]
+
+
+def _blockout_scales(self, context):
+    from ..core.scene import blockout
+    return [(k, label, desc) for k, label, desc in blockout.SCALES]
+
+
+class ScenarioBlockoutProps(bpy.types.PropertyGroup):
+    prompt: StringProperty(name="Scene", description="Describe the scene to block out, e.g. 'a medieval market square: a central well, a stone gate, stalls around the edge, a watchtower'")
+    scene_type: EnumProperty(name="Type", items=_blockout_scene_types, description="What kind of scene, to steer the layout")
+    scale: EnumProperty(name="Scale", items=_blockout_scales, description="The overall size, to steer the layout")
+    refine: StringProperty(name="Refine", description="A change to apply to the current blockout, e.g. 'add a second floor', 'make the tower taller', 'more stalls on the left'")
+    plan_json: StringProperty(description="The current blockout plan as JSON (internal)")
+
+
+CLASSES = (ScenarioParamValue, ScenarioReference, ScenarioLaneState, ScenarioSceneProps, ScenarioBlockoutProps)
 
 
 def register():
     for cls in CLASSES:
         bpy.utils.register_class(cls)
     bpy.types.Scene.scenario = PointerProperty(type=ScenarioSceneProps)
+    bpy.types.Scene.scenario_blockout = PointerProperty(type=ScenarioBlockoutProps)
 
 
 def unregister():
+    del bpy.types.Scene.scenario_blockout
     del bpy.types.Scene.scenario
     for cls in reversed(CLASSES):
         bpy.utils.unregister_class(cls)

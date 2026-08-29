@@ -6,6 +6,14 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.8] - 2026-08-29
+
+### Added
+- **Prompt to Blockout is now its own tab** and a real scene-design system, not a box dropper. Describe a scene and the Scenario LLM designs a structured greybox: rich primitives (box, cylinder, plane, wedge/ramp, cone, sphere), rotation, and a semantic **category** per element (floor, wall, structure, prop, furniture, vegetation, vehicle, water, light) that sets its colour and its sub-collection. A scene-type and scale steer the layout. The flow is design -> review (a summary of element counts by category and group) -> build (grouped, colour-coded, in a "Blockout" collection) -> **refine** ("add a second floor", "taller tower") which re-designs from the current plan. Rebuild and Clear act on the stored plan without another LLM call. About 0.5 CU per design.
+
+### Changed
+- The old "Blockout from prompt" button in the 3D tab is replaced by the Blockout tab.
+
 ## [0.9.7] - 2026-08-29
 
 ### Added
