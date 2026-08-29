@@ -1,0 +1,136 @@
+{
+  "model": {
+    "id": "model_uthana-text-to-motion-3.0",
+    "userId": "c452b44467bd7f9d443c631491b6948b",
+    "authorId": "c452b44467bd7f9d443c631491b6948b",
+    "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+    "createdAt": "2026-06-22T09:15:59.661Z",
+    "updatedAt": "2026-06-28T14:04:10.683Z",
+    "name": "Uthana Text to Motion 3.0",
+    "shortDescription": "Uthana Text to Motion 3.0 by Uthana. Describe any motion in text and get a rigged 3D animation, exported as GLB or FBX at 24, 30, or 60 fps.",
+    "type": "custom",
+    "privacy": "public",
+    "capabilities": [
+      "txt23d"
+    ],
+    "source": "other",
+    "status": "trained",
+    "trainingProgress": {},
+    "parameters": {},
+    "trainingImagesNumber": 0,
+    "trainingImagePairs": [],
+    "tags": [
+      "3D",
+      "Animation",
+      "Motion",
+      "Uthana",
+      "sc:third-party"
+    ],
+    "collectionIds": [],
+    "exampleAssetIds": [
+      "asset_GD9rcpnMDFBo3Jtn2kmk4Nx4",
+      "asset_jQRHpazBV3mnn1GvBjdUKAnL",
+      "asset_xGjZ729wgAJqDDvju5rif6QL",
+      "asset_DEGK3TkTLRehnF3xFtLLvTq8",
+      "asset_S8VvTj2tC9Hhy8kGLWqa3vVw",
+      "asset_LxsxGtM5qrXGhj3Pb4hWdD6V",
+      "asset_pwywfZpgdNdMpgdKcnZJVJ8s",
+      "asset_qxAJfqKQ8LtRvESLqLQa7fvu",
+      "asset_kW5NFfpqTCUZ96EJsUTBDbpa",
+      "asset_HS6b12eQP8htA6Q65e9oCHfa",
+      "asset_hpa5ZiuyNcjHuyb1pc8ZHw1n",
+      "asset_dqPbWmVHDMks3u7nDhn4srqG",
+      "asset_88BB1ZAuLz2jLR6uUFeqNJR4",
+      "asset_utMg3hRZxT8X1KNHKFqx5fSh",
+      "asset_yY8PKy3JcvFcEKwLAgokZG51",
+      "asset_ed9YWunD49Sg1Tun9YbZ8dgo",
+      "asset_jsTba5Hk944oBnGQdt79kCfN"
+    ],
+    "custom": true,
+    "accessRestrictions": 50,
+    "complianceMetadata": {
+      "enterpriseStatus": "Ready",
+      "licenseTerms": "https://www.uthana.com/terms",
+      "subProcessor": "Provider",
+      "dataProcessingComment": "temporaryRetention",
+      "maintainer": "Scenario",
+      "modelProvider": "Uthana"
+    },
+    "inputs": [
+      {
+        "description": "Text description of desired animation",
+        "label": "Prompt",
+        "maxLength": 4096,
+        "name": "prompt",
+        "costImpact": false,
+        "prompt": true,
+        "required": {
+          "always": true
+        },
+        "type": "string",
+        "promptSpark": true
+      },
+      {
+        "description": "Optional 3D model to auto-rig and use as the retargeting character.",
+        "kind": "3d",
+        "label": "Character 3D model",
+        "name": "characterFile",
+        "costImpact": true,
+        "parent": true,
+        "type": "file"
+      },
+      {
+        "allowedValues": [
+          24,
+          30,
+          60
+        ],
+        "description": "Frame rate for the output file: 24, 30, or 60",
+        "default": 30,
+        "group": "Settings",
+        "label": "FPS",
+        "name": "fps",
+        "costImpact": false,
+        "type": "number"
+      },
+      {
+        "description": "If true, download animation without character mesh",
+        "default": false,
+        "group": "Settings",
+        "label": "Animation only",
+        "name": "animationOnly",
+        "costImpact": false,
+        "type": "boolean"
+      },
+      {
+        "description": "Duration in seconds (rounded to 4\u201310).",
+        "default": 8,
+        "group": "Settings",
+        "label": "Duration",
+        "max": 10,
+        "min": 4,
+        "name": "length",
+        "costImpact": true,
+        "step": 1,
+        "type": "number"
+      },
+      {
+        "description": "Auto-rewrite the prompt into physical motion directions for accuracy.",
+        "default": true,
+        "group": "Settings",
+        "label": "Rewrite prompt",
+        "name": "rewritePrompt",
+        "costImpact": false,
+        "type": "boolean"
+      }
+    ],
+    "uiConfig": {
+      "selects": {
+        "outputFormat": {
+          "glb": "GLB",
+          "fbx": "FBX"
+        }
+      }
+    }
+  }
+}

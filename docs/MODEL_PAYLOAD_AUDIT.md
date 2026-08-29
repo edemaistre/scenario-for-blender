@@ -54,6 +54,28 @@ current ids (verified against the catalog):
 - **Meshy 7 Image-to-3D**'s required `image` is the source image ("Upload one image to convert into 3D"); its
   `texturePrompt` pairs with the optional `textureImage`, not with the required source. Correct as is.
 
+## 3D mesh-input reachability (2026-08-29, v0.9.4)
+
+A follow-up review after "Uthana Text to Motion ignored my selected mesh". The plugin only auto-attached the
+selected scene mesh in the **3D Edit** lane. Models that take a mesh but live in another lane (text-to-motion,
+image-to-3D with an optional character mesh) never received it: a `txt23d` model like Uthana Text to Motion carries
+an optional `characterFile` (kind 3d, "Character 3D model") and sits in **3D > Generate/Text**, where nothing
+offered the selection.
+
+Checked every public 3D-capable model (capabilities in txt23d / img23d / 3d23d / video23d), non-LoRA, non-deprecated:
+
+- **74 models** in scope.
+- **45** have no mesh input (pure text/image -> 3D). Correct.
+- **27** have a mesh input (a kind-3d file). All now **reachable**: the Edit lane auto-attaches the selection; the
+  3D Generate lane now offers **Selected mesh** on any kind-3d input (`draw_references` uses `props.addable_sources_for`).
+- **2** have a mesh input but **no lane at all**: `model_uthana-video-to-motion-2.1` and `model_cartwheel-video-to-motion`,
+  both `video23d` (a video in, a retargeted mesh out). `video23d` is not in `LANE_CAPS`, so they surface nowhere. This
+  is a pre-existing gap (it needs a video-input motion lane), tracked separately, not fixed in 0.9.4.
+
+The fix: a file input's kind decides its add sources (a 3D input -> Selected mesh / Upload, never an image capture);
+a `MESH` reference exports the selection as GLB at generate time in any lane; and `required: {ifNotDefined: {...}}`
+either/or inputs (Cartwheel: 3D mesh or reference image) are parsed into the one-of check.
+
 ## How to re-run
 
 ```

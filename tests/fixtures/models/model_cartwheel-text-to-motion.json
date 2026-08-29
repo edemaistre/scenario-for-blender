@@ -1,0 +1,386 @@
+{
+  "model": {
+    "id": "model_cartwheel-text-to-motion",
+    "userId": "c452b44467bd7f9d443c631491b6948b",
+    "authorId": "c452b44467bd7f9d443c631491b6948b",
+    "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+    "createdAt": "2026-06-25T13:03:54.680Z",
+    "updatedAt": "2026-07-16T18:34:47.431Z",
+    "name": "Cartwheel Text to Motion",
+    "shortDescription": "Cartwheel Text to Motion turns a text prompt into 3D character animation, applied to your own image or 3D mesh, exported as GLB or FBX for Blender, Maya, Unreal, or Roblox.",
+    "type": "custom",
+    "privacy": "public",
+    "capabilities": [
+      "txt23d",
+      "3d23d"
+    ],
+    "source": "other",
+    "status": "trained",
+    "trainingProgress": {},
+    "parameters": {},
+    "trainingImagesNumber": 0,
+    "trainingImagePairs": [],
+    "tags": [
+      "3D",
+      "Cartwheel",
+      "Motion",
+      "animate",
+      "sc:third-party"
+    ],
+    "collectionIds": [],
+    "exampleAssetIds": [
+      "asset_LMkC1MgxdKxDTU7xssuFkp9B",
+      "asset_CTggd8YGY1C176r4VVBWqFrU",
+      "asset_rSjoZR28ursQFXzgFaYZTYUV",
+      "asset_ypzMLJUgsT2JAzhVHRnt35Db",
+      "asset_es7syX1MzWnV9Dk3EP88M6qg",
+      "asset_iYPi3VeAQU1wcxf7EdTyF44K",
+      "asset_hSdv9CWx91AirfagVfcqhnUp",
+      "asset_RP324msEwhMZwDaX2F79i9Dd",
+      "asset_cFgkb6gSz65YZ4jXaQVVyBtU",
+      "asset_nK7nX3ZGPDdT3TE7gY26b3wG",
+      "asset_CktiaZzad1UrYcDEFW7vJUsM",
+      "asset_GeD63DT8twXSsx8DQro2ePN3",
+      "asset_Bk9cShLuw6MV4vsYV7M2E8F8"
+    ],
+    "custom": true,
+    "accessRestrictions": 50,
+    "complianceMetadata": {
+      "enterpriseStatus": "Ready",
+      "licenseTerms": "https://getcartwheel.com/terms",
+      "subProcessor": "Provider",
+      "dataProcessingComment": "temporaryRetention",
+      "maintainer": "Scenario",
+      "modelProvider": "Cartwheel"
+    },
+    "inputs": [
+      {
+        "description": "Describe the movement you want the character to perform \u2014 for example, \"walks forward, then jumps and waves.\"",
+        "label": "Prompt",
+        "maxLength": 4096,
+        "name": "prompt",
+        "costImpact": false,
+        "prompt": true,
+        "required": {
+          "always": true
+        },
+        "type": "string",
+        "promptSpark": true
+      },
+      {
+        "description": "Optionally upload a 3D character mesh (FBX, GLB, or OBJ) to auto-rig and animate. Takes precedence over a reference image.",
+        "kind": "3d",
+        "label": "Character 3D Model",
+        "name": "characterModel",
+        "costImpact": false,
+        "parent": true,
+        "required": {
+          "ifNotDefined": {
+            "characterFile": {
+              "message": "Provide a reference image or a 3D model."
+            }
+          }
+        },
+        "type": "file"
+      },
+      {
+        "description": "Optionally upload a reference image of your character. Cartwheel generates and prepares it so the motion can be applied.",
+        "kind": "image",
+        "label": "Reference Character Image",
+        "name": "characterFile",
+        "costImpact": true,
+        "parent": true,
+        "required": {
+          "ifNotDefined": {
+            "characterModel": {
+              "message": "Provide a reference image or a 3D model."
+            }
+          }
+        },
+        "type": "file"
+      },
+      {
+        "description": "How long the animation lasts, in seconds.",
+        "default": 5,
+        "group": "Settings",
+        "label": "Duration",
+        "max": 8,
+        "min": 3,
+        "name": "duration",
+        "costImpact": true,
+        "step": 0.25,
+        "type": "number"
+      },
+      {
+        "description": "How closely the result follows your prompt. Higher values stick to your description more strictly; lower values give the model more creative freedom.",
+        "default": 7.5,
+        "group": "Settings",
+        "label": "CFG scale",
+        "max": 9,
+        "min": 1,
+        "name": "cfgScale",
+        "costImpact": false,
+        "step": 0.1,
+        "type": "number"
+      },
+      {
+        "allowedValues": [
+          "glb",
+          "fbx-blender",
+          "fbx-maya",
+          "fbx-unreal",
+          "fbx-roblox",
+          "ma",
+          "mb"
+        ],
+        "description": "The file type you get back. Choose the one that matches your software \u2014 for example, GLB for general 3D use, or an FBX option for Blender, Maya, Unreal, or Roblox.",
+        "default": "glb",
+        "group": "Export",
+        "label": "Output format",
+        "name": "outputFormat",
+        "costImpact": false,
+        "type": "string"
+      },
+      {
+        "allowedValues": [
+          2,
+          12,
+          23.976,
+          24,
+          25,
+          29.97,
+          30,
+          48,
+          50,
+          59.94,
+          60,
+          90,
+          100,
+          120,
+          144,
+          240
+        ],
+        "description": "How many frames play per second. Higher values look smoother; 24 is standard for film, 30 or 60 for games.",
+        "default": 24,
+        "group": "Export",
+        "label": "Frame rate",
+        "name": "frameRate",
+        "costImpact": false,
+        "type": "number"
+      },
+      {
+        "allowedValues": [
+          "Z",
+          "Y",
+          "X",
+          "-Z",
+          "-Y",
+          "-X"
+        ],
+        "description": "Which direction the character is set to face. Match this to your 3D software's setup if the motion comes in turned the wrong way.",
+        "default": "Z",
+        "group": "Export",
+        "label": "Forward axis",
+        "name": "forward",
+        "costImpact": false,
+        "type": "string"
+      },
+      {
+        "allowedValues": [
+          "Z",
+          "Y",
+          "X",
+          "-Z",
+          "-Y",
+          "-X"
+        ],
+        "description": "Which direction counts as \"up\" for the character. Match this to your 3D software if the motion comes in oriented incorrectly.",
+        "default": "Y",
+        "group": "Export",
+        "label": "Up axis",
+        "name": "up",
+        "costImpact": false,
+        "type": "string"
+      },
+      {
+        "description": "Controls how often a frame is recorded. Higher values produce fewer frames and a lighter file, with slightly less smooth motion.",
+        "default": 1,
+        "group": "Export",
+        "label": "Frame step size",
+        "min": 1,
+        "name": "frameStepSize",
+        "costImpact": false,
+        "type": "number"
+      },
+      {
+        "description": "Keeps the character animating on the spot instead of traveling across the scene \u2014 useful for game engines where movement is handled separately.",
+        "default": false,
+        "group": "Export",
+        "label": "Move in place",
+        "name": "moveInPlace",
+        "costImpact": false,
+        "type": "boolean"
+      },
+      {
+        "description": "Use inverse kinematics for the feet. Applies only to Maya exports (FBX Maya, MA, MB).",
+        "group": "Export",
+        "label": "IK feet",
+        "name": "ikFeet",
+        "costImpact": false,
+        "type": "boolean"
+      },
+      {
+        "description": "Use inverse kinematics for the hands. Applies only to Maya exports (FBX Maya, MA, MB).",
+        "group": "Export",
+        "label": "IK hands",
+        "name": "ikHands",
+        "costImpact": false,
+        "type": "boolean"
+      },
+      {
+        "allowedValues": [
+          "Default",
+          "Neutral",
+          "Angry",
+          "Annoyed",
+          "Bored",
+          "Confusion",
+          "DelightedGrin",
+          "Delighted",
+          "Excited",
+          "Goof",
+          "HappyLookLeft",
+          "HappyLookRight",
+          "Love",
+          "Nervous",
+          "Pain",
+          "Pleased",
+          "Puzzled",
+          "Rage",
+          "RollLookLeft",
+          "RollLookRight",
+          "Sad",
+          "SadEyesClosed",
+          "SadLookLeft",
+          "SadLookRight",
+          "Squeeze",
+          "Stretch",
+          "Stunned",
+          "Surprise",
+          "Suspicious",
+          "ThinkingLookLeft",
+          "ThinkingLookRight",
+          "Wink"
+        ],
+        "description": "An optional facial expression to apply throughout the animation, such as Happy, Angry, or Surprised.",
+        "default": "Default",
+        "group": "Export",
+        "label": "Face expression",
+        "name": "faceExpression",
+        "costImpact": false,
+        "type": "string"
+      },
+      {
+        "allowedValues": [
+          "default",
+          "claw",
+          "curled",
+          "fist",
+          "fist_clenched",
+          "fist_relaxed",
+          "gripping",
+          "love_you",
+          "open_loose",
+          "open_tight",
+          "peace",
+          "pointing",
+          "pointing_cool",
+          "relaxed",
+          "rock",
+          "splay",
+          "thumbs_up"
+        ],
+        "description": "The hand pose to apply on the character.",
+        "default": "default",
+        "group": "Export",
+        "label": "Hand pose",
+        "name": "handPose",
+        "costImpact": false,
+        "type": "string"
+      },
+      {
+        "allowedValues": [
+          "none",
+          "reduce",
+          "simplify"
+        ],
+        "description": "Tidies up the animation data. Reduce and Simplify trim extra detail to make the file lighter and easier to edit by hand.",
+        "default": "none",
+        "group": "Export",
+        "label": "Keyframe cleaning",
+        "name": "keyframeCleaning",
+        "costImpact": false,
+        "type": "string"
+      },
+      {
+        "description": "Makes the animation repeat seamlessly, so the end flows back into the start without a visible jump.",
+        "default": false,
+        "group": "Export",
+        "label": "Loop",
+        "name": "loop",
+        "costImpact": false,
+        "type": "boolean"
+      },
+      {
+        "description": "An optional color for the character's skin, given as a hex code (for example, #BF916D).",
+        "group": "Skin color",
+        "label": "Skin color",
+        "name": "skinHex",
+        "costImpact": false,
+        "color": true,
+        "type": "string"
+      }
+    ],
+    "uiConfig": {
+      "selects": {
+        "keyframeCleaning": {
+          "reduce": "Reduce",
+          "none": "None",
+          "simplify": "Simplify"
+        },
+        "handPose": {
+          "open_loose": "Open Loose",
+          "fist": "Fist",
+          "thumbs_up": "Thumbs Up",
+          "splay": "Splay",
+          "gripping": "Gripping",
+          "fist_relaxed": "Fist Relaxed",
+          "relaxed": "Relaxed",
+          "rock": "Rock",
+          "claw": "Claw",
+          "default": "Default",
+          "fist_clenched": "Fist Clenched",
+          "open_tight": "Open Tight",
+          "peace": "Peace",
+          "love_you": "Love You",
+          "pointing": "Pointing",
+          "pointing_cool": "Pointing Cool",
+          "curled": "Curled"
+        },
+        "requestedModel": {
+          "swing": "Swing",
+          "scoot": "Scoot"
+        },
+        "outputFormat": {
+          "fbx-maya": "FBX Maya",
+          "ma": "MA",
+          "mb": "MB",
+          "fbx-blender": "FBX Blender",
+          "glb": "GLB",
+          "fbx-roblox": "FBX Roblox",
+          "fbx-unreal": "FBX Unreal"
+        }
+      }
+    }
+  }
+}

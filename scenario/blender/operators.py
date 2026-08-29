@@ -91,7 +91,7 @@ class SCENARIO_OT_add_reference(bpy.types.Operator):
     bl_description = "Attach a file, the render result or a viewport capture to this parameter"
     lane: StringProperty()
     param_name: StringProperty()
-    source: EnumProperty(items=props.ADDABLE_SOURCES, default='FILE')
+    source: EnumProperty(items=props.REFERENCE_SOURCES, default='FILE')  # the UI offers only the kind-appropriate subset
     filepath: StringProperty(subtype='FILE_PATH')
     filter_glob: StringProperty(default="*.png;*.jpg;*.jpeg;*.webp;*.mp4;*.mov;*.webm;*.glb;*.fbx;*.obj", options={'HIDDEN'})
 

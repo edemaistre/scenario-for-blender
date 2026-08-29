@@ -16,6 +16,7 @@ class ParamSpec:
     group: str = "Settings"
     required_always: bool = False
     required_if_defined: tuple = ()
+    required_if_not_defined: tuple = ()  # required only when none of these siblings are provided (either/or inputs)
     allowed_values: tuple = ()
     allowed_labels: dict = field(default_factory=dict)
     min: float = None
@@ -68,12 +69,15 @@ def _is_conditional(description):
 
 def _parse_required(raw):
     if isinstance(raw, bool):
-        return raw, ()
+        return raw, (), ()
     if isinstance(raw, dict):
         always = bool(raw.get("always"))
         if_defined = tuple(sorted((raw.get("ifDefined") or {}).keys()))
-        return always, if_defined
-    return False, ()
+        # ifNotDefined names siblings whose absence makes this input required: an either/or group (Cartwheel: a 3D
+        # character mesh OR a reference image). The input is not required on its own; at least one of the group is.
+        if_not_defined = tuple(sorted((raw.get("ifNotDefined") or {}).keys()))
+        return always, if_defined, if_not_defined
+    return False, (), ()
 
 
 def parse_schema(record):
@@ -85,7 +89,7 @@ def parse_schema(record):
         if not name:
             continue
         ptype = raw.get("type") or "string"
-        always, if_defined = _parse_required(raw.get("required"))
+        always, if_defined, if_not_defined = _parse_required(raw.get("required"))
         allowed = tuple(raw.get("allowedValues") or raw.get("allowed_values") or ())
         labels = {}
         for key, label in (selects.get(name) or {}).items():
@@ -100,6 +104,7 @@ def parse_schema(record):
             group=raw.get("group") or ("Prompt" if raw.get("prompt") else "Settings"),
             required_always=always,
             required_if_defined=if_defined,
+            required_if_not_defined=if_not_defined,
             allowed_values=allowed,
             allowed_labels=labels,
             min=raw.get("min"),
@@ -117,10 +122,22 @@ def parse_schema(record):
         presets.append({"label": preset.get("label"), "width": preset.get("width"), "height": preset.get("height"),
                         "width_param": res.get("widthInput", "width"), "height_param": res.get("heightInput", "height")})
     prompt_name = next((s.name for s in specs if s.is_prompt), None)
+    by_name = {s.name: s for s in specs}
     one_of = []
+    # Explicit either/or from the schema: `required: {ifNotDefined: {sibling: ...}}` means "at least one of this
+    # input and its named siblings" (Cartwheel: a 3D character mesh OR a reference image). Merge into groups.
+    for spec in specs:
+        members = {spec.name} | {n for n in spec.required_if_not_defined if n in by_name}
+        if len(members) < 2:
+            continue
+        merged = next((g for g in one_of if members & set(g)), None)
+        if merged is None:
+            one_of.append(tuple(sorted(members)))
+        else:
+            one_of[one_of.index(merged)] = tuple(sorted(set(merged) | members))
     if prompt_name:
-        # a required file whose own description says it applies only "if no prompt" is an alternative to the prompt,
-        # not a hard requirement: relax it and require at least one of {that file(s), the prompt}.
+        # implicit either/or: a required file whose own description says it applies only "if no prompt" is an
+        # alternative to the prompt, not a hard requirement. Relax it and require at least one of {file(s), prompt}.
         conditional = [s for s in specs if s.is_file and s.required_always and _is_conditional(s.description)]
         if conditional:
             for spec in conditional:

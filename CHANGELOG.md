@@ -6,6 +6,16 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.4] - 2026-08-29
+
+### Fixed
+- **The selected scene mesh now reaches models that take a mesh in any lane, not just the 3D Edit lane.** Text-to-motion and other `txt23d`/`img23d` models can carry an optional 3D character input (Uthana Text to Motion's "Character 3D model", `characterFile`, kind 3d); the plugin only auto-attached the selection in the Edit lane, so those inputs were silently ignored. A file input of kind 3D now offers **Selected mesh** and **Upload** (never an image capture); attaching the selected mesh exports it as GLB at generate time, the same as the Edit lane.
+- The reference "Add" options now match each input's kind: a 3D input offers the mesh or an upload, an image input offers stills, a video input offers clips. Before, every input offered the same list (a viewport still could be attached to a 3D character input).
+- Either/or inputs expressed as `required: {ifNotDefined: {...}}` are now parsed (Cartwheel Text to Motion: a 3D character mesh **or** a reference image). Neither is forced; the plugin asks for one of them.
+
+### Changed (tests)
+- Render Video duration tests updated to the 0.9.2 contract (the model's duration is the source; the base Video lane keeps deriving it from the timeline). These headless tests had been passing against a stale install and were re-verified against the built extension.
+
 ## [0.9.3] - 2026-08-29
 
 ### Fixed

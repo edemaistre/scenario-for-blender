@@ -81,7 +81,8 @@ class RenderLanesTests(unittest.TestCase):
         self.assertIn("@video1 is a playblast", prompt)
         self.assertIn("@image1 shows how the finished first frame must look", prompt)
         self.assertIn("claymation", prompt)
-        self.assertEqual(request.body["duration"], 4)
+        # Render Video: the model's own duration is the source (Seedance default -1 = Auto), not the clip length
+        self.assertEqual(request.body["duration"], -1)
 
     def test_render_video_without_tags_for_minimax(self):
         self.video_lane.model_id = "model_minimax-h3"
@@ -144,19 +145,21 @@ class TimelineSyncTests(unittest.TestCase):
         self.scene = bpy.context.scene
         self.lane = self.scene.scenario.lane_state("render_video")
 
-    def test_numeric_duration_range_follows_the_clip(self):
+    def test_render_video_duration_is_the_model_setting_not_the_clip(self):
+        # Render Video flips the base Video direction (0.9.2): the model's duration in Settings is the source, the
+        # scene frame range no longer drives it, and with Match timeline on the camera path follows the model duration.
         self.lane.model_id = "model_minimax-h3"
-        self.scene.frame_start, self.scene.frame_end = 1, 144  # 6 s at 24 fps
+        self.scene.frame_start, self.scene.frame_end = 1, 144  # 6 s: must NOT force duration to 6 any more
+        self.lane.params["duration"].int_value = 8
         request = self.generation.build_request(self.scene, "render_video")
-        self.assertEqual(request.body["duration"], 6)
-        self.scene.frame_end = 48  # 2 s: padded to H3's 5 s minimum
+        self.assertEqual(request.body["duration"], 8)
+        self.lane.match_timeline = True
+        self.generation.sync_shot_duration(self.scene)
+        self.assertAlmostEqual(self.scene.scenario_shot.duration, 8.0, places=3)  # the camera path follows the model
+        # Seedance keeps its own Auto default, still independent of the clip length
+        self.lane.model_id = "model_bytedance-seedance-2-0"
         request = self.generation.build_request(self.scene, "render_video")
-        self.assertEqual(request.body["duration"], 5)
-        seconds, value, note = self.generation.timeline_sync_info(self.scene, self.lane, self.generation.schema_for(self.lane.model_id))
-        self.assertEqual((value, note), (5, "padded to the 5 s minimum"))
-        self.scene.frame_end = 24 * 40
-        request = self.generation.build_request(self.scene, "render_video")
-        self.assertEqual(request.body["duration"], 15)
+        self.assertEqual(request.body["duration"], -1)
 
     def test_messages_expire(self):
         self.runtime.set_message("Submitted to Meshy 7")

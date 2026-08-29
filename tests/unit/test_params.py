@@ -109,3 +109,29 @@ def test_either_or_validation():
     # neither: one friendly either/or error, naming both options
     errors = validate(schema.specs, mesh, schema.one_of)
     assert errors == ["Provide one of: Reference Image or Texture Prompt"]
+
+
+def test_if_not_defined_becomes_either_or():
+    # Cartwheel Text to Motion: characterModel (3D mesh) and characterFile (reference image) each declare
+    # required:{ifNotDefined:{the other}}. Neither is required on its own; at least one must be provided.
+    schema = parse_schema(record("model_cartwheel-text-to-motion"))
+    model = spec_by_name(schema, "characterModel")
+    image = spec_by_name(schema, "characterFile")
+    assert model.kind == "3d" and not model.required_always
+    assert image.kind == "image" and not image.required_always
+    assert schema.one_of == [("characterFile", "characterModel")]
+    base = {"prompt": "walk"}
+    assert validate(schema.specs, {**base, "characterModel": "asset_mesh"}, schema.one_of) == []
+    assert validate(schema.specs, {**base, "characterFile": "asset_img"}, schema.one_of) == []
+    assert validate(schema.specs, base, schema.one_of) == ["Provide one of: Reference Character Image or Character 3D Model"]
+
+
+def test_optional_character_mesh_input_is_recognised():
+    # Uthana Text to Motion is txt23d but accepts an optional character mesh (characterFile, kind 3d): the plugin
+    # must recognise it as a mesh input so the 3D lane can offer the selected scene mesh.
+    from scenario.core.api.catalog import mesh_param
+    rec = record("model_uthana-text-to-motion-3.0")
+    schema = parse_schema(rec)
+    char = spec_by_name(schema, "characterFile")
+    assert char.kind == "3d" and char.is_file and not char.required_always
+    assert mesh_param(rec) == "characterFile"

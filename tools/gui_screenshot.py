@@ -59,6 +59,24 @@ def _prepare():
                 lane_state = bpy.context.scene.scenario.lane_state("edit3d")
                 lane_state.model_id = probe_model
                 generation.on_model_changed(bpy.context, lane_state)
+        if ACTION == "gen3d":
+            # 3D tab, Generate/Text mode, with a chosen model (e.g. a text-to-motion model that takes a character mesh)
+            cube = next((o for o in bpy.context.scene.objects if o.type == 'MESH'), None)
+            if cube is not None:
+                for o in bpy.context.selected_objects:
+                    o.select_set(False)
+                cube.select_set(True)
+                bpy.context.view_layer.objects.active = cube
+            bpy.context.scene.scenario.lane = '3d'
+            bpy.context.scene.scenario.three_d_mode = 'TEXT'
+            probe_model = os.environ.get("SCENARIO_PROBE_MODEL")
+            if probe_model:
+                import importlib
+                name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
+                generation = importlib.import_module(name + ".blender.generation")
+                lane_state = bpy.context.scene.scenario.lane_state("3d")
+                lane_state.model_id = probe_model
+                generation.on_model_changed(bpy.context, lane_state)
         if ACTION == "generations":
             bpy.ops.scenario.history_refresh()
         if ACTION == "edit_mode":

@@ -300,6 +300,10 @@ def build_request(scene, lane, for_estimate=False):
                         files.setdefault(spec.name, []).append(path)
             elif ref.source in props.CAPTURE_SOURCES:
                 captures.append({"param": spec.name, "source": ref.source, "camera": ref.asset_id or None})
+            elif ref.source == 'MESH':
+                # the user attached the selected scene mesh to a 3D input outside the edit3d lane (e.g. a text-to-motion
+                # model's optional character mesh); export it at generate time just like edit3d does
+                captures.append({"param": spec.name, "source": 'MESH', "camera": None})
     body = build_body(schema.specs, values, asset_ids, enabled=enabled)
     request = Request(lane, lane_kind(lane), model_id, body, files, array_params, [], False, captures)
     if lane in RENDER_LANES:

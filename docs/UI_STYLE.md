@@ -29,6 +29,10 @@ A `Model` section (a box with a `NODE_MATERIAL` header, like the others) holds a
 
 The video model's `Duration (cost)` in Settings is the single source of the clip length for **Render Video**. With **Match timeline** on, the camera path's `Duration (s)` is read-only and follows the model's value (synced from a property callback, never during draw, in `generation.sync_shot_duration`), with a plain note under the planner: "The clip is captured at X s to match the video duration". With Match timeline off, the two durations are edited separately. The base **Video** lane keeps the reverse direction (the model duration follows the scene frame range via `generation.apply_match_timeline`, guarded to `lane == "video"`).
 
+## Reference inputs
+
+A file input's add options match its kind (`props.addable_sources_for`): a **3D** input offers **Selected mesh** (the scene selection, exported as GLB at generate time) and **Upload**; an **image** input offers Upload plus the viewport/camera stills and the render result; a **video** input offers Upload plus the clip captures. Never offer a source that produces the wrong asset type (no image capture on a 3D character input). In the 3D Edit lane the mesh input is pinned to the selection automatically; everywhere else the user attaches it with the Selected mesh button.
+
 ## Wording
 
 - Verbs on buttons say exactly what happens: `Generate`, `Add to scene`, `Use as reference`, `Refresh cloud`, `Download and open`.

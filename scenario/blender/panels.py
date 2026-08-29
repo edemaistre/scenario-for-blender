@@ -12,6 +12,9 @@ KIND_ICON = {"image": 'IMAGE_DATA', "video": 'FILE_MOVIE', "3d": 'MESH_DATA', "m
 GENERATE_LANES = ("image", "video", "3d", "material", "audio")
 SOURCE_ICON = {'FILE': 'FILE_IMAGE', 'VIEWPORT': 'RESTRICT_VIEW_OFF', 'CAMERA': 'CAMERA_DATA', 'VIEWPORT_CLIP': 'RENDER_ANIMATION', 'CAMERA_CLIP': 'RENDER_ANIMATION',
                'RENDER': 'RENDER_RESULT', 'ASSET': 'URL', 'MESH': 'MESH_DATA'}
+# short labels for the reference-add buttons (the enum labels read as list entries; these read as actions)
+ADD_SOURCE_LABEL = {'FILE': "Upload", 'MESH': "Selected mesh", 'RENDER': "Render", 'VIEWPORT': "Viewport", 'CAMERA': "Camera",
+                    'VIEWPORT_CLIP': "Viewport clip", 'CAMERA_CLIP': "Camera clip"}
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
 MESH_EXTS = (".glb", ".gltf", ".fbx", ".obj", ".spz", ".ply")
 AUDIO_EXTS = (".mp3", ".wav", ".ogg", ".m4a", ".flac")
@@ -121,8 +124,12 @@ def draw_references(layout, lane_state, schema, title_for=None, fixed_first=None
         icon = {'image': 'IMAGE_DATA', 'video': 'FILE_MOVIE', '3d': 'MESH_DATA', 'audio': 'SPEAKER'}.get(kind, 'FILE')
         header.label(text=f"{label}  {count}" + (f"/{spec.max_length}" if spec.max_length else ""), icon=icon)
         if not (spec.ptype == "file" and spec.name in fixed_first):
-            add = header.operator_menu_enum("scenario.add_reference", "source", text="Add", icon='ADD')
-            add.lane, add.param_name = lane, spec.name
+            # only the sources that make sense for this input's kind: a 3D input offers the selected mesh or an
+            # uploaded model (never an image capture), so a model like Uthana Text to Motion can take the scene mesh.
+            add_row = box.row(align=True)
+            for source_id, source_label, _desc in props.addable_sources_for(spec.kind):
+                op = add_row.operator("scenario.add_reference", text=ADD_SOURCE_LABEL.get(source_id, source_label), icon=SOURCE_ICON.get(source_id, 'ADD'))
+                op.lane, op.param_name, op.source = lane, spec.name, source_id
         if spec.name in fixed_first:
             row = box.row(align=True)
             row.enabled = False

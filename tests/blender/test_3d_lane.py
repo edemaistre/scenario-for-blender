@@ -47,6 +47,34 @@ class ThreeDLaneTests(unittest.TestCase):
         self.assertEqual([r.id for r in generation.three_d_models('MULTI', [multi, single])], ["model_tripo-v3-1-multiview-to-3d"])
         self.assertEqual([r.id for r in generation.three_d_models('IMAGE', [multi, single])], ["model_hitem-3d-3-0"])
 
+    def test_add_sources_depend_on_input_kind(self):
+        props = submodule("blender.props")
+        self.assertEqual([s[0] for s in props.addable_sources_for("3d")], ['MESH', 'FILE'])
+        self.assertEqual([s[0] for s in props.addable_sources_for("image")], ['FILE', 'RENDER', 'VIEWPORT', 'CAMERA'])
+        self.assertEqual([s[0] for s in props.addable_sources_for("video")], ['FILE', 'RENDER', 'VIEWPORT_CLIP', 'CAMERA_CLIP'])
+        self.assertEqual([s[0] for s in props.addable_sources_for("audio")], ['FILE'])
+        self.assertNotIn('VIEWPORT', [s[0] for s in props.addable_sources_for("3d")])  # never an image capture on a mesh input
+
+    def test_selected_mesh_attaches_to_a_text_to_motion_character_input(self):
+        # Uthana Text to Motion is txt23d with an optional character mesh (characterFile, kind 3d). Selecting a mesh
+        # and adding it must reach the inference as that param, exported like edit3d does.
+        generation = submodule("blender.generation")
+        runtime = submodule("blender.runtime")
+        handlers = submodule("blender.handlers")
+        runtime.state.reset()
+        record = rec("model_uthana-text-to-motion-3.0")
+        handlers.dispatch(("catalog", {"privacy": "public", "records": [record], "detailed": [record]}))
+        scene = bpy.context.scene
+        scene.scenario.three_d_mode = 'TEXT'
+        lane = scene.scenario.lane_state("3d")
+        lane.model_id = "model_uthana-text-to-motion-3.0"
+        lane.prompt = "a slow bow"
+        ref = lane.references.add()
+        ref.param_name, ref.source = "characterFile", 'MESH'
+        request = generation.build_request(scene, "3d")
+        self.assertEqual(request.errors, [])
+        self.assertIn({"param": "characterFile", "source": 'MESH', "camera": None}, request.captures)
+
     def test_rodin_material_override_applies_when_allowed(self):
         params_ui = submodule("blender.params_ui")
         params = submodule("core.schema.params")

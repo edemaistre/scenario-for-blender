@@ -37,6 +37,21 @@ REFERENCE_SOURCES = [
 CAPTURE_SOURCES = ('VIEWPORT', 'CAMERA', 'VIEWPORT_CLIP', 'CAMERA_CLIP')
 CLIP_SOURCES = ('VIEWPORT_CLIP', 'CAMERA_CLIP')
 ADDABLE_SOURCES = [item for item in REFERENCE_SOURCES if item[0] not in ('ASSET', 'MESH')]  # asset ids come from the MCP tools, the mesh from the selection
+# The sources that make sense for a file input, by its kind. A 3D input (a character mesh) takes the selected scene
+# mesh or an uploaded model, never an image capture; an image input takes stills, a video input takes clips.
+_SOURCES_BY_KIND = {
+    "3d": ('MESH', 'FILE'),
+    "image": ('FILE', 'RENDER', 'VIEWPORT', 'CAMERA'),
+    "video": ('FILE', 'RENDER', 'VIEWPORT_CLIP', 'CAMERA_CLIP'),
+    "audio": ('FILE',),
+}
+
+
+def addable_sources_for(kind):
+    """Reference sources offered for a file input of this kind, as (id, label, description) tuples."""
+    wanted = _SOURCES_BY_KIND.get((kind or "image").lower(), _SOURCES_BY_KIND["image"])
+    by_id = {item[0]: item for item in REFERENCE_SOURCES}
+    return [by_id[s] for s in wanted if s in by_id]
 EDIT3D_TASK_ITEMS = [(task_id, label, description) for task_id, label, description, _models in EDIT3D_TASKS]
 THREE_D_MODES = [('TEXT', "Text", "Describe the object"), ('IMAGE', "Image", "One reference image"), ('MULTI', "Multi-view", "Several views of the same object"),
                  ('EDIT', "Edit", "Remesh, retexture, unwrap, rig, animate or split the selected mesh")]
