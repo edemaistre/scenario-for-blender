@@ -72,7 +72,7 @@ def _body_for(model_id, parameters):
             value = parameters.pop(spec.name)
             files[spec.name] = list(value) if isinstance(value, list) else [value]
     body = build_body(schema.specs, parameters, files)
-    errors = validate(schema.specs, body)
+    errors = validate(schema.specs, body, schema.one_of)
     if errors:
         raise ValueError("; ".join(errors))
     return record, body

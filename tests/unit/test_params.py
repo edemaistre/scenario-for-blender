@@ -83,3 +83,29 @@ def test_missing_required_files():
     schema = parse_schema(record("model_patina"))
     assert missing_required_files(schema.specs, {}) == ["image"]
     assert missing_required_files(schema.specs, {"image": "asset_x"}) == []
+
+
+def test_conditional_required_file_becomes_either_or():
+    # Rodin Bang marks its reference image `required: true` but its description says "if no prompt is provided":
+    # the plugin must relax it and require at least one of {image, prompt}, so the prompt-only path works.
+    schema = parse_schema(record("model_rodin-hyper3d-bang"))
+    image = spec_by_name(schema, "image")
+    model = spec_by_name(schema, "model")
+    assert image.is_file and not image.required_always      # relaxed: no longer a hard requirement
+    assert model.required_always                            # the mesh input stays required
+    assert schema.one_of == [("image", "prompt")]
+    # with the mesh present, nothing is a missing required file (the reference image is optional now)
+    assert missing_required_files(schema.specs, {"model": "asset_mesh"}) == []
+    assert missing_required_files(schema.specs, {}) == ["model"]
+
+
+def test_either_or_validation():
+    schema = parse_schema(record("model_rodin-hyper3d-bang"))
+    mesh = {"model": "asset_mesh"}
+    # prompt only (the reported bug: this used to fail with "Reference Image is required")
+    assert validate(schema.specs, {**mesh, "prompt": "weathered bronze"}, schema.one_of) == []
+    # reference image only
+    assert validate(schema.specs, {**mesh, "image": "asset_ref"}, schema.one_of) == []
+    # neither: one friendly either/or error, naming both options
+    errors = validate(schema.specs, mesh, schema.one_of)
+    assert errors == ["Provide one of: Reference Image or Texture Prompt"]

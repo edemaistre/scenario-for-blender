@@ -1,0 +1,154 @@
+{
+  "model": {
+    "id": "model_rodin-hyper3d-bang",
+    "userId": "c452b44467bd7f9d443c631491b6948b",
+    "authorId": "c452b44467bd7f9d443c631491b6948b",
+    "ownerId": "bftve3VtQgmpXxwAPUFWTQ",
+    "createdAt": "2026-07-27T12:18:03.701Z",
+    "updatedAt": "2026-07-28T22:55:02.250Z",
+    "name": "Rodin Hyper3D Bang!",
+    "shortDescription": "Split any 3D model into clean, semantic parts and regenerate PBR materials in one pass. Adjustable split strength (2 to 12), 2K or 4K textures, guided by a reference image.",
+    "type": "custom",
+    "privacy": "public",
+    "capabilities": [
+      "3d23d"
+    ],
+    "source": "other",
+    "status": "trained",
+    "trainingProgress": {},
+    "parameters": {},
+    "trainingImagesNumber": 0,
+    "trainingImagePairs": [],
+    "tags": [
+      "3D to 3D",
+      "Game Assets",
+      "Hyper3D",
+      "PBR",
+      "Retexture",
+      "Rodin",
+      "Segmentation",
+      "sc:third-party"
+    ],
+    "collectionIds": [],
+    "exampleAssetIds": [
+      "asset_ywKP5dRMvXDU2Kz3fsAXtHwd",
+      "asset_y8QUzXRvaFs2sX3on99nPr1x",
+      "asset_CUkcE6A7cjoYg5HTcFXY7xmq",
+      "asset_ju52PHQXgSBXWxM2hZcsY6td",
+      "asset_fCWBaHZZfcguMmVRg2YZ4yyW",
+      "asset_xuv1C5eAe1YWzqDr386Va8e8",
+      "asset_wRWBdfjSeYrt9t1m5LpCnJuj",
+      "asset_P3qeYBq52dgTb4rNJE51rZxo",
+      "asset_oizzogYyTSk5xUW3ZxZ4D1x8",
+      "asset_dDccM5zTK3xv8XvAQSXrEtp5",
+      "asset_DEuHcE8rAVnEijLyQ9w2CF89",
+      "asset_2tvUVXiqP3vBeSK2YanDYFu4",
+      "asset_XMjrFgq9Mw9tUj48Huvzxc1n",
+      "asset_GY44E4xb7K8rwrxQzctFbQsu",
+      "asset_5rYP4YRR4qXLsx4JQYTC7jY6",
+      "asset_vLT94F94eqm8GKubz5m7FqCo",
+      "asset_UoZ3Rs8TMrRvqSgfsgeF42Yr",
+      "asset_v8HYhLe5z268YT6Gtbg1LUgz",
+      "asset_DJDXthgUkXDQjm8bYQ4STSgs",
+      "asset_WFHJrrDGV8ZLfeeMhXbmc9Fq"
+    ],
+    "custom": true,
+    "accessRestrictions": 50,
+    "complianceMetadata": {
+      "enterpriseStatus": "Pending",
+      "modelProvider": "Deemos Technology",
+      "subProcessor": "Modal",
+      "licenseTerms": "https://hyper3d.ai/legal/terms",
+      "dataProcessingComment": "temporaryRetention",
+      "maintainer": "Scenario"
+    },
+    "inputs": [
+      {
+        "description": "3D model file to split into parts.",
+        "kind": "3d",
+        "label": "3D Model",
+        "name": "model",
+        "costImpact": false,
+        "parent": true,
+        "required": {
+          "always": true
+        },
+        "type": "file"
+      },
+      {
+        "description": "Provide a reference image for generating model textures if no prompt is provided.",
+        "kind": "image",
+        "label": "Reference Image",
+        "name": "image",
+        "costImpact": false,
+        "parent": true,
+        "required": {
+          "always": true
+        },
+        "type": "file"
+      },
+      {
+        "description": "Optional reference prompt to guide splitting if no reference image is provided.",
+        "label": "Texture Prompt",
+        "maxLength": 2048,
+        "name": "prompt",
+        "costImpact": false,
+        "prompt": true,
+        "type": "string"
+      },
+      {
+        "description": "Splitting strength (2\u201312). Higher values split into more parts.",
+        "default": 5,
+        "group": "Settings",
+        "label": "Strength",
+        "max": 12,
+        "min": 2,
+        "name": "strength",
+        "costImpact": false,
+        "type": "number"
+      },
+      {
+        "allowedValues": [
+          "PBR",
+          "Shaded",
+          "None",
+          "All"
+        ],
+        "description": "Material export mode for the split parts.",
+        "default": "PBR",
+        "group": "Settings",
+        "label": "Material",
+        "name": "material",
+        "costImpact": false,
+        "type": "string"
+      },
+      {
+        "allowedValues": [
+          "Basic",
+          "High"
+        ],
+        "description": "Texture resolution. Basic is 2K; High is 4K.",
+        "default": "Basic",
+        "group": "Settings",
+        "label": "Resolution",
+        "name": "resolution",
+        "costImpact": false,
+        "type": "string"
+      }
+    ],
+    "uiConfig": {
+      "selects": {
+        "material": {
+          "None": "None",
+          "PBR": "PBR",
+          "Shaded": "Shaded",
+          "All": "All"
+        },
+        "resolution": {
+          "High": "High (4K)",
+          "Basic": "Basic (2K)"
+        }
+      }
+    }
+  }
+}

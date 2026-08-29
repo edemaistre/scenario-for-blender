@@ -49,9 +49,21 @@ class Schema:
     specs: list
     resolution_presets: list = field(default_factory=list)
     prompt_name: str = None
+    one_of: list = field(default_factory=list)  # groups where at least one member must be provided (either image or prompt)
 
     def by_name(self, name):
         return next((s for s in self.specs if s.name == name), None)
+
+
+# Some models mark a file input `required: true` when it is really required only in the absence of an alternative
+# (Rodin Bang: "Provide a reference image ... if no prompt is provided"). Faithfully requiring it blocks the valid
+# prompt-only path. We relax such a file to optional and instead require at least one of the either/or group.
+CONDITIONAL_MARKERS = ("if no ", "if not ", "when no ", "when not ", "unless ", "if none")
+
+
+def _is_conditional(description):
+    text = (description or "").lower()
+    return any(marker in text for marker in CONDITIONAL_MARKERS)
 
 
 def _parse_required(raw):
@@ -105,7 +117,16 @@ def parse_schema(record):
         presets.append({"label": preset.get("label"), "width": preset.get("width"), "height": preset.get("height"),
                         "width_param": res.get("widthInput", "width"), "height_param": res.get("heightInput", "height")})
     prompt_name = next((s.name for s in specs if s.is_prompt), None)
-    return Schema(specs=specs, resolution_presets=presets, prompt_name=prompt_name)
+    one_of = []
+    if prompt_name:
+        # a required file whose own description says it applies only "if no prompt" is an alternative to the prompt,
+        # not a hard requirement: relax it and require at least one of {that file(s), the prompt}.
+        conditional = [s for s in specs if s.is_file and s.required_always and _is_conditional(s.description)]
+        if conditional:
+            for spec in conditional:
+                spec.required_always = False
+            one_of.append(tuple([s.name for s in conditional] + [prompt_name]))
+    return Schema(specs=specs, resolution_presets=presets, prompt_name=prompt_name, one_of=one_of)
 
 
 def _coerce(spec, value):
@@ -148,7 +169,7 @@ def build_body(specs, values, files, enabled=None):
     return body
 
 
-def validate(specs, body):
+def validate(specs, body, one_of=()):
     errors = []
     for spec in specs:
         value = body.get(spec.name)
@@ -173,6 +194,10 @@ def validate(specs, body):
             dep = by_name.get(dep_name)
             if dep is not None and body.get(dep_name) not in (None, "", []) and body.get(spec.name) in (None, "", []):
                 errors.append(f"{spec.label} is required when {dep.label} is set")
+    for group in one_of:
+        if not any(body.get(name) not in (None, "", []) for name in group):
+            labels = [(by_name[name].label if name in by_name else name) for name in group]
+            errors.append("Provide one of: " + " or ".join(labels))
     return errors
 
 

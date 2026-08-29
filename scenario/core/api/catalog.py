@@ -19,8 +19,8 @@ LANE_CAPS = {
 }
 PATINA_MODELS = ("model_patina-material", "model_patina", "model_patina-material-extract")
 DEFAULT_MODELS = {
-    "image": ["model_openai-gpt-image-2", "model_google-gemini-3-1-flash", "model_bytedance-seedream-5-0-pro", "model_bytedance-seedream-5-0", "model_z-image"],
-    "video": ["model_bytedance-seedance-2-0", "model_bytedance-seedance-2-5", "model_google-veo-3-1", "model_kling-3-0"],
+    "image": ["model_openai-gpt-image-2", "model_google-gemini-3-1-flash", "model_bytedance-seedream-5-0-pro", "model_bytedance-seedream-5-0-lite", "model_z-image"],
+    "video": ["model_bytedance-seedance-2-0", "model_bytedance-seedance-2-5", "model_veo3-1", "model_kling-v3-omni-video"],
     "3d": ["model_meshy-7-txt23d", "model_rodin-hyper3d-v2-5-text-to-3d", "model_tripo-v3-1-image-to-3d", "model_meshy-7-img23d", "model_hunyuan-3d-pro-3-1-i23d",
            "model_rodin-hyper3d-v2-5", "model_tripo-p1-image-to-3d", "model_meshy-7-multi-image-to-3d", "model_tripo-v3-1-multiview-to-3d", "model_hunyuan-3d-pro-3-1-multiview"],
     "material": list(PATINA_MODELS),

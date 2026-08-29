@@ -320,7 +320,7 @@ def build_request(scene, lane, for_estimate=False):
         has_image = any((s.kind or "image") == "image" and s.name in check for s in schema.specs if s.is_file)
         body[schema.prompt_name] = capture_plan.tag_prompt(body.get(schema.prompt_name, ""), has_video, has_image)
         check[schema.prompt_name] = body[schema.prompt_name]
-    errors = validate(schema.specs, check)
+    errors = validate(schema.specs, check, schema.one_of)
     if lane == "edit3d":
         from . import mesh_export
 

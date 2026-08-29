@@ -47,7 +47,18 @@ def _prepare():
                     o.select_set(False)
                 cube.select_set(True)
                 bpy.context.view_layer.objects.active = cube
+            bpy.context.scene.scenario.lane = '3d'
+            bpy.context.scene.scenario.three_d_mode = 'EDIT'  # edit3d lives under the 3D tab in Edit mode
             bpy.context.scene.scenario.edit3d_task = 'RETEXTURE'
+            probe_model = os.environ.get("SCENARIO_PROBE_MODEL")
+            if probe_model:
+                # force a specific edit3d model (e.g. Rodin Bang) and trigger its async schema fetch
+                import importlib
+                name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
+                generation = importlib.import_module(name + ".blender.generation")
+                lane_state = bpy.context.scene.scenario.lane_state("edit3d")
+                lane_state.model_id = probe_model
+                generation.on_model_changed(bpy.context, lane_state)
         if ACTION == "generations":
             bpy.ops.scenario.history_refresh()
         if ACTION == "edit_mode":

@@ -6,6 +6,15 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.3] - 2026-08-29
+
+### Fixed
+- **Rodin Hyper3D Bang** (Retexture / Parts) no longer demands a reference image when a texture prompt is written. Its schema marks the reference image `required: true`, but the description makes it an alternative to the prompt ("... if no prompt is provided"). A required file whose own description reads conditional and which sits next to a prompt is now relaxed to optional, and the plugin requires at least one of the pair, showing one line ("Provide one of: Reference Image or Texture Prompt") only when neither is given. General and driven by the live schema, so it covers any future model phrased the same way.
+- Three curated model ids that no longer resolve on the catalog (so they silently never appeared) were corrected: Seedream 5.0 (non-Pro) -> `model_bytedance-seedream-5-0-lite`, Veo 3.1 -> `model_veo3-1`, Kling -> `model_kling-v3-omni-video`.
+
+### Added
+- `tools/audit_payloads.py`: audits every surfaced model's live schema against the payload the plugin builds (required flags, either/or inputs, mesh detection, dropped params). Report in `docs/MODEL_PAYLOAD_AUDIT.md`. 68/68 models clean after the fixes, the one remaining note (Trellis 2 Retexture needs mesh + style image) is correct by design.
+
 ## [0.9.2] - 2026-08-29
 
 ### Changed (UI)
