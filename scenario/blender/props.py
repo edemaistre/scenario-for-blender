@@ -110,7 +110,23 @@ def _lane_items(self, context):
 
 
 def _param_items(self, context):
-    return runtime.enum_items(("param", self.model_id, self.name))
+    key = ("param", self.model_id, self.name)
+    cached = runtime.state.enum_cache.get(key)
+    if cached:
+        return cached
+    # Cache miss: the params were restored from a saved .blend before sync_params re-ran, so the in-memory enum cache
+    # is empty and the dropdown would show "Loading..." forever. Rebuild the choices from the schema on the spot
+    # (draw-safe: it reads the record and writes only the plain enum-cache dict, never ID data).
+    from . import generation
+
+    schema = generation.schema_for(self.model_id)
+    spec = schema.by_name(self.name) if schema is not None else None
+    if spec is not None and spec.allowed_values and spec.ptype != "string_array":
+        options = [(str(v), spec.label_for(v), spec.description) for v in spec.allowed_values if str(v) != ""]
+        if options:
+            runtime.set_enum_items(key, options)
+            return runtime.state.enum_cache[key]
+    return runtime.enum_items(key)
 
 
 def _find_lane_state(context, lane):

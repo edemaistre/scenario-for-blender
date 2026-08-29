@@ -6,6 +6,11 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.6] - 2026-08-29
+
+### Fixed
+- **Enum settings no longer get stuck on "Loading..."** after opening a saved .blend. A parameter's choices (Minimax H3's Resolution and Aspect Ratio, and every other enum setting on every model) are kept in an in-memory cache that a saved file does not carry, so the dropdowns were empty until the model was re-synced. The dropdown now rebuilds its choices from the model schema on the spot when the cache is empty, so it is always populated.
+
 ## [0.9.5] - 2026-08-29
 
 ### Fixed

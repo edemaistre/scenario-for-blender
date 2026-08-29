@@ -31,6 +31,19 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(lane.model_id, "model_google-gemini-3-1-flash")
         self.assertIn("resolution", [p.name for p in lane.params])
 
+    def test_enum_param_choices_survive_a_cache_miss(self):
+        # after a .blend reload the params persist but the in-memory enum cache is empty; the dropdown must rebuild
+        # its choices from the schema instead of showing "Loading..." forever (the Minimax H3 Resolution bug)
+        props = submodule("blender.props")
+        lane = bpy.context.scene.scenario.lane_state("image")
+        schema = self.generation.schema_for(lane.model_id)
+        enum_spec = next(s for s in schema.specs if s.allowed_values and s.ptype != "string_array" and not s.is_file)
+        item = lane.params[lane.params.find(enum_spec.name)]
+        self.runtime.state.enum_cache.clear()  # simulate the reloaded-file state
+        ids = [i[0] for i in props._param_items(item, bpy.context)]
+        self.assertNotEqual(ids, ["NONE"])  # not the "Loading..." fallback
+        self.assertEqual(ids, [str(v) for v in enum_spec.allowed_values if str(v) != ""])
+
     def test_estimate_event_updates_lane_state(self):
         lane = bpy.context.scene.scenario.lane_state("image")
         lane.estimate_key = "image:k1"
