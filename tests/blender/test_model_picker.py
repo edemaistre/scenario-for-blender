@@ -239,10 +239,10 @@ class ModelPickerTests(unittest.TestCase):
         wm = bpy.context.window_manager
         root = self.draw_dialog()
         self.assertEqual(root.calls[0][0], "separator")  # breathing room under the title
-        rows = self.enum_rows(root)
-        self.assertTrue(all(alignment == 'CENTER' and len(values) == 1 for alignment, values in rows), rows)  # icon+label centred in its own cell
+        # a continuous segmented control: every value is a prop_enum in an even split region (no gaps), none expanded
         self.assertEqual(self.flat_enum_values(root), ["image", "video", "audio", "3d", "all", "generate", "edit", "expand", "upscale", "vectorize", "remove_background", "tools"])
-        self.assertFalse(any(c[2].get("expand") for node in root.walk() for c in node.named("prop")))  # no full-width enum row
+        self.assertFalse(any(c[2].get("expand") for node in root.walk() for c in node.named("prop")))  # no all-in-one expand enum
+        self.assertTrue(any(child.kind == "split" for node in root.walk() for child in node.children))  # split-forced equal widths
         self.assertEqual([c[1][1] for c in root.named("prop")], ["scenario_picker_query"])  # search stays full width on the root
         self.assertEqual([c[1][0] for c in root.named("template_list")], ["SCENARIO_UL_models"])
         self.assertGreaterEqual(len(root.named("separator")), 2)  # top and between the groups

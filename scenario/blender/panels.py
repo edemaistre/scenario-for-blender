@@ -56,17 +56,23 @@ def draw_model_row(layout, lane_state, lane):
         layout.prop(lane_state, "model_id", text="Model")
 
 
+def equal_segments(row, struct, prop, values):
+    """Draw `values` as one continuous segmented control filling `row`: equal-width cells with no gaps between them,
+    each showing the enum item's icon and label. `row` must be align=True so Blender merges the borders; a chain of
+    even splits forces the equal widths (a plain row would size each button to its content and pack them left)."""
+    container, n = row, len(values)
+    for i, value in enumerate(values):
+        remaining = n - i
+        seg = container.split(factor=1.0 / remaining, align=True) if remaining > 1 else container
+        seg.prop_enum(struct, prop, value)
+        container = seg
+
+
 def draw_enum_tabs(layout, struct, prop, rows):
-    """Tab rows that span the full width (each cell an equal share, edge to edge) with the icon glued to its label and
-    the pair centred inside the cell. `grid_flow(even_columns=True)` forces equal full-width cells whatever their
-    content; a CENTER-aligned row inside each centres the button. A plain column shrinks to content instead."""
+    """Tab rows as continuous full-width segmented controls (each cell an equal share, edge to edge, no gaps)."""
     col = layout.column(align=True)
     for values in rows:
-        grid = col.grid_flow(row_major=True, columns=len(values), even_columns=True, align=True)
-        for value in values:
-            cell = grid.row(align=True)
-            cell.alignment = 'CENTER'
-            cell.prop_enum(struct, prop, value)
+        equal_segments(col.row(align=True), struct, prop, values)
 
 
 def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):

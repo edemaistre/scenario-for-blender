@@ -302,13 +302,10 @@ def chip_rows(chips, per_row=CHIPS_PER_ROW):
 
 
 def _centered_cells(parent, struct, prop, values):
-    """One justified cell per value spanning the full width (an equal share, edge to edge); inside each, the icon
-    glued to its label with the pair centred. `grid_flow(even_columns=True)` forces the equal full-width cells."""
-    grid = parent.grid_flow(row_major=True, columns=max(1, len(values)), even_columns=True, align=True)
-    for value in values:
-        cell = grid.row(align=True)
-        cell.alignment = 'CENTER'
-        cell.prop_enum(struct, prop, value)
+    """A continuous full-width segmented control: equal cells, no gaps, each with the enum item's icon and label."""
+    from .panels import equal_segments
+
+    equal_segments(parent.row(align=True), struct, prop, values)
 
 
 def draw_filters(layout, wm):
