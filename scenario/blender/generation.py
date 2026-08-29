@@ -274,13 +274,18 @@ def build_request(scene, lane, for_estimate=False):
     values, enabled = params_ui.collect_values(lane_state, schema)
     refs = params_ui.collect_file_refs(lane_state, schema)
     files, array_params, asset_ids, captures = {}, set(), {}, []
-    if lane == "edit3d":
-        # the mesh comes from the selection, exported at generate time (never a file the user has to pick)
-        record = runtime.state.records.get(model_id)
-        mesh_name = mesh_param(record) if record is not None else None
-        if mesh_name is None:
-            return Request(lane, lane_kind(lane), model_id, {}, errors=["This model takes no mesh input"])
-        captures.append({"param": mesh_name, "source": 'MESH', "camera": None, "first": True})
+    # A model's 3D mesh input is fed by the scene selection automatically, in every lane: the Edit lane requires it,
+    # elsewhere (a text-to-motion model's character mesh) it is optional but still used when something is selected.
+    # Skip it only when the user attached an explicit file/asset for that input.
+    record = runtime.state.records.get(model_id)
+    mesh_name = mesh_param(record) if record is not None else None
+    if lane == "edit3d" and mesh_name is None:
+        return Request(lane, lane_kind(lane), model_id, {}, errors=["This model takes no mesh input"])
+    if mesh_name is not None and not any(r.param_name == mesh_name for r in lane_state.references):
+        from . import mesh_export
+
+        if lane == "edit3d" or mesh_export.source_objects(bpy.context):
+            captures.append({"param": mesh_name, "source": 'MESH', "camera": None, "first": True})
     for spec in schema.specs:
         if not spec.is_file:
             continue

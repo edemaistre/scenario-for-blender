@@ -6,6 +6,18 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.5] - 2026-08-29
+
+### Fixed
+- **The selected scene mesh is now attached automatically** to a model's 3D character input (any lane), so a text-to-motion model like Uthana Text to Motion uses your mesh without hunting for a button. A selected mesh shows pinned as "Selected mesh: <name>"; deselect for a text-only generation, or Upload a model file to override. (Before, you had to click a button that was easy to miss, so generations ran without the mesh.)
+- **Reload parameters** now restores the sub-selector that gates the model list: reloading a Meshy 7 Retexture (or any Edit-lane model) switches to the right Edit task, and a Generate-lane model switches to the right input mode, so the model, prompt and settings actually come back. The Edit-lane mesh is no longer restored as a stale asset (it comes from the current selection).
+- The camera-path **Plan** button is clearer: it reads keywords (one move + seconds + lens), not AI; when several moves are named ("dolly in and then orbit") the first one written wins, so the result is predictable. Placeholder and tooltip updated.
+
+### Added
+- A **trash button** on the prompt to delete its text (greyed out when empty).
+- **Collapse all / Expand all** for the generation list.
+- **Full error messages**: a failed generation shows a red error control whose tooltip is the whole message (with the Error ID), and clicking it opens the full text with a Copy button, instead of a line cut off at 70 characters.
+
 ## [0.9.4] - 2026-08-29
 
 ### Fixed

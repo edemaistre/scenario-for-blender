@@ -78,6 +78,31 @@ class ReloadAndImageActionTests(unittest.TestCase):
         refs = [(r.param_name, r.source, r.filepath) for r in lane.references]
         self.assertEqual(refs, [("referenceImages", 'FILE', image)])
 
+    def test_reload_edit3d_restores_the_task_and_model(self):
+        # reloading a Meshy 7 Retexture generation from a different Edit task must switch the task so the model is in
+        # the enum and restores, keep the settings, and NOT restore the mesh as a stale asset (it comes from selection)
+        handlers = submodule("blender.handlers")
+        self.runtime.state.reset()
+        records = [rec("model_meshy-7-retexture"), rec("model_tripo-retopology"), rec("model_meshy-7-txt23d")]
+        handlers.dispatch(("catalog", {"privacy": "public", "records": records, "detailed": records}))
+        recs = submodule("core.jobs.records")
+        job = recs.JobRecord.new(lane="edit3d", kind="3d", model_id="model_meshy-7-retexture",
+                                 body={"textStylePrompt": "rusty iron", "model": "asset_oldmesh", "textureResolution": "4k", "enablePbr": True},
+                                 meta={"prompt": "rusty iron", "model_name": "Meshy 7 - Retexture", "inputs": []})
+        job.status = "success"
+        self.runtime.state.jobs_view.insert(0, job)
+        self.scene.scenario.lane = "3d"
+        self.scene.scenario.three_d_mode = 'EDIT'
+        self.scene.scenario.edit3d_task = 'REMESH'  # a different task; the retexture model is not in its list
+        bpy.ops.scenario.reload_generation(local_id=job.local_id)
+        self.assertEqual(self.scene.scenario.edit3d_task, 'RETEXTURE')
+        lane = self.scene.scenario.lane_state("edit3d")
+        self.assertEqual(lane.model_id, "model_meshy-7-retexture")
+        self.assertEqual(lane.prompt, "rusty iron")
+        self.assertEqual(lane.params["textureResolution"].enum_value, "4k")
+        self.assertTrue(lane.params["enablePbr"].bool_value)
+        self.assertEqual([r.param_name for r in lane.references], [])  # no stale mesh asset restored
+
     def test_convert_to_3d_opens_the_3d_tab_in_image_mode_with_the_picture(self):
         image = str(FIXTURES / "patina-copper-512" / "albedo.png")
         self.scene.scenario.lane = "image"

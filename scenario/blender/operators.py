@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Operators: connection test, catalog refresh, generate, references, results."""
 import os
+import textwrap
 
 import bpy
 from bpy.props import EnumProperty, FloatProperty, IntProperty, StringProperty
@@ -366,6 +367,48 @@ class SCENARIO_OT_toggle_result(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SCENARIO_OT_collapse_results(bpy.types.Operator):
+    bl_idname = "scenario.collapse_results"
+    bl_label = "Collapse or expand all"
+    bl_description = "Collapse or expand every generation in the list"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        terminal = [r for r in runtime.state.jobs_view if r.is_terminal]
+        collapse = any(not r.meta.get("collapsed") for r in terminal)  # any open -> collapse all; all closed -> expand
+        for rec in terminal:
+            rec.meta["collapsed"] = collapse
+        return {'FINISHED'}
+
+
+class SCENARIO_OT_error_details(bpy.types.Operator):
+    bl_idname = "scenario.error_details"
+    bl_label = "Error details"
+    bl_description = "Show the full error message"
+    local_id: StringProperty()
+
+    @classmethod
+    def description(cls, context, properties):
+        rec = next((r for r in runtime.state.jobs_view if r.local_id == properties.local_id), None)
+        return (rec.error if rec and rec.error else "Show the full error message")  # hover shows the whole message
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=460, title="Generation failed", confirm_text="Close")
+
+    def draw(self, context):
+        rec = next((r for r in runtime.state.jobs_view if r.local_id == self.local_id), None)
+        layout = self.layout
+        text = (rec.error if rec and rec.error else "") or "No error message was returned"
+        col = layout.column(align=True)
+        for line in textwrap.wrap(text, 66) or [text]:
+            col.label(text=line)
+        op = layout.operator("scenario.copy_text", text="Copy error", icon='COPYDOWN')
+        op.text, op.what = text, "error message"
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
 class SCENARIO_OT_result_details(bpy.types.Operator):
     bl_idname = "scenario.result_details"
     bl_label = "Generation details"
@@ -615,13 +658,24 @@ class SCENARIO_OT_reload_generation(bpy.types.Operator):
         if rec is None:
             self.report({'ERROR'}, "This generation is no longer in the session list")
             return {'CANCELLED'}
+        from ..core.api import catalog
+
         scene = context.scene
         lane = rec.lane if rec.lane in props.GENERATION_LANES else rec.kind if rec.kind in props.GENERATION_LANES else "image"
+        # The model enum of a 3D lane is gated by a sub-selector (the Edit task, or the Generate input mode). Set it to
+        # one that lists this model FIRST, otherwise the model is absent from the enum and cannot be restored.
         if lane == "edit3d":
-            scene.scenario.three_d_mode = 'EDIT'
             scene.scenario.lane = "3d"
+            scene.scenario.three_d_mode = 'EDIT'
+            task = next((t[0] for t in catalog.EDIT3D_TASKS if rec.model_id in (t[3] or ())), 'ALL')
+            scene.scenario.edit3d_task = task
         else:
             scene.scenario.lane = lane
+            if lane == "3d":
+                record = runtime.state.records.get(rec.model_id)
+                mode = next((m for m in ('TEXT', 'IMAGE', 'MULTI') if record is not None and generation.three_d_models(m, [record])), None)
+                if mode is not None:
+                    scene.scenario.three_d_mode = mode
         lane_state = scene.scenario.lane_state(lane)
         valid = [item[0] for item in runtime.enum_items(("models", lane))]
         if rec.model_id in valid:
@@ -667,11 +721,11 @@ class SCENARIO_OT_reload_generation(bpy.types.Operator):
         for spec in schema.specs:
             if not spec.is_file:
                 continue
+            if lane == "edit3d" and (spec.kind or "").lower() == "3d":
+                continue  # the mesh comes from the current scene selection, not a stale asset from the old job
             value = rec.body.get(spec.name)
             ids = value if isinstance(value, list) else ([value] if value else [])
             local = [p for p in inputs if (spec.kind or "image") in ("image", "video", "audio", "3d") and p.lower().endswith(tuple(_EXTS.get(spec.kind or "image", ())))]
-            if lane in ("render_image", "render_video") and spec.name in {c.get("param") for c in []}:
-                continue
             if local:
                 for path in local[:spec.max_length or len(local)]:
                     ref = lane_state.references.add()
@@ -869,7 +923,7 @@ class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
 
 
 CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects,
-           SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_delete_result_objects,
+           SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_collapse_results, SCENARIO_OT_error_details, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_delete_result_objects,
            SCENARIO_OT_use_as_reference, SCENARIO_OT_convert_to_3d, SCENARIO_OT_remove_background, SCENARIO_OT_reload_generation, SCENARIO_OT_quick_settings, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
            SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_retile_material)

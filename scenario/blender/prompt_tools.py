@@ -167,6 +167,21 @@ class SCENARIO_OT_prompt_spark(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SCENARIO_OT_prompt_clear(bpy.types.Operator):
+    bl_idname = "scenario.prompt_clear"
+    bl_label = "Clear prompt"
+    bl_description = "Delete the prompt text"
+    bl_options = {'REGISTER', 'UNDO'}
+    lane: StringProperty(default="image", description="Lane whose prompt is cleared")
+
+    def execute(self, context):
+        lane_state = context.scene.scenario.lane_state(self.lane)
+        if lane_state is None:
+            return {'CANCELLED'}
+        lane_state.prompt = ""
+        return {'FINISHED'}
+
+
 class SCENARIO_OT_prompt_translate(bpy.types.Operator):
     bl_idname = "scenario.prompt_translate"
     bl_label = "Translate to English"
@@ -227,6 +242,9 @@ def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None, wrap_wi
     rows = int(getattr(lane_state, "prompt_rows", 1) or 1)
     grip = header.row(align=True)
     grip.alignment = 'RIGHT'
+    clear = grip.row(align=True)
+    clear.enabled = bool(lane_state.prompt)  # greyed out when there is nothing to delete
+    clear.operator(SCENARIO_OT_prompt_clear.bl_idname, text="", icon='TRASH').lane = lane
     grip.prop(lane_state, "prompt_rows", text="", icon='FIXED_SIZE')  # drag to grow the box (height)
     field = box.column(align=True)
     field.scale_y = max(1.0, float(rows))  # the prompt lives here; drag the height to make it taller
@@ -245,7 +263,7 @@ def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None, wrap_wi
     return box
 
 
-CLASSES = (SCENARIO_OT_prompt_spark, SCENARIO_OT_prompt_translate)
+CLASSES = (SCENARIO_OT_prompt_spark, SCENARIO_OT_prompt_translate, SCENARIO_OT_prompt_clear)
 
 
 def register():

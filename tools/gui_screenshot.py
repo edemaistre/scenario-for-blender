@@ -77,6 +77,19 @@ def _prepare():
                 lane_state = bpy.context.scene.scenario.lane_state("3d")
                 lane_state.model_id = probe_model
                 generation.on_model_changed(bpy.context, lane_state)
+        if ACTION == "failjobs":
+            # inject a couple of terminal generations (one failed with a long error) to show the error display + collapse all
+            import importlib
+            name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
+            runtime = importlib.import_module(name + ".blender.runtime")
+            records = importlib.import_module(name + ".core.jobs.records")
+            runtime.state.jobs_view.clear()
+            ok = records.JobRecord.new(lane="3d", kind="3d", model_id="model_meshy-7-txt23d", body={}, meta={"prompt": "She's running", "model_name": "Meshy 7 - Text to 3D"})
+            ok.status, ok.cu_cost, ok.asset_ids = "success", 208, ["asset_ok1"]
+            fail = records.JobRecord.new(lane="edit3d", kind="3d", model_id="model_meshy-7-retexture", body={}, meta={"prompt": "red dress", "model_name": "Meshy 7 - Retexture"})
+            fail.status, fail.cu_cost = "failed", 60
+            fail.error = "The model file is too large for processing. Try reducing the resolution or simplifying the geometry of your input, then retry the generation. [Error ID: error_Uq14k1SGmKWhPfv4HZ4hyZRN]"
+            runtime.state.jobs_view.extend([fail, ok])
         if ACTION == "generations":
             bpy.ops.scenario.history_refresh()
         if ACTION == "edit_mode":

@@ -34,7 +34,7 @@ class ScenarioShotProps(bpy.types.PropertyGroup):
     start_frame: IntProperty(name="Start frame", default=1, min=0, description="First frame of the shot; the scene frame range starts here")
     aim_at_subject: BoolProperty(name="Aim at subject", default=True, description="Keep the camera pointed at the subject along the whole path")
     closed_loop: BoolProperty(name="Closed loop", default=False, description="End the path exactly where it starts (set automatically for orbits and ellipses)")
-    description: StringProperty(name="Shot", description="Describe the shot: slow orbit, ellipse 2, dolly in closer, truck left, crane up, top down, zoom in, 8s, 50mm...")
+    description: StringProperty(name="Shot", description="One camera move plus optional seconds and lens, read by keywords (not AI): orbit, dolly in, truck left, crane, top down, zoom in, 8 s, 50 mm. One move per path; the first move you name wins")
     use_selection: BoolProperty(name="Frame selection", default=False, description="Frame the selected objects instead of every visible mesh")
     markers_source: StringProperty(description="The move the markers were placed from, or 'markers' when placed by hand")
     previous_camera: StringProperty(description="The scene camera before the shot camera took over, restored by Clear path")
@@ -547,7 +547,7 @@ class SCENARIO_OT_shot_preview(bpy.types.Operator):
 class SCENARIO_OT_shot_from_description(bpy.types.Operator):
     bl_idname = "scenario.shot_from_description"
     bl_label = "Plan"
-    bl_description = "Read the shot description (move, seconds, lens) into the settings, place the markers and build the camera path"
+    bl_description = "Read one move plus seconds and lens from the description by keywords (not AI), place the markers and build the camera path"
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
@@ -579,7 +579,7 @@ def draw_shot_planner(layout, context):
     box = layout.box()
     box.label(text="Camera path", icon='CAMERA_DATA')
     row = box.row(align=True)
-    row.prop(props, "description", text="", placeholder="Describe the shot: slow orbit, 8 s, 35 mm...")
+    row.prop(props, "description", text="", placeholder="One move + seconds + lens: orbit, 8 s, 50 mm")
     row.operator(SCENARIO_OT_shot_from_description.bl_idname, text="Plan", icon='OUTLINER_OB_CAMERA')
     row = box.row(align=True)
     row.prop(props, "preset", text="")

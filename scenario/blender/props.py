@@ -40,7 +40,7 @@ ADDABLE_SOURCES = [item for item in REFERENCE_SOURCES if item[0] not in ('ASSET'
 # The sources that make sense for a file input, by its kind. A 3D input (a character mesh) takes the selected scene
 # mesh or an uploaded model, never an image capture; an image input takes stills, a video input takes clips.
 _SOURCES_BY_KIND = {
-    "3d": ('MESH', 'FILE'),
+    "3d": ('FILE',),  # the scene selection is attached automatically; Upload overrides it with a model file
     "image": ('FILE', 'RENDER', 'VIEWPORT', 'CAMERA'),
     "video": ('FILE', 'RENDER', 'VIEWPORT_CLIP', 'CAMERA_CLIP'),
     "audio": ('FILE',),

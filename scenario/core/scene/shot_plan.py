@@ -425,11 +425,14 @@ _FOCAL = re.compile(r"(\d+(?:\.\d+)?)\s*mm\b", re.I)
 def plan_from_text(text):
     """A deterministic reading of a shot description: {"preset", "duration", "focal"}. Unknown text keeps the defaults."""
     text = (text or "").strip().lower()
+    # one move per path: when several are named ("dolly in and then orbit"), the one written first wins, so the
+    # result is predictable from what the user typed; a more specific pattern breaks a tie at the same position.
     preset = DEFAULT_PRESET
+    best_start = None
     for name, pattern in _PRESET_PATTERNS:
-        if re.search(pattern, text):
-            preset = name
-            break
+        match = re.search(pattern, text)
+        if match and (best_start is None or match.start() < best_start):
+            best_start, preset = match.start(), name
     duration = DEFAULT_DURATION
     match = _DURATION.search(text)
     if match:

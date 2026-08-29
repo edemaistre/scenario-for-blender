@@ -31,7 +31,13 @@ The video model's `Duration (cost)` in Settings is the single source of the clip
 
 ## Reference inputs
 
-A file input's add options match its kind (`props.addable_sources_for`): a **3D** input offers **Selected mesh** (the scene selection, exported as GLB at generate time) and **Upload**; an **image** input offers Upload plus the viewport/camera stills and the render result; a **video** input offers Upload plus the clip captures. Never offer a source that produces the wrong asset type (no image capture on a 3D character input). In the 3D Edit lane the mesh input is pinned to the selection automatically; everywhere else the user attaches it with the Selected mesh button.
+A file input's add options match its kind (`props.addable_sources_for`): a **3D** input offers only **Upload** (a model file to override); an **image** input offers Upload plus the viewport/camera stills and the render result; a **video** input offers Upload plus the clip captures. Never offer a source that produces the wrong asset type (no image capture on a 3D character input).
+
+A model's **3D mesh input is fed by the scene selection automatically, in every lane**: `build_request` attaches the selected mesh (exported as GLB at generate time) to that input unless the user uploaded a file for it, and `draw_references` shows it pinned as "Selected mesh: <name>". Deselect for a text-only generation; Upload to override. The Edit lane requires it (an error when nothing is selected); elsewhere it is optional.
+
+## Generations
+
+Each result collapses on its own; the panel header has a **Collapse all / Expand all** toggle. A failed result shows a red error control in its header whose tooltip is the whole message (with the Error ID) and which opens the full text with a Copy button on click (a `description()`-driven operator, since Blender labels have no per-instance tooltip). Never truncate an error to a single clipped line as the only way to read it. The prompt box carries a trash button that deletes its text, greyed out when empty.
 
 ## Wording
 

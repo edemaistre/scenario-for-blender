@@ -49,7 +49,7 @@ class ThreeDLaneTests(unittest.TestCase):
 
     def test_add_sources_depend_on_input_kind(self):
         props = submodule("blender.props")
-        self.assertEqual([s[0] for s in props.addable_sources_for("3d")], ['MESH', 'FILE'])
+        self.assertEqual([s[0] for s in props.addable_sources_for("3d")], ['FILE'])  # selection auto-attaches; Upload overrides
         self.assertEqual([s[0] for s in props.addable_sources_for("image")], ['FILE', 'RENDER', 'VIEWPORT', 'CAMERA'])
         self.assertEqual([s[0] for s in props.addable_sources_for("video")], ['FILE', 'RENDER', 'VIEWPORT_CLIP', 'CAMERA_CLIP'])
         self.assertEqual([s[0] for s in props.addable_sources_for("audio")], ['FILE'])
@@ -74,6 +74,30 @@ class ThreeDLaneTests(unittest.TestCase):
         request = generation.build_request(scene, "3d")
         self.assertEqual(request.errors, [])
         self.assertIn({"param": "characterFile", "source": 'MESH', "camera": None}, request.captures)
+
+    def test_selected_mesh_auto_attaches_without_a_click(self):
+        # the scene selection feeds a 3D character input automatically (no button): a selected mesh is used, and
+        # deselecting gives a text-only generation.
+        generation = submodule("blender.generation")
+        runtime = submodule("blender.runtime")
+        handlers = submodule("blender.handlers")
+        runtime.state.reset()
+        record = rec("model_uthana-text-to-motion-3.0")
+        handlers.dispatch(("catalog", {"privacy": "public", "records": [record], "detailed": [record]}))
+        scene = bpy.context.scene
+        scene.scenario.three_d_mode = 'TEXT'
+        lane = scene.scenario.lane_state("3d")
+        lane.model_id = "model_uthana-text-to-motion-3.0"
+        lane.prompt = "a slow bow"
+        bpy.ops.mesh.primitive_cube_add(size=2.0)
+        cube = bpy.context.active_object
+        request = generation.build_request(scene, "3d")
+        self.assertEqual(len(lane.references), 0)  # nothing attached by hand
+        self.assertIn({"param": "characterFile", "source": 'MESH', "camera": None, "first": True}, request.captures)
+        cube.select_set(False)
+        bpy.context.view_layer.objects.active = None
+        request = generation.build_request(scene, "3d")
+        self.assertEqual([c for c in request.captures if c["param"] == "characterFile"], [])
 
     def test_rodin_material_override_applies_when_allowed(self):
         params_ui = submodule("blender.params_ui")

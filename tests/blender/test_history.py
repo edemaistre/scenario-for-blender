@@ -29,3 +29,34 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(runtime.state.history_token, "tok2")
         handlers.dispatch(("history", {"jobs": jobs, "token": None, "append": True}))
         self.assertEqual(len(runtime.state.history), 1)
+
+
+class GenerationListTests(unittest.TestCase):
+    def setUp(self):
+        self.runtime = submodule("blender.runtime")
+        self.records = submodule("core.jobs.records")
+        self.runtime.state.reset()
+
+    def _job(self, error=None, status="success"):
+        job = self.records.JobRecord.new(lane="3d", kind="3d", model_id="model_x", body={}, meta={"prompt": "p"})
+        job.status = status
+        job.error = error
+        return job
+
+    def test_collapse_results_collapses_all_then_expands_all(self):
+        a, b = self._job(), self._job()
+        self.runtime.state.jobs_view.extend([a, b])
+        bpy.ops.scenario.collapse_results()  # any open -> collapse all
+        self.assertTrue(a.meta["collapsed"] and b.meta["collapsed"])
+        bpy.ops.scenario.collapse_results()  # all closed -> expand all
+        self.assertFalse(a.meta["collapsed"] or b.meta["collapsed"])
+
+    def test_error_details_description_is_the_full_message(self):
+        from bl_ext.user_default.scenario.blender.operators import SCENARIO_OT_error_details
+        long_error = "The model file is too large for processing. Try reducing the resolution. [Error ID: error_ABC123]"
+        job = self._job(error=long_error, status="failed")
+        self.runtime.state.jobs_view.append(job)
+
+        class P:
+            local_id = job.local_id
+        self.assertEqual(SCENARIO_OT_error_details.description(bpy.context, P()), long_error)

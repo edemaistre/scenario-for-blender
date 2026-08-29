@@ -227,6 +227,9 @@ def test_unknown_preset_falls_back_to_orbit():
     ("high angle turn around", {"preset": "orbit_high", "duration": 6.0, "focal": 35.0}),
     ("", {"preset": "orbit", "duration": 6.0, "focal": 35.0}),
     ("a 500 sec epic", {"preset": "orbit", "duration": 60.0, "focal": 35.0}),
+    # one move per path: when several are named, the first written wins (predictable from the text)
+    ("dolly in and then orbit", {"preset": "dolly_in", "duration": 6.0, "focal": 35.0}),
+    ("orbit then dolly in closer", {"preset": "orbit", "duration": 6.0, "focal": 35.0}),
 ])
 def test_plan_from_text(text, expected):
     assert sp.plan_from_text(text) == expected

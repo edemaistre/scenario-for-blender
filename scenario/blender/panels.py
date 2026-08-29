@@ -110,9 +110,20 @@ def draw_references(layout, lane_state, schema, title_for=None, fixed_first=None
     """One file input per group. `fixed_first` names an implicit first entry (the capture, the selected mesh) that
     the lane adds itself; `title_for` overrides the title; `hide` skips inputs entirely. `boxed=False` draws flat,
     without a box, for callers that are already inside one (avoids nesting coloured boxes)."""
+    from . import mesh_export
+
     title_for, fixed_first = title_for or {}, fixed_first or {}
     refs = params_ui.collect_file_refs(lane_state, schema)
     lane = props.lane_of(lane_state)
+    # A 3D input is fed by the scene selection automatically (any lane), so a selected mesh is used without a click.
+    # Only when the user has attached an explicit file/asset for that input is the selection not shown.
+    selected = mesh_export.source_objects(bpy.context)
+    if selected and lane != "edit3d":  # the Edit lane passes its own pinned label
+        names = ", ".join(o.name for o in selected[:2]) + (f" +{len(selected) - 2}" if len(selected) > 2 else "")
+        for spec in schema.specs:
+            if spec.is_file and (spec.kind or "").lower() == "3d" and spec.name not in fixed_first \
+                    and not any(r.param_name == spec.name for r in lane_state.references):
+                fixed_first.setdefault(spec.name, f"Selected mesh: {names}")
     for spec in schema.specs:
         if not spec.is_file or spec.name in hide:
             continue
@@ -123,9 +134,9 @@ def draw_references(layout, lane_state, schema, title_for=None, fixed_first=None
         kind = spec.kind or "image"
         icon = {'image': 'IMAGE_DATA', 'video': 'FILE_MOVIE', '3d': 'MESH_DATA', 'audio': 'SPEAKER'}.get(kind, 'FILE')
         header.label(text=f"{label}  {count}" + (f"/{spec.max_length}" if spec.max_length else ""), icon=icon)
-        if not (spec.ptype == "file" and spec.name in fixed_first):
-            # only the sources that make sense for this input's kind: a 3D input offers the selected mesh or an
-            # uploaded model (never an image capture), so a model like Uthana Text to Motion can take the scene mesh.
+        # the Edit lane's required mesh hides its add options; everywhere else offer the kind-appropriate sources
+        # (a 3D input: Upload a model to override the selection; image/video: stills or clips) even when auto-pinned.
+        if not (spec.ptype == "file" and spec.name in fixed_first and lane == "edit3d"):
             add_row = box.row(align=True)
             for source_id, source_label, _desc in props.addable_sources_for(spec.kind):
                 op = add_row.operator("scenario.add_reference", text=ADD_SOURCE_LABEL.get(source_id, source_label), icon=SOURCE_ICON.get(source_id, 'ADD'))
@@ -134,6 +145,8 @@ def draw_references(layout, lane_state, schema, title_for=None, fixed_first=None
             row = box.row(align=True)
             row.enabled = False
             row.label(text=fixed_first[spec.name], icon='PINNED')
+        elif (spec.kind or "").lower() == "3d" and not refs.get(spec.name):
+            box.label(text="Select a mesh in the viewport to animate it, or Upload one", icon='INFO')
         for index, ref in enumerate(lane_state.references):
             if ref.param_name != spec.name:
                 continue
@@ -307,7 +320,10 @@ def draw_result(layout, rec):
     toggle = header.operator("scenario.toggle_result", text="", icon='TRIA_RIGHT' if collapsed else 'TRIA_DOWN', emboss=False)
     toggle.local_id = rec.local_id
     header.label(text=_short_prompt(rec), icon=KIND_ICON.get(rec.kind, 'FILE'))
-    if not rec.is_success:
+    if not rec.is_success and rec.error:
+        # a red error button whose tooltip is the full message, and which opens it in full on click (like the web app)
+        header.operator("scenario.error_details", text="", icon='ERROR', emboss=False).local_id = rec.local_id
+    elif not rec.is_success:
         header.label(text="", icon='ERROR')
     header.label(text=f"{rec.cu_cost:g} CU" if rec.cu_cost is not None else "")
     if collapsed:
@@ -326,7 +342,10 @@ def draw_result(layout, rec):
         if len(rec.asset_ids) > 1:
             row.label(text=f"+{len(rec.asset_ids) - 1}")
     if rec.error:
-        box.label(text=("Failed: " if not rec.is_success else "") + rec.error[:70], icon='ERROR')
+        row = box.row(align=True)
+        row.alert = not rec.is_success
+        row.label(text=("Failed: " if not rec.is_success else "") + rec.error[:60], icon='ERROR')
+        row.operator("scenario.error_details", text="", icon='INFO').local_id = rec.local_id  # tooltip = full message; click = full text + copy
     if rec.meta.get("download_errors"):
         box.label(text=f"{len(rec.meta['download_errors'])} file(s) could not be downloaded", icon='ERROR')
     if rec.kind == "image":
@@ -488,6 +507,11 @@ class SCENARIO_PT_generations(bpy.types.Panel):
         row = layout.row(align=True)
         row.operator("scenario.open_output_folder", text="Output folder", icon='FILE_FOLDER')
         row.operator("scenario.history_refresh", text="Refresh cloud", icon='FILE_REFRESH')
+        terminal = [r for r in runtime.state.jobs_view if r.is_terminal]
+        if terminal:
+            any_open = any(not r.meta.get("collapsed") for r in terminal)
+            row.operator("scenario.collapse_results", text="Collapse all" if any_open else "Expand all",
+                         icon='FULLSCREEN_EXIT' if any_open else 'FULLSCREEN_ENTER')
         shown, shown_ids = 0, set()
         for rec in runtime.state.jobs_view:
             if not rec.is_terminal:
