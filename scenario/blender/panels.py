@@ -27,7 +27,8 @@ def draw_account_strip(layout, context):
     if not runtime.online():
         row.label(text="Online access is disabled", icon='ERROR')
         return False
-    row.label(text=runtime.state.account_label or "Scenario", icon='CHECKMARK')
+    label = runtime.state.account_label or ("Connected" if runtime.state.catalog_loaded else "Connecting...")
+    row.label(text=label, icon='CHECKMARK' if runtime.state.catalog_loaded else 'SORTTIME')
     row.operator("scenario.refresh_catalog", text="", icon='FILE_REFRESH')
     row.operator("preferences.addon_show", text="", icon='PREFERENCES').module = runtime.PACKAGE
     return True
@@ -138,13 +139,12 @@ def draw_clip_options(layout, context, lane_state, schema):
     if not has_video_input and not uses_capture:
         return
     box = layout.box()
-    box.label(text="Blender input", icon='RENDER_ANIMATION')
+    box.label(text="Scene clip", icon='RENDER_ANIMATION')
     scene = context.scene
     fps = scene.render.fps / (scene.render.fps_base or 1.0)
     start, end, seconds = capture_plan.frame_span(scene.frame_start, scene.frame_end, fps, use_preview=scene.use_preview_range,
                                                   preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
-    fps_label = f"{fps:g} fps"
-    box.label(text=f"Clip: frames {start} to {end}, {seconds:.1f} s at {fps_label}, 1280x720")
+    box.label(text=f"Frames {start} to {end}: {seconds:.1f} s at {fps:g} fps, 1280x720")
     if schema.by_name("duration") is not None:
         box.prop(lane_state, "match_timeline")
         if lane_state.match_timeline:
@@ -164,8 +164,9 @@ def generate_button_text(lane_state):
 
 
 def draw_generate_row(layout, lane_state, lane):
+    layout.separator(factor=0.5)  # breathing room above the primary action
     row = layout.row(align=True)
-    row.scale_y = 1.4
+    row.scale_y = 1.5
     row.operator("scenario.generate", text=generate_button_text(lane_state), icon='PLAY').lane = lane
     if lane_state.estimate_state in ('ERROR', 'UNAVAILABLE') and lane_state.estimate_error:
         layout.label(text=lane_state.estimate_error[:80], icon='INFO')
@@ -225,8 +226,8 @@ def draw_edit3d_lane(layout, context):
         box.label(text="Exported as GLB at generate time; the result lands next to it", icon='INFO')
     else:
         box.label(text="Select the mesh to edit in the viewport", icon='ERROR')
-    grid = layout.grid_flow(columns=3, align=True, even_columns=True)
-    grid.prop(scene.scenario, "edit3d_task", expand=True)
+    tasks = [t[0] for t in props.EDIT3D_TASK_ITEMS]
+    draw_enum_tabs(layout, scene.scenario, "edit3d_task", (tasks[:4], tasks[4:]))  # continuous segmented rows, like the lane tabs
     task = edit3d_task(scene.scenario.edit3d_task)
     layout.label(text=task[2], icon='INFO')
     if not runtime.state.lane_models.get("edit3d"):
@@ -418,6 +419,7 @@ class SCENARIO_PT_main(bpy.types.Panel):
             return
         scenario = context.scene.scenario
         draw_enum_tabs(layout, scenario, "lane", (("image", "video", "3d"), ("audio", "material"), ("render_image", "render_video")))
+        layout.separator(factor=0.5)  # breathing room between the tabs and the lane form
         lane = scenario.lane
         if not runtime.state.catalog_loaded:
             draw_loading(layout)
