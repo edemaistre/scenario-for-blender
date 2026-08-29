@@ -142,7 +142,7 @@ def draw_params(layout, lane_state, schema, exclude=(), locked=()):
         groups.setdefault(spec.group or "Settings", []).append(spec)
     for group, specs in groups.items():
         box = layout.box()
-        box.label(text=group)
+        box.label(text=group, icon='PREFERENCES')
         for spec in specs:
             index = lane_state.params.find(spec.name)
             if index < 0:

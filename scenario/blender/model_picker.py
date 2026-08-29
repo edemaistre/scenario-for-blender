@@ -405,11 +405,10 @@ class SCENARIO_OT_pick_model(bpy.types.Operator):
 
 
 def draw_model_row(layout, lane_state, lane):
-    """`Model:` then a wide button opening the picker (its icon glued to the model name, the pair centred in the bar)
-    and the native dropdown at the right as a fallback."""
-    split = layout.split(factor=0.22)
-    split.label(text="Model:")
-    row = split.row(align=True)
+    """A "Model" section (like Clip to render / Camera path): a header, then a wide button opening the picker
+    (its icon next to the model name) and the native dropdown at the right as a fallback."""
+    box = layout.box()
+    box.label(text="Model", icon='NODE_MATERIAL')
     record = runtime.state.records.get(lane_state.model_id)
     if record is not None:
         label = record.name
@@ -417,11 +416,9 @@ def draw_model_row(layout, lane_state, lane):
     else:
         label = "Choose a model..." if runtime.state.catalog_loaded else "Loading models..."
         icon_kwargs = {"icon": 'VIEWZOOM'}
-    # the button area is forced to most of the width by a split; the centred row inside centres the icon+name in the bar
-    area = row.split(factor=0.86, align=True)
-    centered = area.row(align=True)
-    centered.alignment = 'CENTER'
-    centered.operator("scenario.pick_model", text=label, **icon_kwargs).lane = lane
+    row = box.row(align=True)
+    area = row.split(factor=0.9, align=True)
+    area.operator("scenario.pick_model", text=label, **icon_kwargs).lane = lane
     area.prop(lane_state, "model_id", text="", icon_only=True)
 
 

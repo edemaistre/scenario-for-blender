@@ -269,8 +269,8 @@ def build_request(scene, lane, for_estimate=False):
     schema = schema_for(model_id)
     if schema is None:
         return Request(lane, lane_kind(lane), model_id, {}, errors=["Model not loaded yet"])
-    if schema.by_name("duration") is not None and lane_state.match_timeline:
-        apply_match_timeline(scene, lane_state, schema)
+    if lane == "video" and schema.by_name("duration") is not None and lane_state.match_timeline:
+        apply_match_timeline(scene, lane_state, schema)  # base Video: the model duration follows the timeline
     values, enabled = params_ui.collect_values(lane_state, schema)
     refs = params_ui.collect_file_refs(lane_state, schema)
     files, array_params, asset_ids, captures = {}, set(), {}, []
@@ -336,6 +336,42 @@ def build_request(scene, lane, for_estimate=False):
         request.partial = bool(request.captures) or any(spec.cost_impact and spec.name in request.files for spec in schema.specs if spec.is_file)
     request.errors = errors
     return request
+
+
+def model_duration_value(lane_state):
+    """The Render Video model chosen output duration in seconds, or None."""
+    schema = schema_for(lane_state.model_id)
+    spec = schema.by_name("duration") if schema is not None else None
+    if spec is None:
+        return None
+    index = lane_state.params.find("duration")
+    if index < 0:
+        return None
+    item = lane_state.params[index]
+    try:
+        if spec.allowed_values:
+            return float(item.enum_value)
+        return float(item.int_value if spec.is_integer else item.float_value)
+    except (ValueError, TypeError):
+        return None
+
+
+def sync_shot_duration(scene):
+    """With Match timeline on, the camera path (and the captured clip) lasts exactly the model video duration, so the
+    motion maps one to one. Called from property callbacks, never during draw, so it may write scene data."""
+    if scene is None or not hasattr(scene, "scenario_shot"):
+        return
+    lane_state = scene.scenario.lane_state("render_video")
+    if lane_state is None or not lane_state.match_timeline:
+        return
+    value = model_duration_value(lane_state)
+    if value is None or value <= 0:
+        return
+    shot = scene.scenario_shot
+    prop = shot.bl_rna.properties["duration"]
+    value = max(prop.hard_min, min(prop.hard_max, value))
+    if abs(shot.duration - value) > 1e-6:
+        shot.duration = value
 
 
 def apply_match_timeline(scene, lane_state, schema):

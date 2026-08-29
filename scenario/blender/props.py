@@ -118,6 +118,10 @@ def _on_param_update(self, context):
     lane_state = _find_lane_state(context, self.lane)
     if lane_state is not None:
         mark_estimate_dirty(lane_state)
+    if self.name == "duration":
+        from . import generation
+
+        generation.sync_shot_duration(getattr(context, "scene", None) or bpy.context.scene)
 
 
 class ScenarioParamValue(bpy.types.PropertyGroup):
@@ -162,6 +166,13 @@ def _on_prompt_update(self, context):
     mark_estimate_dirty(self)
 
 
+def _on_match_timeline(self, context):
+    mark_estimate_dirty(self)
+    from . import generation
+
+    generation.sync_shot_duration(getattr(context, "scene", None) or bpy.context.scene)
+
+
 def _on_mode_change(self, context):
     from . import generation
 
@@ -192,7 +203,7 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     estimate_error: StringProperty()
     estimate_partial: BoolProperty(default=False, description="The quote excludes references that are not uploaded yet")
     last_error: StringProperty()
-    match_timeline: BoolProperty(name="Match timeline", default=True, description="Set the clip duration from the scene frame range", update=_on_prompt_update)
+    match_timeline: BoolProperty(name="Match timeline", default=True, description="Capture the clip at the video model output duration, so the motion maps one to one", update=_on_match_timeline)
     force_solid: BoolProperty(name="Grey clay capture", default=False, description="Capture with solid single-colour shading so the model reads shapes and motion, not materials")
     capture_source: EnumProperty(name="Source", items=[('VIEWPORT', "Viewport", "The active 3D viewport, as you see it"), ('CAMERA', "Scene camera", "The scene camera view")], default='CAMERA', update=_on_prompt_update)
     # Render lanes

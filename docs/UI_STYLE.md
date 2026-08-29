@@ -13,6 +13,8 @@ A row of mutually exclusive choices (lane tabs, picker modality tabs and categor
 
 Each group of controls is a `layout.box()` with a one-line header: `box.label(text="Title", icon=...)`. Order inside a lane: Model, Prompt, References, Settings, then the Generate button. Put `layout.separator(factor=0.5)` between the tabs and the form, and above the Generate button.
 
+Every section header carries an icon so the panel reads as a stack of peers: `Model` (`NODE_MATERIAL`), `Clip to render` (`RENDER_ANIMATION`), `Camera path` (`CAMERA_DATA`), `Rendering Style` (`BRUSH_DATA`), `Settings` (`PREFERENCES`). Sections do not collapse (no chevron): a header is a static label, not a toggle, so the form is always visible.
+
 ## Buttons
 
 - The **Generate** button is the one primary action: `row.scale_y = 1.5`, icon `PLAY`, and it always shows the live price (`Generate (15 CU)` / `Generate (from N CU)` / `Generate (estimating...)`).
@@ -21,7 +23,11 @@ Each group of controls is a `layout.box()` with a one-line header: `box.label(te
 
 ## The model chooser
 
-`Model:` then a wide button (icon + model name, centred in the bar via a split) opening the picker, with the native dropdown as a small fallback on the right. Its one-line description belongs in the picker, not the panel.
+A `Model` section (a box with a `NODE_MATERIAL` header, like the others) holds a wide button (icon + model name) that opens the picker, with the native dropdown as a small fallback on the right. Its one-line description belongs in the picker, not the panel.
+
+## Duration and Match timeline
+
+The video model's `Duration (cost)` in Settings is the single source of the clip length for **Render Video**. With **Match timeline** on, the camera path's `Duration (s)` is read-only and follows the model's value (synced from a property callback, never during draw, in `generation.sync_shot_duration`), with a plain note under the planner: "The clip is captured at X s to match the video duration". With Match timeline off, the two durations are edited separately. The base **Video** lane keeps the reverse direction (the model duration follows the scene frame range via `generation.apply_match_timeline`, guarded to `lane == "video"`).
 
 ## Wording
 

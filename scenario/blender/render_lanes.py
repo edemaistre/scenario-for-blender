@@ -171,11 +171,7 @@ def _draw_rendering_style(layout, context, lane, lane_state, schema):
     from . import panels
 
     box = layout.box()
-    # same header shape as "Clip to render" and "Camera path": an icon and the title, on the left; the triangle collapses it
-    header = box.row(align=True)
-    header.prop(lane_state, "render_style_open", text="Rendering Style", icon='TRIA_DOWN' if lane_state.render_style_open else 'TRIA_RIGHT', emboss=False)
-    if not lane_state.render_style_open:
-        return
+    box.label(text="Rendering Style", icon='BRUSH_DATA')  # a section like Clip to render / Camera path, always open
     panels.draw_prompt_row(box, lane_state, lane, text="Look")
     if not lane_state.prompt.strip():
         row = box.row(align=True)
@@ -246,11 +242,7 @@ def draw_render_video_lane(layout, context):
     row = box.row(align=True)
     row.prop(lane_state, "force_solid")
     row.prop(lane_state, "match_timeline")
-    schema_now = generation.schema_for(lane_state.model_id)
-    if schema_now is not None and lane_state.match_timeline and schema_now.by_name("duration") is not None:
-        _, value, note = generation.timeline_sync_info(scene, lane_state, schema_now)
-        if note:
-            box.label(text=f"Clip {note} for the model", icon='INFO')
+    # with Match timeline on, the model's duration drives the capture length; the camera-path section states it below.
     try:
         from . import shot_planner
 
@@ -267,5 +259,5 @@ def draw_render_video_lane(layout, context):
     else:
         _draw_rendering_style(layout, context, "render_video", lane_state, schema)
     # the model's own single-image inputs (Last Frame, First Frame) are handled by the Rendering Style section, not the generic parameter list
-    params_ui.draw_params(layout, lane_state, schema, locked={"duration"} if lane_state.match_timeline else ())
+    params_ui.draw_params(layout, lane_state, schema)
     panels.draw_generate_row(layout, lane_state, "render_video")

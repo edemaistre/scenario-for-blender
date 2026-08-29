@@ -6,6 +6,18 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.2] - 2026-08-29
+
+### Changed (UI)
+- **Model** is now a section like "Clip to render" and "Camera path": a boxed header with an icon, then the wide "Choose a model" button and the fallback dropdown.
+- **Settings** header carries an icon, matching the other sections.
+- **Rendering Style** is a plain section (an icon and the title): the chevron and the collapse are gone, it is always open.
+
+### Changed (duration)
+- The video model's **Duration (cost)** in Settings is the single source of the clip length for Render Video. With **Match timeline** on, the camera path's **Duration (s)** follows it automatically and is read-only, with a note under the planner ("The clip is captured at X s to match the video duration"). With Match timeline off, the two are edited separately.
+- The base **Video** lane keeps the reverse direction (the model duration follows the scene frame range); only Render Video was flipped.
+- Removed the now-backwards "Clip padded/trimmed for the model" note from the Render Video "Clip to render" box; the camera-path note states the captured length instead.
+
 ## [0.9.1] - 2026-08-29
 
 ### Changed (UI)
