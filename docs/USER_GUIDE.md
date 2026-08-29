@@ -1,6 +1,6 @@
 # Scenario for Blender: user guide
 
-Version 0.8.3, 2026-08-29. Blender 4.2 or newer (tested on 5.1), a Scenario account with API access (Pro plan or above), an internet connection.
+Version 0.9.0, 2026-08-29. Blender 4.2 or newer (tested on 5.1), a Scenario account with API access (Pro plan or above), an internet connection.
 
 ## What it does
 
@@ -110,7 +110,7 @@ The add-on serves the Model Context Protocol on `http://127.0.0.1:9876/mcp` with
 ![MCP panel](images/panel-mcp.png)
 
 - Pick a client and press its button: the setup is copied to the clipboard (Claude Code command, Cursor `mcp.json`, Claude Desktop stdio snippet, Codex command, or a curl test).
-- **Allow connected agents to run Python** gates the `execute_python` tool. Off, agents keep the other tools: scene summary, object detail, select, set frame, screenshots, quick renders, camera path (any move of the library, a description or waypoints), list models, model schema, cost estimate, generate (every lane, audio included), job status, wait, import result, capture a viewport reference, list generations.
+- **Allow connected agents to run Python** gates the `execute_python` tool. It is OFF by default; connected agents keep the other tools: scene summary, object detail, select, set frame, screenshots, quick renders, camera path (any move of the library, a description or waypoints), list models, model schema, cost estimate, generate (every lane, audio included), job status, wait, import result, capture a viewport reference, list generations.
 - Headless: `blender --background scene.blend --command scenario-mcp --port 9876 --token <token>`.
 
 ## The floating composer

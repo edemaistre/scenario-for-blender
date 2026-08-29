@@ -6,8 +6,6 @@ import os
 import subprocess
 import sys
 
-import bpy
-
 from . import runtime
 
 log = logging.getLogger("scenario.audio")

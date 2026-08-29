@@ -10,7 +10,6 @@ import urllib.request
 
 from . import jobs
 from .errors import NetworkError, ScenarioError
-from .transport import UrllibTransport
 
 BASE64_LIMIT = 3_500_000  # bytes; the gateway body cap is 10 MB, 4.4 MB raw PNGs verified to pass
 PART_SIZE = 32 * 1024 * 1024

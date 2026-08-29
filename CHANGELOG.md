@@ -6,6 +6,28 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.0] - 2026-08-29
+
+First release-candidate pass: a coherent UI and a production-readiness sweep of the code.
+
+### Changed (UI)
+- Every row of choices (lane tabs, the model picker's modality tabs and category chips, the Edit 3D tasks) is one **continuous segmented control**: cells touch, each takes an equal share of the full width edge to edge, and the icon is glued to its label with the pair centred in the cell.
+- Consistent spacing: a separator between the tabs and the form and above the Generate button, which is the single prominent action (larger, always priced).
+- Clearer wording: the account strip reads "Connected" instead of a second "Scenario"; the video clip box is "Scene clip".
+- A **UI style guide** (`docs/UI_STYLE.md`) codifies the tab, section, button, wording, tooltip and icon conventions so the plugin stays coherent.
+
+### Fixed (robustness, from an audited review)
+- **MCP `estimate_cost` and `wait_for_job` no longer run on the HTTP thread**: they read Blender data (preferences, paths, the job manager), so they now go through the main-thread executor. This also removes an off-thread mutation of the shared model cache.
+- **A corrupt catalog cache no longer wedges the add-on** in a permanent retry loop: `load_list_cached` and `get` treat an unreadable cache as a miss and re-fetch.
+- **The floating composer's circuit breaker** no longer removes its own draw handler or writes preferences from inside a draw callback; the teardown is deferred to a timer.
+- The **Log Level** preference now actually sets the logging level.
+
+### Security
+- **The MCP "run Python" permission is off by default.** Connected agents keep the fifteen read and scene tools; running arbitrary `bpy` code is now a deliberate opt-in.
+
+### Removed (dead code)
+- The archived render-to-real prompt helper and its constants; the unused operators `scenario.set_lane` and `scenario.use_first_frame`; the unused helpers `is_render_lane`, `is_video_output`, `modality_icon`, `_sh_dim`, `order_image_inputs`; the unused `generate_audio` property; three stray imports; the "Edit prompt" dialog. The lane-to-kind map, previously copied in four places, now lives once in `core/api/catalog.py`.
+
 ## [0.8.3] - 2026-08-29
 
 ### Changed

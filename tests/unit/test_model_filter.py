@@ -154,12 +154,6 @@ def test_thumbnail_url_and_builtin_icons():
     assert mf.thumbnail_url(LORA) == "https://cdn.example/t.jpg"
     assert mf.thumbnail_url(GPT) is None
     assert mf.thumbnail_url(ModelRecord.from_api({"id": "m", "name": "m", "thumbnail": "junk"})) is None
-    assert mf.modality_icon(GEMINI) == 'IMAGE_DATA'
-    assert mf.modality_icon(SEEDANCE) == 'FILE_MOVIE'
-    assert mf.modality_icon(BANG) == 'MESH_DATA'
-    assert mf.modality_icon(ACE) == 'SPEAKER'
-    assert mf.modality_icon(LLM) == 'FILE_TEXT'
-    assert mf.modality_icon(rec("m", "m", ("weird",))) == 'QUESTION'
 
 
 def test_recent_models_touch_orders_dedupes_and_limits(tmp_path):

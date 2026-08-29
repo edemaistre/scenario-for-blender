@@ -85,18 +85,6 @@ def _network_poll(cls, context):
     return runtime.online() and runtime.credentials().valid and not probe_mode()
 
 
-class SCENARIO_OT_set_lane(bpy.types.Operator):
-    bl_idname = "scenario.set_lane"
-    bl_label = "Lane"
-    bl_description = "Switch the Scenario tab to this lane"
-    bl_options = {'INTERNAL'}
-    lane: StringProperty()
-
-    def execute(self, context):
-        context.scene.scenario.lane = self.lane
-        return {'FINISHED'}
-
-
 class SCENARIO_OT_add_reference(bpy.types.Operator):
     bl_idname = "scenario.add_reference"
     bl_label = "Add reference"
@@ -335,21 +323,6 @@ class SCENARIO_OT_play_video_blender(bpy.types.Operator):
         from . import apply_video
 
         apply_video.play_with_blender(self.filepath)
-        return {'FINISHED'}
-
-
-class SCENARIO_OT_use_first_frame(bpy.types.Operator):
-    bl_idname = "scenario.use_first_frame"
-    bl_label = "Use as video first frame"
-    bl_description = "Start the Render Video clip from this image: it becomes the first frame reference"
-    filepath: StringProperty()
-
-    def execute(self, context):
-        lane_state = context.scene.scenario.lane_state("render_video")
-        lane_state.first_frame_path = self.filepath
-        lane_state.use_first_frame = True
-        props.mark_estimate_dirty(lane_state)
-        self.report({'INFO'}, "First frame set for Render Video")
         return {'FINISHED'}
 
 
@@ -643,7 +616,7 @@ class SCENARIO_OT_reload_generation(bpy.types.Operator):
             self.report({'ERROR'}, "This generation is no longer in the session list")
             return {'CANCELLED'}
         scene = context.scene
-        lane = rec.lane if rec.lane in props.GENERATION_LANES else {"image": "image", "video": "video", "3d": "3d", "material": "material", "audio": "audio"}.get(rec.kind, "image")
+        lane = rec.lane if rec.lane in props.GENERATION_LANES else rec.kind if rec.kind in props.GENERATION_LANES else "image"
         if lane == "edit3d":
             scene.scenario.three_d_mode = 'EDIT'
             scene.scenario.lane = "3d"
@@ -895,7 +868,7 @@ class SCENARIO_OT_import_mesh_file(bpy.types.Operator):
         return {'FINISHED'}
 
 
-CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_use_first_frame, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects,
+CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_mcp_start, SCENARIO_OT_mcp_stop, SCENARIO_OT_mcp_copy, SCENARIO_OT_clear_first_frame, SCENARIO_OT_select_result_objects,
            SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_delete_result_objects,
            SCENARIO_OT_use_as_reference, SCENARIO_OT_convert_to_3d, SCENARIO_OT_remove_background, SCENARIO_OT_reload_generation, SCENARIO_OT_quick_settings, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,

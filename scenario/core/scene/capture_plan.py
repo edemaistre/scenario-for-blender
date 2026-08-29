@@ -3,9 +3,6 @@
 """Frame ranges, clip durations and Seedance prompt tagging. No bpy."""
 import math
 
-PLAYBLAST_PREFIX = ("The video @video1 is a grayscale playblast animation exported from Blender: keep its camera move, "
-                    "timing, character motion and framing exactly, and render it in the style of @image1.")
-CINEMATIC_SUFFIX = "Cinematic lighting, physically plausible materials, coherent shadows, no text or watermark."
 MIN_CLIP_SECONDS = 4.0  # Seedance's minimum output is 4 s; a 0.5 s reference clip failed with an internal error (2026-08-28)
 
 
@@ -65,11 +62,3 @@ def tag_prompt(prompt, has_video, has_image):
         tags.append("@image1")
     return (" ".join(tags) + (" " if prompt and tags else "") + prompt).strip()
 
-
-def render_to_real_prompt(user_prompt, force_clay=True):
-    body = (user_prompt or "").strip()
-    parts = [PLAYBLAST_PREFIX]
-    if body:
-        parts.append(body)
-    parts.append(CINEMATIC_SUFFIX)
-    return tag_prompt(" ".join(parts), True, True)

@@ -195,7 +195,6 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     match_timeline: BoolProperty(name="Match timeline", default=True, description="Set the clip duration from the scene frame range", update=_on_prompt_update)
     force_solid: BoolProperty(name="Grey clay capture", default=False, description="Capture with solid single-colour shading so the model reads shapes and motion, not materials")
     capture_source: EnumProperty(name="Source", items=[('VIEWPORT', "Viewport", "The active 3D viewport, as you see it"), ('CAMERA', "Scene camera", "The scene camera view")], default='CAMERA', update=_on_prompt_update)
-    generate_audio: BoolProperty(name="Generate audio", default=False)
     # Render lanes
     spark_enabled: BoolProperty(name="Prompt Spark when the look is empty", default=True,
                                 description="With an empty prompt, a capture of the view is sent to Prompt Spark, which writes the art-direction brief (0.75 CU)")

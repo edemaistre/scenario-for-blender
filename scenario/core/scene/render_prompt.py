@@ -94,13 +94,3 @@ def video_prompt(look, image_count=0, first_frame=False, tagged=True):
         text = text.replace("Re-render The reference video", "Re-render the reference video").replace("Keep The reference video", "Keep the reference video")
     return text
 
-
-def order_image_inputs(capture, style_refs, first_frame=None):
-    """Return the image list in the order the prompts describe: capture (or first frame) first, then style references."""
-    ordered = []
-    if capture:
-        ordered.append(capture)
-    if first_frame:
-        ordered.append(first_frame)
-    ordered.extend(p for p in style_refs if p and p not in ordered)
-    return ordered

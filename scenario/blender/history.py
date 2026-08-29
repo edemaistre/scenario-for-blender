@@ -10,7 +10,7 @@ from ..core.api.errors import ScenarioError
 MAX_PROMPT_LOOKUPS = 30
 _prompt_texts = {}  # asset_id -> prompt text, lives for the session
 
-KIND_BY_LANE = {"image": "image", "video": "video", "3d": "3d", "material": "material", "audio": "audio", "render_image": "image", "render_video": "video", "edit3d": "3d"}
+from ..core.api.catalog import LANE_KIND as KIND_BY_LANE
 
 
 def _kinds():

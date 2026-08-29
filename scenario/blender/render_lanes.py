@@ -20,9 +20,6 @@ log = logging.getLogger("scenario.render")
 SPARK_NUM_RESULTS = 1
 
 
-def is_render_lane(lane):
-    return lane in RENDER_LANES
-
 
 def image_specs(schema):
     return [s for s in schema.specs if s.is_file and (s.kind or "image") == "image"]

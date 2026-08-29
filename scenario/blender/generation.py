@@ -8,19 +8,14 @@ from dataclasses import dataclass, field
 import bpy
 
 from . import params_ui, props, runtime
-from ..core.api.catalog import DEFAULT_MODELS, MULTIVIEW_HINTS, RENDER_LANES, edit3d_models, mesh_param, models_for_lane
+from ..core.api.catalog import DEFAULT_MODELS, MULTIVIEW_HINTS, RENDER_LANES, edit3d_models, lane_kind, mesh_param, models_for_lane
 from ..core.api.errors import ScenarioError
 from ..core.schema.params import build_body, missing_required_files, parse_schema, validate
 from ..core.scene import capture_plan
 
 log = logging.getLogger("scenario.generation")
 
-LANE_KIND = {"image": "image", "video": "video", "3d": "3d", "material": "material", "audio": "audio", "render_image": "image", "render_video": "video", "edit3d": "3d"}
 _schemas = {}
-
-
-def lane_kind(lane):
-    return LANE_KIND.get(lane, "image")
 
 
 def schema_for(model_id):

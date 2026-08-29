@@ -9,6 +9,11 @@ import bpy
 from helpers import reset_scene, submodule
 
 
+def _is_video(render):
+    settings = render.image_settings
+    return getattr(settings, "media_type", "") == 'VIDEO' or settings.file_format == 'FFMPEG'
+
+
 class CaptureTests(unittest.TestCase):
     def setUp(self):
         reset_scene()
@@ -19,7 +24,7 @@ class CaptureTests(unittest.TestCase):
     def fake_runner(self, kind, context, scene):
         r = scene.render
         self.calls.append({"kind": kind, "res": (r.resolution_x, r.resolution_y, r.resolution_percentage), "fmt": r.image_settings.file_format,
-                           "video": self.capture.is_video_output(r), "codec": r.ffmpeg.codec, "path": r.filepath, "range": (scene.frame_start, scene.frame_end), "stamp": r.use_stamp})
+                           "video": _is_video(r), "codec": r.ffmpeg.codec, "path": r.filepath, "range": (scene.frame_start, scene.frame_end), "stamp": r.use_stamp})
         target = Path(bpy.path.abspath(r.filepath))
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(b"mp4" if kind == "animation" else b"png")
@@ -49,7 +54,7 @@ class CaptureTests(unittest.TestCase):
         self.assertTrue(scene.render.use_stamp)
         self.assertEqual((scene.frame_start, scene.frame_end), (1, 48))
         self.assertEqual(scene.render.filepath, "//renders/")
-        self.assertFalse(self.capture.is_video_output(scene.render))
+        self.assertFalse(_is_video(scene.render))
         self.assertEqual(scene.frame_current, 7)
 
     def test_still_uses_png_and_camera_source_requires_camera(self):

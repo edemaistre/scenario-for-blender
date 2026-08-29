@@ -33,8 +33,17 @@ def _configure_logging():
     _log_handler = logging.StreamHandler()
     _log_handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
     log.addHandler(_log_handler)
-    log.setLevel(logging.INFO)
     log.propagate = False
+    prefs = None
+    try:
+        prefs = __import__(__package__ + ".runtime", fromlist=["prefs"]).prefs()
+    except Exception:
+        pass
+    log.setLevel(logging.DEBUG if (prefs and prefs.log_level == 'DEBUG') else logging.INFO)
+
+
+def apply_log_level(level):
+    log.setLevel(logging.DEBUG if level == 'DEBUG' else logging.INFO)
 
 
 def register():

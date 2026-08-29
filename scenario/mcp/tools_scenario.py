@@ -8,10 +8,10 @@ import bpy
 from .protocol import ToolSpec
 from ..blender import generation, runtime
 from ..core.api import generate as generate_api
+from ..core.api.catalog import LANE_KIND as KIND
 from ..core.schema.params import build_body, validate
 
-LANES = ("image", "video", "3d", "material", "audio", "render_image", "render_video", "edit3d")
-KIND = {"image": "image", "video": "video", "3d": "3d", "material": "material", "audio": "audio", "render_image": "image", "render_video": "video", "edit3d": "3d"}
+from ..core.api.catalog import GENERATION_LANES as LANES
 
 
 def _catalog_ready():
@@ -169,11 +169,11 @@ def _schema(props, required=()):
 SPECS = (
     ToolSpec("list_models", "Scenario models usable in a lane (image, video, 3d, material), curated first.", _schema({"lane": {"type": "string", "enum": list(LANES)}, "query": {"type": "string"}}), list_models, {"readOnlyHint": True}),
     ToolSpec("model_schema", "Parameters a model accepts (names, types, defaults, allowed values, which ones affect cost).", _schema({"model_id": {"type": "string"}}, ["model_id"]), model_schema, {"readOnlyHint": True}),
-    ToolSpec("estimate_cost", "Exact CU price of a generation without running it (dry run).", _schema({"model_id": {"type": "string"}, "parameters": {"type": "object"}}, ["model_id"]), estimate_cost, {"readOnlyHint": True}, offthread=True),
+    ToolSpec("estimate_cost", "Exact CU price of a generation without running it (dry run).", _schema({"model_id": {"type": "string"}, "parameters": {"type": "object"}}, ["model_id"]), estimate_cost, {"readOnlyHint": True}),  # touches bpy (prefs, catalog): must run on the main thread
     ToolSpec("generate", "Submit a Scenario generation; the result is placed in the scene when done. Spends the user's credits.",
              _schema({"lane": {"type": "string", "enum": list(LANES)}, "model_id": {"type": "string"}, "parameters": {"type": "object", "description": "Model parameters; file parameters take Scenario asset ids"}}, ["lane", "model_id"]), generate),
     ToolSpec("job_status", "Status, progress, cost and files of a generation.", _schema({"id": {"type": "string", "description": "local_id or job_id"}}, ["id"]), job_status, {"readOnlyHint": True}),
-    ToolSpec("wait_for_job", "Block up to timeout seconds until a generation finishes.", _schema({"id": {"type": "string"}, "timeout": {"type": "number"}}, ["id"]), wait_for_job, {"readOnlyHint": True}, offthread=True),
+    ToolSpec("wait_for_job", "Block up to timeout seconds until a generation finishes.", _schema({"id": {"type": "string"}, "timeout": {"type": "number"}}, ["id"]), wait_for_job, {"readOnlyHint": True}),  # touches bpy (paths, manager): main thread
     ToolSpec("import_result", "Bring a finished generation into the scene again (image, material on the selection, 3D at the cursor).", _schema({"id": {"type": "string"}}, ["id"]), import_result),
     ToolSpec("capture_reference", "Capture the viewport or the scene camera as a still and upload it; returns an asset id to use as a reference parameter.", _schema({"source": {"type": "string", "enum": ["VIEWPORT", "CAMERA"]}}), capture_reference),
     ToolSpec("list_generations", "Recent generations of this project (cloud history).", _schema({"limit": {"type": "integer"}}), list_generations, {"readOnlyHint": True}),

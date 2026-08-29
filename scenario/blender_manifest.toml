@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "scenario"
-version = "0.8.3"
+version = "0.9.0"
 name = "Scenario"
 tagline = "AI images, video, 3D and PBR materials from Scenario"
 maintainer = "Scenario Inc. <support@scenario.com>"

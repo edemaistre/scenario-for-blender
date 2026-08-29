@@ -38,7 +38,7 @@ clip = ROOT / "tests" / "fixtures" / "smoke" / "playblast_72f.mp4"  # 3 s at 24 
 print("uploading playblast", clip.stat().st_size, "bytes")
 clip_asset = assets.upload_file(client, clip, kind="video")
 print("clip asset:", clip_asset)
-prompt = capture_plan.render_to_real_prompt("a copper teapot on a wooden table, the camera slowly pushes in", force_clay=True)
+prompt = capture_plan.tag_prompt("a copper teapot on a wooden table, the camera slowly pushes in", True, True)
 prompt = prompt.replace("@image1", "the description").replace("in the style of the description", "as a photoreal product shot")
 body = build_body(schema.specs, {"prompt": prompt, "duration": 4, "resolution": "480p", "generateAudio": False}, files={"referenceVideos": [clip_asset]})
 errors = validate(schema.specs, body)

@@ -18,8 +18,8 @@ class ScenarioPreferences(bpy.types.AddonPreferences):
     composer_offset_y: FloatProperty(name="Composer offset Y", default=0.0, description="Where the floating composer was dragged to, from its default bottom-centre spot (pixels)")
     composer_width: IntProperty(name="Composer width", default=0, min=0, description="Width of the expanded composer in pixels (0 = default)")
     mcp_port: IntProperty(name="MCP Port", default=9876, min=1024, max=65535)
-    mcp_allow_python: BoolProperty(name="Allow connected agents to run Python", default=True, description="Agents connected through the local MCP server may execute bpy code in this Blender")
-    log_level: EnumProperty(name="Log Level", items=[('INFO', "Info", ""), ('DEBUG', "Debug", "")], default='INFO')
+    mcp_allow_python: BoolProperty(name="Allow connected agents to run Python", default=False, description="Off by default: connected agents keep the read and scene tools; turn on only to let them run arbitrary bpy code in this Blender")
+    log_level: EnumProperty(name="Log Level", items=[('INFO', "Info", ""), ('DEBUG', "Debug", "")], default='INFO', update=lambda self, context: __import__(__package__ + ".blender.registry", fromlist=["apply_log_level"]).apply_log_level(self.log_level))
 
     def draw(self, context):
         from .blender import runtime

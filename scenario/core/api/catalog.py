@@ -35,6 +35,13 @@ DEFAULT_MODELS = {
     "edit3d": ["model_meshy-7-retexture", "model_tripo-retopology", "model_meshy-rigging", "model_meshy-animation", "model_meshy-uv-unwrap", "model_tripo-segmentation-v2"],
 }
 RENDER_LANES = ("render_image", "render_video")
+# The kind of asset each lane produces (image / video / 3d / material / audio). One source of truth.
+LANE_KIND = {"image": "image", "video": "video", "3d": "3d", "material": "material", "audio": "audio",
+             "render_image": "image", "render_video": "video", "edit3d": "3d"}
+
+
+def lane_kind(lane):
+    return LANE_KIND.get(lane, "image")
 # Video models that address their inputs as @video1 / @image1 in the prompt (Seedance family). The others take plain words.
 TAGGED_VIDEO_MODELS = ("seedance",)
 
@@ -205,7 +212,11 @@ class Catalog:
         path = self._list_file(privacy)
         if not path.exists():
             return None
-        return [ModelRecord.from_api(m) for m in json.loads(path.read_text(encoding="utf-8"))]
+        try:
+            return [ModelRecord.from_api(m) for m in json.loads(path.read_text(encoding="utf-8"))]
+        except (ValueError, OSError, KeyError, TypeError):
+            path.unlink(missing_ok=True)  # a corrupt cache is a miss; the next fetch rewrites it
+            return None
 
     # -- single records -----------------------------------------------------
     def load_cached(self, model_id):
@@ -220,7 +231,10 @@ class Catalog:
     def get(self, model_id, refresh=False):
         path = self.cache_dir / "models" / f"{model_id}.json"
         if path.exists() and not refresh:
-            return ModelRecord.from_api(json.loads(path.read_text(encoding="utf-8")))
+            try:
+                return ModelRecord.from_api(json.loads(path.read_text(encoding="utf-8")))
+            except (ValueError, OSError, KeyError, TypeError):
+                path.unlink(missing_ok=True)  # corrupt cache: fall through and re-fetch
         data = self.client.get(f"/models/{model_id}")
         model = data.get("model") or data
         self._write(path, model)

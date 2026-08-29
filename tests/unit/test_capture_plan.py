@@ -27,13 +27,6 @@ def test_tag_prompt_adds_missing_mentions_once():
     assert cp.tag_prompt("", True, False) == "@video1"
 
 
-def test_render_to_real_prompt_wraps_user_text():
-    text = cp.render_to_real_prompt("cyborg wolf in a ruined city")
-    assert "@video1" in text and "@image1" in text
-    assert "grayscale playblast" in text and "cyborg wolf in a ruined city" in text
-    assert text.rstrip().endswith(cp.CINEMATIC_SUFFIX)
-
-
 def test_ensure_min_frames_pads_short_clips():
     assert cp.ensure_min_frames(1, 12, 24) == (1, 96, True)
     assert cp.ensure_min_frames(10, 200, 24) == (10, 200, False)

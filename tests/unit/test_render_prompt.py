@@ -45,7 +45,3 @@ def test_video_prompt_without_images_has_no_image_clauses():
     text = rp.video_prompt("photoreal")
     assert "@image" not in text and "style references" not in text
 
-
-def test_order_image_inputs_capture_first_then_first_frame_then_styles():
-    assert rp.order_image_inputs("cap.png", ["a.png", "b.png"]) == ["cap.png", "a.png", "b.png"]
-    assert rp.order_image_inputs(None, ["a.png", "a.png"], first_frame="ff.png") == ["ff.png", "a.png"]

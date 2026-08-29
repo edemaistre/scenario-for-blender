@@ -19,9 +19,6 @@ class SpzError(ValueError):
     pass
 
 
-def _sh_dim(degree):
-    return {0: 0, 1: 3, 2: 8, 3: 15}.get(degree, 0)
-
 
 def sniff_spz(path):
     """True when the file is a gzip stream whose first bytes are the SPZ magic (a splat saved with a .bin extension)."""

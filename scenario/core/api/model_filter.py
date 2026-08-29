@@ -216,11 +216,6 @@ def thumbnail_url(record):
     return None
 
 
-def modality_icon(record):
-    """Blender built-in icon name for what the model produces; QUESTION when unknown."""
-    return BUILTIN_ICONS.get(modality_of(record), 'QUESTION')
-
-
 class RecentModels:
     """Per-lane list of recently picked model ids, newest first, kept in a small JSON file."""
 

@@ -89,12 +89,6 @@ def set_image_output(render, file_format):
     settings.file_format = file_format
 
 
-def is_video_output(render):
-    settings = render.image_settings
-    if hasattr(settings, "media_type"):
-        return settings.media_type == 'VIDEO'
-    return settings.file_format == 'FFMPEG'
-
 
 def _view3d(context):
     area = getattr(context, "area", None)

@@ -13,7 +13,7 @@ from .. import config
 from ..api import assets as assets_api
 from ..api import generate as generate_api
 from ..api import jobs as jobs_api
-from ..api.errors import NetworkError, ScenarioError
+from ..api.errors import ScenarioError
 from .records import JobRecord
 
 log = logging.getLogger("scenario.jobs")

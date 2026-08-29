@@ -17,12 +17,20 @@ _breaker = None
 
 
 def _on_trip(reason):
+    # runs INSIDE the POST_PIXEL draw callback: only record; defer the teardown (removing this very handler and
+    # writing preferences) to a one-shot timer so it happens on the next main-loop iteration, outside the draw pass
     log.error("composer disabled: %s", reason)
     runtime.set_message(f"Floating composer disabled after an error ({reason}); re-enable it in Preferences")
-    remove_handler()
-    prefs = runtime.prefs()
-    if prefs is not None:
-        prefs.composer_enabled = False
+
+    def _teardown():
+        remove_handler()
+        prefs = runtime.prefs()
+        if prefs is not None:
+            prefs.composer_enabled = False
+        return None
+
+    if not bpy.app.timers.is_registered(_teardown):
+        bpy.app.timers.register(_teardown, first_interval=0.0)
 
 
 def _draw():
