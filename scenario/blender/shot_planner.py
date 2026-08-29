@@ -353,13 +353,13 @@ def _object_mode(context):
     return context.mode == 'OBJECT'
 
 
-def _confirm(operator, context, event, message):
+def _confirm(operator, context, event, message, title="Scenario camera path", confirm_text="Replace"):
     """Ask before erasing; in --background (no window) the operator simply runs."""
     if bpy.app.background or event is None or context.window is None:
         return operator.execute(context)
     wm = context.window_manager
     try:
-        return wm.invoke_confirm(operator, event, message=message, title="Scenario camera path", confirm_text="Replace")
+        return wm.invoke_confirm(operator, event, message=message, title=title, confirm_text=confirm_text)
     except TypeError:  # Blender < 4.1 has no message/title arguments
         return wm.invoke_confirm(operator, event)
 
@@ -512,7 +512,7 @@ class SCENARIO_OT_shot_clear_path(bpy.types.Operator):
         return _object_mode(context) and bool(path_summary(context.scene))
 
     def invoke(self, context, event):
-        return _confirm(self, context, event, f"Delete the camera path ({path_summary(context.scene)})?")
+        return _confirm(self, context, event, f"Clear the camera path ({path_summary(context.scene)})?", title="Clear camera path", confirm_text="Clear")
 
     def execute(self, context):
         clear_path(context)
@@ -579,7 +579,7 @@ def draw_shot_planner(layout, context):
     box = layout.box()
     box.label(text="Camera path", icon='CAMERA_DATA')
     row = box.row(align=True)
-    row.prop(props, "description", text="")
+    row.prop(props, "description", text="", placeholder="Describe the shot: slow orbit, 8 s, 35 mm...")
     row.operator(SCENARIO_OT_shot_from_description.bl_idname, text="Plan", icon='OUTLINER_OB_CAMERA')
     row = box.row(align=True)
     row.prop(props, "preset", text="")
@@ -601,10 +601,6 @@ def draw_shot_planner(layout, context):
     row.operator(SCENARIO_OT_shot_add_marker_from_view.bl_idname, text="From view", icon='VIEW_CAMERA')
     row.operator(SCENARIO_OT_shot_remove_last_marker.bl_idname, text="", icon='REMOVE')
     row.operator(SCENARIO_OT_shot_clear_markers.bl_idname, text="", icon='X')
-    if markers and len(markers) < 2:
-        box.label(text="Add a second marker, or Place markers from the move above", icon='INFO')
-    elif not markers:
-        box.label(text="Build places the markers of the move first; edit them, then build again", icon='INFO')
     row = box.row(align=True)
     row.scale_y = 1.3
     row.operator(SCENARIO_OT_shot_build_path.bl_idname, text="Build camera path", icon='ANIM')

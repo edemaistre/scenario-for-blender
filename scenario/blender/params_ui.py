@@ -109,7 +109,8 @@ def collect_values(lane_state, schema):
         if index < 0:
             continue
         item = lane_state.params[index]
-        enabled[spec.name] = bool(item.enabled) or spec.required_always
+        # a boolean is one checkbox that carries its own state, so it is always sent (no separate enable toggle)
+        enabled[spec.name] = spec.ptype == "boolean" or bool(item.enabled) or spec.required_always
         if spec.ptype == "string_array":
             values[spec.name] = multi_selection(item)
         elif spec.allowed_values:
@@ -148,14 +149,18 @@ def draw_params(layout, lane_state, schema, exclude=(), locked=()):
                 continue
             item = lane_state.params[index]
             row = box.row(align=True)
+            label = spec.label + (" (cost)" if spec.cost_impact else "")
+            if spec.ptype == "boolean":
+                # one checkbox that both is and sets the value (two toggles read as a bug); always sent (collect_values)
+                sub = row.row(align=True)
+                sub.enabled = spec.name not in locked
+                sub.prop(item, "bool_value", text=label)
+                continue
             if not spec.required_always:
                 row.prop(item, "enabled", text="")
             sub = row.row(align=True)
             sub.enabled = (item.enabled or spec.required_always) and spec.name not in locked
-            label = spec.label + (" (cost)" if spec.cost_impact else "")
-            if spec.ptype == "boolean":
-                sub.prop(item, "bool_value", text=label)
-            elif spec.ptype == "number" and not spec.allowed_values:
+            if spec.ptype == "number" and not spec.allowed_values:
                 sub.prop(item, "int_value" if spec.is_integer else "float_value", text=label)
             elif spec.ptype == "string_array":
                 col = sub.column(align=True)

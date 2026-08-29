@@ -57,10 +57,11 @@ def draw_model_row(layout, lane_state, lane):
         layout.prop(lane_state, "model_id", text="Model")
 
 
-def equal_segments(row, struct, prop, values):
-    """Draw `values` as one continuous segmented control filling `row`: equal-width cells with no gaps between them,
-    each showing the enum item's icon and label. `row` must be align=True so Blender merges the borders; a chain of
-    even splits forces the equal widths (a plain row would size each button to its content and pack them left)."""
+def equal_segments(parent, struct, prop, values):
+    """One continuous segmented control filling the row: a `prop_enum` per value in an align=True row (Blender merges
+    the borders), with a chain of even splits so the cells share the full width. Rows with fewer values get wider
+    cells, so cell sizes differ from row to row. Text and icons are Blender's own for the enum item."""
+    row = parent.row(align=True)
     container, n = row, len(values)
     for i, value in enumerate(values):
         remaining = n - i
@@ -70,10 +71,10 @@ def equal_segments(row, struct, prop, values):
 
 
 def draw_enum_tabs(layout, struct, prop, rows):
-    """Tab rows as continuous full-width segmented controls (each cell an equal share, edge to edge, no gaps)."""
+    """Tab rows: each row a continuous full-width segmented control (cells wider when the row holds fewer values)."""
     col = layout.column(align=True)
     for values in rows:
-        equal_segments(col.row(align=True), struct, prop, values)
+        equal_segments(col, struct, prop, values)
 
 
 def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
@@ -102,16 +103,17 @@ def draw_reference_row(box, lane_state, index, ref):
     remove.lane, remove.index = props.lane_of(lane_state), index
 
 
-def draw_references(layout, lane_state, schema, title_for=None, fixed_first=None, hide=()):
-    """One box per file input. `fixed_first` names an implicit first entry (the capture, the selected mesh) that
-    the lane adds itself; `title_for` overrides the box title; `hide` skips inputs entirely."""
+def draw_references(layout, lane_state, schema, title_for=None, fixed_first=None, hide=(), boxed=True):
+    """One file input per group. `fixed_first` names an implicit first entry (the capture, the selected mesh) that
+    the lane adds itself; `title_for` overrides the title; `hide` skips inputs entirely. `boxed=False` draws flat,
+    without a box, for callers that are already inside one (avoids nesting coloured boxes)."""
     title_for, fixed_first = title_for or {}, fixed_first or {}
     refs = params_ui.collect_file_refs(lane_state, schema)
     lane = props.lane_of(lane_state)
     for spec in schema.specs:
         if not spec.is_file or spec.name in hide:
             continue
-        box = layout.box()
+        box = layout.box() if boxed else layout.column(align=True)
         header = box.row()
         count = len(refs.get(spec.name, [])) + (1 if spec.name in fixed_first else 0)
         label = title_for.get(spec.name) or (spec.label + (" (required)" if spec.required_always else ""))
@@ -149,8 +151,8 @@ def draw_clip_options(layout, context, lane_state, schema):
         box.prop(lane_state, "match_timeline")
         if lane_state.match_timeline:
             _, value, note = generation.timeline_sync_info(context.scene, lane_state, schema)
-            if value is not None:
-                box.label(text=f"Video duration {value:g} s" + (f" ({note}); the clip is cut to match" if note else ", same as the clip"), icon='TIME')
+            if note:
+                box.label(text=f"Clip {note} for the model", icon='INFO')
     box.prop(lane_state, "force_solid")
 
 

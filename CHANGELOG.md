@@ -6,6 +6,20 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.1] - 2026-08-29
+
+### Changed (UI)
+- Lane tabs and the picker tabs are continuous full-width segmented controls whose cells fill each row (a row of two cells is wider than a row of three); the icon and label are Blender's own for the enum.
+- **Rendering Style** header now matches "Clip to render" and "Camera path" (an icon and the title on the left, the triangle collapses it).
+- A boolean setting is a single checkbox (the enable + value pair read as two toggles); it is always sent.
+- The look toggle is one line, "Write the look with Prompt Spark", with the 0.75 CU detail in its tooltip; the long inline sentences under the look and in the camera-path planner are gone (hover a control for its tooltip).
+- The camera-path description field carries placeholder text; the reference lists in Rendering Style are drawn flat (no boxes nested inside the section).
+- Match timeline no longer prints a redundant "Video duration, same as the clip" line; it only notes padding or trimming.
+- **Clear path** asks "Clear the camera path?" with a Clear button, not Replace.
+
+### Fixed
+- **The audio reference input is back** in the render lanes (it was hidden with the other non-image inputs).
+
 ## [0.9.0] - 2026-08-29
 
 First release-candidate pass: a coherent UI and a production-readiness sweep of the code.

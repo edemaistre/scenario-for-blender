@@ -196,8 +196,8 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     force_solid: BoolProperty(name="Grey clay capture", default=False, description="Capture with solid single-colour shading so the model reads shapes and motion, not materials")
     capture_source: EnumProperty(name="Source", items=[('VIEWPORT', "Viewport", "The active 3D viewport, as you see it"), ('CAMERA', "Scene camera", "The scene camera view")], default='CAMERA', update=_on_prompt_update)
     # Render lanes
-    spark_enabled: BoolProperty(name="Prompt Spark when the look is empty", default=True,
-                                description="With an empty prompt, a capture of the view is sent to Prompt Spark, which writes the art-direction brief (0.75 CU)")
+    spark_enabled: BoolProperty(name="Write the look with Prompt Spark", default=True,
+                                description="When the look is empty, a capture of the view is sent to Prompt Spark, which writes the art-direction brief (0.75 CU). Off: a photoreal default look is used")
     spark_look: StringProperty(description="The look Prompt Spark wrote for the last generation")
     render_style_open: BoolProperty(name="Rendering Style", default=True, description="Show the look, style images and first frame")
     first_frame_path: StringProperty(description="A Render Image result used as the first frame of the video")

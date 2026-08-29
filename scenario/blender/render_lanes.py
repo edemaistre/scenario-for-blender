@@ -171,26 +171,27 @@ def _draw_rendering_style(layout, context, lane, lane_state, schema):
     from . import panels
 
     box = layout.box()
+    # same header shape as "Clip to render" and "Camera path": an icon and the title, on the left; the triangle collapses it
     header = box.row(align=True)
     header.prop(lane_state, "render_style_open", text="Rendering Style", icon='TRIA_DOWN' if lane_state.render_style_open else 'TRIA_RIGHT', emboss=False)
-    header.label(text="", icon='BRUSH_DATA')
     if not lane_state.render_style_open:
         return
     panels.draw_prompt_row(box, lane_state, lane, text="Look")
     if not lane_state.prompt.strip():
-        sub = box.row(align=True)
-        sub.prop(lane_state, "spark_enabled", text="")
-        sub.label(text="Empty: Prompt Spark writes the look from a capture (0.75 CU)" if lane_state.spark_enabled else "Empty: a photoreal default look is used", icon='LIGHT_SUN')
+        row = box.row(align=True)
+        row.prop(lane_state, "spark_enabled", text="Write the look with Prompt Spark")  # tooltip carries the detail
     if lane_state.spark_look:
         box.label(text="Spark: " + lane_state.spark_look[:70], icon='INFO')
     if lane == "render_video":
         _draw_first_frame(box, lane_state)
+    # references drawn flat inside this box (no nested boxes): the capture/frames, plus any audio reference
     styles = style_spec(schema, exclude=first_frame_spec(schema)) if lane == "render_video" else scene_spec(lane, schema)
-    if styles is not None:
-        fixed = {styles.name: "1. Capture of the view, taken at generate time"} if lane == "render_image" else None
-        title = "Style images (the capture is image 1)" if lane == "render_image" else "Style images (reference frames)"
-        panels.draw_references(box, lane_state, schema, title_for={styles.name: title}, fixed_first=fixed,
-                               hide={s.name for s in schema.specs if s.is_file and s.name != styles.name})
+    keep = {styles.name} if styles is not None else set()
+    keep |= {s.name for s in schema.specs if s.is_file and s.kind == "audio"}  # audio reference is useful, keep it
+    fixed = {styles.name: "1. Capture of the view, taken at generate time"} if (styles is not None and lane == "render_image") else None
+    title = {styles.name: ("Style images (the capture is image 1)" if lane == "render_image" else "Reference frames")} if styles is not None else None
+    panels.draw_references(box, lane_state, schema, title_for=title, fixed_first=fixed,
+                           hide={s.name for s in schema.specs if s.is_file and s.name not in keep}, boxed=False)
 
 
 def _draw_first_frame(box, lane_state):
@@ -248,8 +249,8 @@ def draw_render_video_lane(layout, context):
     schema_now = generation.schema_for(lane_state.model_id)
     if schema_now is not None and lane_state.match_timeline and schema_now.by_name("duration") is not None:
         _, value, note = generation.timeline_sync_info(scene, lane_state, schema_now)
-        if value is not None:
-            box.label(text=f"Video duration {value:g} s" + (f" ({note}); the clip is cut to match" if note else ", same as the clip"), icon='TIME')
+        if note:
+            box.label(text=f"Clip {note} for the model", icon='INFO')
     try:
         from . import shot_planner
 

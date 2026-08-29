@@ -305,7 +305,7 @@ def _centered_cells(parent, struct, prop, values):
     """A continuous full-width segmented control: equal cells, no gaps, each with the enum item's icon and label."""
     from .panels import equal_segments
 
-    equal_segments(parent.row(align=True), struct, prop, values)
+    equal_segments(parent, struct, prop, values)
 
 
 def draw_filters(layout, wm):
