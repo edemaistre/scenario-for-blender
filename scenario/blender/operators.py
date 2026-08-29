@@ -221,25 +221,6 @@ class SCENARIO_OT_add_plane(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SCENARIO_OT_expand_prompt(bpy.types.Operator):
-    bl_idname = "scenario.expand_prompt"
-    bl_label = "Edit prompt"
-    bl_description = "Edit the prompt in a wider field"
-    lane: StringProperty()
-    prompt: StringProperty(name="Prompt")
-
-    def invoke(self, context, event):
-        self.prompt = context.scene.scenario.lane_state(self.lane).prompt
-        return context.window_manager.invoke_props_dialog(self, width=600)
-
-    def draw(self, context):
-        self.layout.prop(self, "prompt", text="")
-
-    def execute(self, context):
-        context.scene.scenario.lane_state(self.lane).prompt = self.prompt
-        return {'FINISHED'}
-
-
 class SCENARIO_OT_retile_material(bpy.types.Operator):
     bl_idname = "scenario.retile_material"
     bl_label = "Set material tiling"
@@ -918,7 +899,7 @@ CLASSES = (SCENARIO_OT_import_mesh_file, SCENARIO_OT_set_lane, SCENARIO_OT_mcp_s
            SCENARIO_OT_copy_text, SCENARIO_OT_toggle_result, SCENARIO_OT_result_details, SCENARIO_OT_add_sound_strip, SCENARIO_OT_delete_result_objects,
            SCENARIO_OT_use_as_reference, SCENARIO_OT_convert_to_3d, SCENARIO_OT_remove_background, SCENARIO_OT_reload_generation, SCENARIO_OT_quick_settings, SCENARIO_OT_play_video, SCENARIO_OT_play_video_blender, SCENARIO_OT_history_refresh, SCENARIO_OT_history_older, SCENARIO_OT_import_result, SCENARIO_OT_test_connection, SCENARIO_OT_refresh_catalog, SCENARIO_OT_generate, SCENARIO_OT_add_reference,
            SCENARIO_OT_remove_reference, SCENARIO_OT_toggle_multi, SCENARIO_OT_open_output_folder, SCENARIO_OT_show_image,
-           SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_expand_prompt, SCENARIO_OT_retile_material)
+           SCENARIO_OT_apply_texture, SCENARIO_OT_add_plane, SCENARIO_OT_retile_material)
 
 
 def register():

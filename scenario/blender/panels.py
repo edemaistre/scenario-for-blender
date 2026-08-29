@@ -56,8 +56,22 @@ def draw_model_row(layout, lane_state, lane):
         layout.prop(lane_state, "model_id", text="Model")
 
 
+def draw_enum_tabs(layout, struct, prop, rows):
+    """Tab rows where each cell fills its share of the width (justified), and inside every cell the icon is glued to
+    its label with the pair centred. A column per value expands to an equal width; a CENTER-aligned row inside it
+    shrinks the button to its content and centres it. This is the only Blender layout that gives both at once."""
+    col = layout.column(align=True)
+    for values in rows:
+        row = col.row(align=True)
+        for value in values:
+            cell = row.column(align=True)
+            centered = cell.row(align=True)
+            centered.alignment = 'CENTER'
+            centered.prop_enum(struct, prop, value)
+
+
 def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
-    """Prompt with the pencil and the Spark / Rewrite / Translate buttons (plain prompt when prompt_tools is missing)."""
+    """Prompt with the Spark / Rewrite / Translate buttons (plain prompt when prompt_tools is missing)."""
     try:
         from . import prompt_tools
 
@@ -67,7 +81,6 @@ def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None):
         if text:
             row.label(text=text)
         row.prop(lane_state, "prompt", text="")
-        row.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL').lane = lane
 
 
 def draw_reference_row(box, lane_state, index, ref):
@@ -399,12 +412,7 @@ class SCENARIO_PT_main(bpy.types.Panel):
         if not draw_account_strip(layout, context):
             return
         scenario = context.scene.scenario
-        col = layout.column(align=True)
-        for row_lanes in (("image", "video", "3d"), ("audio", "material"), ("render_image", "render_video")):
-            row = col.row(align=True)
-            row.alignment = 'CENTER'  # compact buttons: the icon sits right next to its word and the group is centred
-            for lane_id in row_lanes:
-                row.prop_enum(scenario, "lane", lane_id)
+        draw_enum_tabs(layout, scenario, "lane", (("image", "video", "3d"), ("audio", "material"), ("render_image", "render_video")))
         lane = scenario.lane
         if not runtime.state.catalog_loaded:
             draw_loading(layout)

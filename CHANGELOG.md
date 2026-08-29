@@ -6,6 +6,18 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.8.3] - 2026-08-29
+
+### Changed
+- **Tabs and buttons fill the width, icon glued to the label, centred in each cell**: every tab row (the lane tabs, the model picker's modality tabs and category chips) is now justified full width, and inside each cell the icon sits right next to its word with the pair centred. The model button centres its icon and name in the bar. The three prompt tools ("New", "Rewrite", "Translate") fill the prompt box evenly.
+- **Prompt box**: the prompt lives in the field (no duplicated wrapped copy underneath); drag the small size control in the header to make the box taller. The "Edit prompt" dialog is gone.
+- **Rendering Style** section on Render Image and Render Video: one collapsible box that holds the look prompt, the Prompt Spark options, the video first frame and the style images, so the style images are easy to find. "Look" is now inside it.
+- Render Video: "Last Frame" and the "No first frame..." hint are gone; the model's own first/last-frame inputs are handled by the Rendering Style section, only the reference frames (style images) are offered.
+- The floating composer's minus button is a full tab-height cell aligned with the tab row.
+
+### Fixed
+- The Prompt Spark, Rewrite and Translate buttons were unresponsive after the 0.8.2 restyle (a centred, scaled row swallowed the clicks); they are plain buttons again.
+
 ## [0.8.2] - 2026-08-29
 
 ### Changed

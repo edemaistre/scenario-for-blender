@@ -168,16 +168,46 @@ def _clip_info(scene):
                                    preview_start=scene.frame_preview_start, preview_end=scene.frame_preview_end)
 
 
-def _draw_look(layout, lane_state, lane):
+def _draw_rendering_style(layout, context, lane, lane_state, schema):
+    """A collapsible "Rendering Style" section holding the look prompt, the Prompt Spark options, the video first
+    frame (Render Video only) and the style images, so everything that shapes the look sits in one place."""
     from . import panels
 
-    box = panels.draw_prompt_row(layout, lane_state, lane, text="Look")  # the prompt box; the Spark hints go inside it
+    box = layout.box()
+    header = box.row(align=True)
+    header.prop(lane_state, "render_style_open", text="Rendering Style", icon='TRIA_DOWN' if lane_state.render_style_open else 'TRIA_RIGHT', emboss=False)
+    header.label(text="", icon='BRUSH_DATA')
+    if not lane_state.render_style_open:
+        return
+    panels.draw_prompt_row(box, lane_state, lane, text="Look")
     if not lane_state.prompt.strip():
         sub = box.row(align=True)
         sub.prop(lane_state, "spark_enabled", text="")
         sub.label(text="Empty: Prompt Spark writes the look from a capture (0.75 CU)" if lane_state.spark_enabled else "Empty: a photoreal default look is used", icon='LIGHT_SUN')
     if lane_state.spark_look:
         box.label(text="Spark: " + lane_state.spark_look[:70], icon='INFO')
+    if lane == "render_video":
+        _draw_first_frame(box, lane_state)
+    styles = style_spec(schema, exclude=first_frame_spec(schema)) if lane == "render_video" else scene_spec(lane, schema)
+    if styles is not None:
+        fixed = {styles.name: "1. Capture of the view, taken at generate time"} if lane == "render_image" else None
+        title = "Style images (the capture is image 1)" if lane == "render_image" else "Style images (reference frames)"
+        panels.draw_references(box, lane_state, schema, title_for={styles.name: title}, fixed_first=fixed,
+                               hide={s.name for s in schema.specs if s.is_file and s.name != styles.name})
+
+
+def _draw_first_frame(box, lane_state):
+    from . import panels
+
+    if not lane_state.first_frame_path:
+        return  # optional; a Render Image result fills it in through "Use as video first frame"
+    row = box.row(align=True)
+    row.prop(lane_state, "use_first_frame", text="")
+    icon_id = panels.thumbnail(lane_state.first_frame_path)
+    if icon_id:
+        row.template_icon(icon_value=icon_id, scale=2.0)
+    row.label(text="First frame: " + os.path.basename(lane_state.first_frame_path)[-32:])
+    row.operator("scenario.clear_first_frame", text="", icon='X')
 
 
 def draw_render_image_lane(layout, context):
@@ -195,14 +225,10 @@ def draw_render_image_lane(layout, context):
     if schema is None:
         layout.label(text=lane_state.last_error or "Loading the model description...", icon='ERROR' if lane_state.last_error else 'TIME')
         return
-    _draw_look(layout, lane_state, "render_image")
-    spec = scene_spec("render_image", schema)
-    if spec is None:
+    if scene_spec("render_image", schema) is None:
         layout.label(text="This model takes no image input; pick another one", icon='ERROR')
     else:
-        # video or audio inputs of an image model (Gemini's video2img) are not what a render needs: keep the form to images
-        panels.draw_references(layout, lane_state, schema, title_for={spec.name: "Style images (the capture is image 1)"},
-                               fixed_first={spec.name: "1. Capture of the view, taken at generate time"}, hide=hidden_inputs(schema))
+        _draw_rendering_style(layout, context, "render_image", lane_state, schema)
     params_ui.draw_params(layout, lane_state, schema, exclude=hidden_param_names(schema))
     panels.draw_generate_row(layout, lane_state, "render_image")
 
@@ -238,30 +264,10 @@ def draw_render_video_lane(layout, context):
     if schema is None:
         layout.label(text=lane_state.last_error or "Loading the model description...", icon='ERROR' if lane_state.last_error else 'TIME')
         return
-    _draw_look(layout, lane_state, "render_video")
-    box = layout.box()
-    if lane_state.first_frame_path:
-        row = box.row(align=True)
-        row.prop(lane_state, "use_first_frame", text="")
-        icon_id = panels.thumbnail(lane_state.first_frame_path)
-        if icon_id:
-            row.template_icon(icon_value=icon_id, scale=2.0)
-        row.label(text="First frame: " + os.path.basename(lane_state.first_frame_path)[-36:])
-        row.operator("scenario.clear_first_frame", text="", icon='X')
-    else:
-        box.label(text="No first frame: a Render Image result can start the clip", icon='INFO')
-    spec = scene_spec("render_video", schema)
-    if spec is None:
+    if scene_spec("render_video", schema) is None:
         layout.label(text="This model takes no video input; pick another one", icon='ERROR')
     else:
-        titles, fixed = {spec.name: "Playblast (recorded at generate time)"}, {spec.name: "Timeline playblast"}
-        hide = {spec.name}
-        ff_spec = first_frame_spec(schema)
-        if ff_spec is not None:
-            hide.add(ff_spec.name)  # fed by the First frame row above
-        styles = style_spec(schema, exclude=ff_spec)
-        if styles is not None:
-            titles[styles.name] = "Style images"
-        panels.draw_references(layout, lane_state, schema, title_for=titles, fixed_first=fixed, hide=hide)
+        _draw_rendering_style(layout, context, "render_video", lane_state, schema)
+    # the model's own single-image inputs (Last Frame, First Frame) are handled by the Rendering Style section, not the generic parameter list
     params_ui.draw_params(layout, lane_state, schema, locked={"duration"} if lane_state.match_timeline else ())
     panels.draw_generate_row(layout, lane_state, "render_video")

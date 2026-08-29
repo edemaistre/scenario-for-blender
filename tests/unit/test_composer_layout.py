@@ -189,8 +189,10 @@ def test_settings_chip_and_corner_minus_button():
     expanded = cl.pill_placement(1600, 900, expanded=True, scale=1.0)
     card, c = expanded.card_rect, expanded.collapse_rect
     pad = cl.PAD
-    assert c.w == c.h == cl.COLLAPSE_SIZE
-    assert abs((card.right - c.right) - pad) < 1e-6 and abs((card.top - c.top) - pad) < 1e-6  # same padding right and top
+    assert c.w == c.h == cl.TAB_HEIGHT  # the minus button is a cell of the tab row, same height as the tabs
+    assert abs((card.right - c.right) - pad) < 1e-6  # same padding on the right as the card
+    tab = next(iter(expanded.tab_rects.values()))
+    assert abs(c.y - tab.y) < 1e-6 and abs(c.h - tab.h) < 1e-6  # aligned with the tab row
     for rect in expanded.tab_rects.values():
         assert rect.right <= c.x  # tabs never run under the button
     s = expanded.settings_rect

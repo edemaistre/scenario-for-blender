@@ -215,17 +215,6 @@ def _icon_kwargs(name):
         return {"icon": {"dice": 'LIGHT_SUN', "sparkles": 'FILE_REFRESH', "translate": 'WORLD_DATA'}.get(name, 'QUESTION')}
 
 
-def _wrap(text, width):
-    words, lines, current = text.split(), [], ""
-    for word in words:
-        if len(current) + len(word) + 1 > width and current:
-            lines.append(current)
-            current = word
-        else:
-            current = (current + " " + word).strip()
-    if current:
-        lines.append(current)
-    return lines
 
 
 def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None, wrap_width=44, max_lines=3):
@@ -235,31 +224,24 @@ def draw_prompt_row(layout, lane_state, lane, text="", placeholder=None, wrap_wi
     box = layout.box()
     header = box.row(align=True)
     header.label(text=text or "Prompt", icon='TEXT')
-    header.operator("scenario.expand_prompt", text="", icon='GREASEPENCIL', emboss=False).lane = lane
-    field = box.row(align=True)
+    rows = int(getattr(lane_state, "prompt_rows", 1) or 1)
+    grip = header.row(align=True)
+    grip.alignment = 'RIGHT'
+    grip.prop(lane_state, "prompt_rows", text="", icon='FIXED_SIZE')  # drag to grow the box (height)
+    field = box.column(align=True)
+    field.scale_y = max(1.0, float(rows))  # the prompt lives here; drag the height to make it taller
     if placeholder:
         field.prop(lane_state, "prompt", text="", placeholder=placeholder)
     else:
         field.prop(lane_state, "prompt", text="")
-    prompt = lane_state.prompt.strip()
-    if len(prompt) > wrap_width:
-        col = box.column(align=True)
-        col.scale_y = 0.85
-        lines = _wrap(prompt, wrap_width)
-        for line in lines[:max_lines]:
-            col.label(text=line)
-        if len(lines) > max_lines:
-            col.label(text="…")
+    # three equal buttons spanning the box; Blender renders icon-only buttons at a fixed size and never stretches
+    # them, so each carries a short label, which makes the row fill the width evenly (like the web app's three tools)
     tools = box.row(align=True)
-    tools.alignment = 'CENTER'  # icon buttons keep a fixed width in Blender: centre them and make them larger
-    tools.scale_x, tools.scale_y = 1.8, 1.3
-    op = tools.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", **_icon_kwargs("dice"))
+    op = tools.operator(SCENARIO_OT_prompt_spark.bl_idname, text="New", **_icon_kwargs("dice"))
     op.lane, op.mode = lane, 'GENERATE'
-    sub = tools.row(align=True)
-    sub.enabled = bool(prompt)
-    op = sub.operator(SCENARIO_OT_prompt_spark.bl_idname, text="", **_icon_kwargs("sparkles"))
+    op = tools.operator(SCENARIO_OT_prompt_spark.bl_idname, text="Rewrite", **_icon_kwargs("sparkles"))
     op.lane, op.mode = lane, 'REWRITE'
-    sub.operator(SCENARIO_OT_prompt_translate.bl_idname, text="", **_icon_kwargs("translate")).lane = lane
+    tools.operator(SCENARIO_OT_prompt_translate.bl_idname, text="Translate", **_icon_kwargs("translate")).lane = lane
     return box
 
 

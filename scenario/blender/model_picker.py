@@ -301,23 +301,26 @@ def chip_rows(chips, per_row=CHIPS_PER_ROW):
     return [chips[:half], chips[half:]]
 
 
+def _centered_cells(parent, struct, prop, values):
+    """One justified cell per value (a column that fills its share of the width); inside each, the icon glued to its
+    label and the pair centred. The only Blender layout that gives full-width cells and centred content together."""
+    row = parent.row(align=True)
+    for value in values:
+        cell = row.column(align=True)
+        centered = cell.row(align=True)
+        centered.alignment = 'CENTER'
+        centered.prop_enum(struct, prop, value)
+
+
 def draw_filters(layout, wm):
-    """Modality tabs and category chips as compact centred groups. A full-width enum row (`prop(..., expand=True)`)
-    stretches every button and pins its icon to the left edge; one `prop_enum` per value in a row aligned CENTER keeps
-    each button as wide as its content and centres the group. The tab icon comes from the enum item itself (Scenario's
-    PNG, or the built-in fallback when headless)."""
+    """Modality tabs and category chips as justified rows with the icon glued to its label and the pair centred in
+    each cell. The tab icon comes from the enum item itself (Scenario's PNG, or the built-in fallback when headless)."""
     col = layout.column()
-    tabs = col.row(align=True)
-    tabs.alignment = 'CENTER'
-    for ident, _label, _icon in model_filter.MODALITIES:
-        tabs.prop_enum(wm, "scenario_picker_modality", ident)
+    _centered_cells(col, wm, "scenario_picker_modality", [ident for ident, _label, _icon in model_filter.MODALITIES])
     col.separator()
     chips = col.column(align=True)
     for chip_row in chip_rows(model_filter.category_items(wm.scenario_picker_modality)):
-        row = chips.row(align=True)
-        row.alignment = 'CENTER'
-        for ident, _label in chip_row:
-            row.prop_enum(wm, "scenario_picker_category", ident)
+        _centered_cells(chips, wm, "scenario_picker_category", [ident for ident, _label in chip_row])
 
 
 # -- Blender classes ----------------------------------------------------------------
@@ -406,7 +409,8 @@ class SCENARIO_OT_pick_model(bpy.types.Operator):
 
 
 def draw_model_row(layout, lane_state, lane):
-    """Replaces `layout.prop(lane_state, "model_id")`: a wide button opening the picker plus the native dropdown as a fallback."""
+    """`Model:` then a wide button opening the picker (its icon glued to the model name, the pair centred in the bar)
+    and the native dropdown at the right as a fallback."""
     split = layout.split(factor=0.22)
     split.label(text="Model:")
     row = split.row(align=True)
@@ -417,8 +421,10 @@ def draw_model_row(layout, lane_state, lane):
     else:
         label = "Choose a model..." if runtime.state.catalog_loaded else "Loading models..."
         icon_kwargs = {"icon": 'VIEWZOOM'}
-    op = row.operator("scenario.pick_model", text=label, **icon_kwargs)
-    op.lane = lane
+    mid = row.column(align=True)  # a column expands to fill the bar; the centred row inside centres the button
+    centered = mid.row(align=True)
+    centered.alignment = 'CENTER'
+    centered.operator("scenario.pick_model", text=label, **icon_kwargs).lane = lane
     row.prop(lane_state, "model_id", text="", icon_only=True)
 
 

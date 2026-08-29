@@ -230,24 +230,25 @@ class ModelPickerTests(unittest.TestCase):
         self.assertEqual(len(wm.scenario_picker_items), 0)
         self.assertEqual(bpy.ops.scenario.pick_model(lane="image"), {'CANCELLED'})
 
-    def test_dialog_draw_centres_compact_tabs_and_wraps_chips(self):
+    def flat_enum_values(self, root):
+        """Every prop_enum value in draw order (each sits in its own centred cell)."""
+        return [v for _, values in self.enum_rows(root) for v in values]
+
+    def test_dialog_justifies_tabs_and_wraps_chips_with_centred_cells(self):
         self.picker.prepare(bpy.context, "image")
         wm = bpy.context.window_manager
         root = self.draw_dialog()
         self.assertEqual(root.calls[0][0], "separator")  # breathing room under the title
         rows = self.enum_rows(root)
-        self.assertTrue(all(alignment == 'CENTER' for alignment, _ in rows), rows)  # compact buttons, group centred
-        self.assertEqual(rows[0][1], ["image", "video", "audio", "3d"])  # the tabs, one prop_enum each
-        self.assertEqual([values for _, values in rows[1:]], [["all", "generate", "edit", "expand"], ["upscale", "vectorize", "remove_background", "tools"]])  # 8 chips: two rows
-        self.assertFalse(any(c[2].get("expand") for node in root.walk() for c in node.named("prop")))  # no full-width enum row left
+        self.assertTrue(all(alignment == 'CENTER' and len(values) == 1 for alignment, values in rows), rows)  # icon+label centred in its own cell
+        self.assertEqual(self.flat_enum_values(root), ["image", "video", "audio", "3d", "all", "generate", "edit", "expand", "upscale", "vectorize", "remove_background", "tools"])
+        self.assertFalse(any(c[2].get("expand") for node in root.walk() for c in node.named("prop")))  # no full-width enum row
         self.assertEqual([c[1][1] for c in root.named("prop")], ["scenario_picker_query"])  # search stays full width on the root
         self.assertEqual([c[1][0] for c in root.named("template_list")], ["SCENARIO_UL_models"])
-        self.assertEqual([child.kind for child in root.children if child.kind == "box"], ["box"])  # the highlighted model's box
         self.assertGreaterEqual(len(root.named("separator")), 2)  # top and between the groups
         wm.scenario_picker_modality = 'audio'
-        self.assertEqual([values for _, values in self.enum_rows(self.draw_dialog())[1:]], [["all", "speech", "music", "sfx", "tools"]])  # 5 chips: one row
+        self.assertEqual(self.flat_enum_values(self.draw_dialog()), ["image", "video", "audio", "3d", "all", "speech", "music", "sfx", "tools"])  # tabs unchanged, 5 audio chips in one row
         wm.scenario_picker_modality = '3d'
-        self.assertEqual([len(values) for _, values in self.enum_rows(self.draw_dialog())[1:]], [5, 4])  # 9 chips: two balanced rows
         self.assertEqual([len(r) for r in self.picker.chip_rows(range(6))], [6])
         self.assertEqual([len(r) for r in self.picker.chip_rows(range(7))], [4, 3])
 

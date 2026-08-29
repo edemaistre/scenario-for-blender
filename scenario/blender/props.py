@@ -182,6 +182,7 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     model_id: EnumProperty(name="Model", items=_model_items, update=_on_model_change)
     model_key: StringProperty(description="Chosen model id, the source of truth that survives catalog changes")
     prompt: StringProperty(name="Prompt", description="What to generate", update=_on_prompt_update)
+    prompt_rows: IntProperty(name="Prompt height", description="Drag to make the prompt box taller", default=1, min=1, max=8)
     params: CollectionProperty(type=ScenarioParamValue)
     references: CollectionProperty(type=ScenarioReference)
     estimate_state: EnumProperty(items=[('IDLE', "Idle", ""), ('PENDING', "Pending", ""), ('READY', "Ready", ""), ('ERROR', "Error", ""), ('UNAVAILABLE', "Unavailable", "")], default='IDLE')
@@ -199,6 +200,7 @@ class ScenarioLaneState(bpy.types.PropertyGroup):
     spark_enabled: BoolProperty(name="Prompt Spark when the look is empty", default=True,
                                 description="With an empty prompt, a capture of the view is sent to Prompt Spark, which writes the art-direction brief (0.75 CU)")
     spark_look: StringProperty(description="The look Prompt Spark wrote for the last generation")
+    render_style_open: BoolProperty(name="Rendering Style", default=True, description="Show the look, style images and first frame")
     first_frame_path: StringProperty(description="A Render Image result used as the first frame of the video")
     use_first_frame: BoolProperty(name="Use as first frame", default=True, description="Send the rendered still as the first frame so the clip starts exactly from it", update=_on_prompt_update)
     # Edit 3D

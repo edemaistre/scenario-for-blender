@@ -1,6 +1,6 @@
 # Scenario for Blender: user guide
 
-Version 0.8.3, 2026-08-29. Blender 4.2 or newer (tested on 5.1), a Scenario account with API access (Pro plan or above), an internet connection.
+Version 0.8.2, 2026-08-29. Blender 4.2 or newer (tested on 5.1), a Scenario account with API access (Pro plan or above), an internet connection.
 
 ## What it does
 
@@ -36,7 +36,7 @@ Where things are:
 From top to bottom:
 - **Account strip**: your team and project, a refresh button for the model list, a shortcut to the preferences.
 - **Model**: a button showing the current model. It opens the model picker, laid out like Scenario's "Choose a Model": modality tabs (Image, Video, Audio, 3D) and the web app's category chips (Image: All, Generate, Edit, Expand, Upscale, Vectorize, Remove Background, Tools; Video: All, Generate, Edit, Lipsync, Upscale, Reframe, Remove Background, Tools; Audio: All, Speech, Music, SFX, Tools; 3D: All, Generate, Splat, Remesh, Retexture, UV Unwrap, Rigging, Animate, Parts), a search field, the list with thumbnails and the description of the highlighted model. Scenario's trained LoRAs are not listed anywhere; the lists hold the third-party models and Scenario's tools. Picking a model of another modality switches to that lane. The small arrow next to the button is the plain dropdown.
-- **Prompt**: its own box, like Scenario's. The prompt lives in the field; drag the small size control in the header to make the box taller. Below it, three equal full-width buttons with Scenario's icons: **New** (dice, Prompt Spark writes a prompt for the model), **Rewrite** (sparkles, Prompt Spark improves yours), both up to 3.75 CU with the Scenario LLM stepping in when Prompt Spark has no usable answer, and **Translate** (to English, Scenario LLM, 0.5 CU). They run in the background; the field updates when the answer arrives.
+- **Prompt**: its own box, like Scenario's: a Prompt header with the pencil (a wider editor), the full-width field, the long prompt wrapped underneath so it stays readable, and three equal buttons with Scenario's icons: dice **Generate a new prompt** and sparkles **Rewrite your prompt** (Prompt Spark, up to 3.75 CU; when Prompt Spark has no usable answer for a model the Scenario LLM writes it instead), **Translate to English** (Scenario LLM, 0.5 CU). They run in the background; the field updates when the answer arrives.
 - **References**: one box per file input the model accepts (image, video, audio, 3D), with a thumbnail per file. Add offers File, Viewport still, Camera still, Viewport clip, Camera clip and Render Result. Captures happen when you press Generate. Pinned rows are inputs the lane adds itself (the capture, the selected mesh).
 - **Parameters**: built from the model's own schema. A checkbox in front of an optional parameter means "send this value"; unchecked, Scenario uses its default. `(cost)` marks parameters that change the price.
 - **Generate (N CU)**: the exact price of this form, refreshed as you edit (a dry run, free). "from N CU" means the quote excludes references that will only be uploaded at generate time; "Price shown after the upload" means the model needs the mesh or the capture first.
@@ -80,7 +80,7 @@ Select the meshes to texture, describe the material, choose the maps and size, G
 Speech, music and sound effects: ElevenLabs Music v2, Google Lyria 3, ACE-Step 1.5, Minimax Music 3.0, ElevenLabs 3 (speech), Gemini 3.1 Flash TTS, ElevenLabs Sound Effects 2, Sonilo (text or video to SFX and music), and every other text-to-audio, audio-to-audio or video-to-audio model through the picker. Results go to `audio/<date>/` in the output folder; in Generations, **Play** opens them with the system player and **Add to sequencer** drops a sound strip at the current frame on a free channel.
 
 ### Render Image
-Your view, rendered as a finished still by an image edit model. Everything that shapes the look lives in one collapsible **Rendering Style** box: the look prompt, the Prompt Spark options and the style images (the capture is image 1).
+Your view, rendered as a finished still by an image edit model. Viewport or scene camera + optional style images + a look.
 
 - **Scene to render**: Viewport (what you see) or Scene camera; Grey clay capture if the model should ignore your materials.
 - **Model**: GPT Image 2 by default, then Gemini 3.1, Seedream 5.0 Pro, FLUX 2 (Max / Pro), Reve Remix, Qwen Edit 2511, MAI Image 2.5 Pro Edit, Grok Imagine Image 2.0, Z-Image; any other img2img model through the picker. Inputs and parameters that belong to another use of the model (Gemini's video input and frame rate) are hidden.
@@ -89,7 +89,7 @@ Your view, rendered as a finished still by an image edit model. Everything that 
 - The prompt the model receives states the role of every input: image 1 is the exact scene (every object, its position, the camera, the framing and the perspective are frozen; nothing may be added, moved or removed), the other images are look references only and none of their content may appear. The result lands in Generations and becomes the first frame of Render Video.
 
 ### Render Video
-A playblast of your timeline, rendered as a finished clip by a video model that takes a reference video. The look, the style images (reference frames) and the video first frame live in one collapsible **Rendering Style** box; the model's own first/last-frame inputs are handled there, so only the reference frames are offered.
+A playblast of your timeline, rendered as a finished clip by a video model that takes a reference video.
 
 - **Clip to render**: Viewport clip or Camera clip, frame range and duration, Grey clay capture, Match timeline.
 - **Camera path**: the planner works with editable markers. Type the shot you want ("slow ellipse 2, 8 s, 35mm") and press **Plan**, or pick a move from the library: Orbits (orbit, orbit high, orbit low, spiral in), Ellipses (three variants), Dolly & truck (dolly in / out, truck left / right, pedestal up / down, zoom in), Crane & arcs (crane, arc left / right, top down), Other (pan, flyover). **Place markers** turns the move into numbered `Shot` markers around the subject (small cameras; move them, or select one to set its own focal length and hold time). You can also add markers yourself with **At cursor** and **From view**. Set **Duration (s)**, **Focal (mm)** and the **Start frame**; the resulting frame range is shown. **Closed loop** (on for orbits and ellipses) brings the camera back exactly to its first marker. **Build camera path** creates the `Scenario Shot Camera`, keyframes it through the markers, aims it at the subject and sets the frame range; building over an existing path asks first. **Clear path** removes the camera, target and markers. **Preview** plays it in camera view. Camera clip then records exactly that move.

@@ -6,7 +6,7 @@ Entry point of the extension. Imports of bpy stay inside register/unregister
 so that `scenario.core` is importable from plain Python (unit tests, tooling).
 """
 
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 
 def register():

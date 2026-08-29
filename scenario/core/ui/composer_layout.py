@@ -284,9 +284,8 @@ def pill_placement(region_w, region_h, expanded, scale=1.0, offset=(0.0, 0.0), w
     pad, gap = PAD * s, ROW_GAP * s
     tab_h = TAB_HEIGHT * s
     tabs_y = card.top - pad - tab_h
-    size = COLLAPSE_SIZE * s
-    # the minus button sits in the top-right corner, the same distance from the top and the right edge
-    collapse = Rect(card.right - pad - size, card.top - pad - size, size, size)
+    # the minus button is a cell of the tab row: same height as the tabs, in the top-right corner
+    collapse = Rect(card.right - pad - tab_h, tabs_y, tab_h, tab_h)
     tab_rects, tx = {}, x + pad
     tab_w = (collapse.x - gap - (x + pad) - gap * (len(LANE_ORDER) - 1)) / len(LANE_ORDER)
     for lane in LANE_ORDER:
