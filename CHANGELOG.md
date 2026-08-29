@@ -6,6 +6,13 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.7] - 2026-08-29
+
+### Added
+- **Blockout from prompt** (3D tab): describe a scene and the Scenario LLM lays out a rough greybox as grey boxes in a "Blockout" collection, to refine by hand or replace with generated 3D assets one box at a time. About 0.5 CU. The layout is sanitised (sizes and coordinates clamped) so a bad answer never places a runaway cube.
+- **Camera-path holds**: a shot can pause. Write "hold 2 s" (or "pause", "stay for 3 seconds") in the description and the camera holds on arrival; or select a Shot marker and set its "Hold (s)" field. The move steals the remaining time, so a held path still fits its duration.
+- **Two MCP tools** for agents building scenes: `blender_api_help` (look up a bpy operator/type/collection's docstring and properties before writing Python) and `datablocks_summary` (counts of the objects, meshes, materials, etc. in the open file). Inspired by Blender's own blender_mcp project (GPL-3.0), written fresh.
+
 ## [0.9.6] - 2026-08-29
 
 ### Fixed

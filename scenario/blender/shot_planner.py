@@ -61,6 +61,12 @@ def marker_objects(scene):
     return sorted(markers, key=lambda o: (int(o[PROP_INDEX]), o.name))
 
 
+def active_marker(context):
+    """The selected/active Shot marker, or None. Used to edit one marker's hold in the panel."""
+    obj = context.active_object
+    return obj if obj is not None and obj.type == 'CAMERA' and PROP_INDEX in obj else None
+
+
 def shot_camera(scene):
     cam = bpy.data.objects.get(CAMERA_NAME)
     if cam is None or cam.type != 'CAMERA':
@@ -565,9 +571,14 @@ class SCENARIO_OT_shot_from_description(bpy.types.Operator):
         plan = shot_plan.plan_from_text(props.description)
         props.preset, props.duration, props.focal = plan["preset"], plan["duration"], plan["focal"]
         place_markers(context)
+        if plan.get("hold", 0.0) > 0:
+            markers = marker_objects(context.scene)
+            if markers:
+                markers[-1][PROP_HOLD] = float(plan["hold"])  # a "hold 2 s" in the text pauses the camera on arrival
         cam, keys, last = build_path(context)
         label = shot_plan.PRESETS[shot_plan.resolve_preset(plan["preset"])][0]
-        self.report({'INFO'}, f"{label}, {plan['duration']:g} s at {plan['focal']:g} mm: {keys} keyframes, frames {context.scene.frame_start} to {last}")
+        held = f", hold {plan['hold']:g} s" if plan.get("hold", 0.0) > 0 else ""
+        self.report({'INFO'}, f"{label}, {plan['duration']:g} s at {plan['focal']:g} mm{held}: {keys} keyframes, frames {context.scene.frame_start} to {last}")
         return {'FINISHED'}
 
 
@@ -607,6 +618,10 @@ def draw_shot_planner(layout, context):
     row.operator(SCENARIO_OT_shot_add_marker_from_view.bl_idname, text="From view", icon='VIEW_CAMERA')
     row.operator(SCENARIO_OT_shot_remove_last_marker.bl_idname, text="", icon='REMOVE')
     row.operator(SCENARIO_OT_shot_clear_markers.bl_idname, text="", icon='X')
+    # per-marker pause: select a Shot marker and set how long the camera holds still there (the move steals the rest)
+    marker = active_marker(context)
+    if marker is not None and PROP_HOLD in marker:
+        box.prop(marker, f'["{PROP_HOLD}"]', text=f"Hold at Shot {int(marker.get(PROP_INDEX, 0))} (s)")
     row = box.row(align=True)
     row.scale_y = 1.3
     row.operator(SCENARIO_OT_shot_build_path.bl_idname, text="Build camera path", icon='ANIM')

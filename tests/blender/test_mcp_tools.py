@@ -29,6 +29,27 @@ class McpToolsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.tb.object_detail({"name": "Nope"})
 
+    def test_blender_api_help_returns_docs_and_properties(self):
+        op = self.tb.blender_api_help({"path": "bpy.ops.mesh.primitive_cube_add"})
+        self.assertEqual(op["path"], "bpy.ops.mesh.primitive_cube_add")
+        self.assertIn("properties", op)
+        self.assertIn("size", [p["name"] for p in op["properties"]])
+        data = self.tb.blender_api_help({"path": "bpy.data.objects"})
+        self.assertTrue(data.get("members") or data.get("properties"))
+        self.assertIn("error", self.tb.blender_api_help({"path": "bpy.nope.nope"}))
+        self.assertIn("error", self.tb.blender_api_help({"path": ""}))
+
+    def test_datablocks_summary_counts_the_scene(self):
+        summary = self.tb.datablocks_summary({})
+        self.assertGreaterEqual(summary["counts"]["objects"], 1)
+        self.assertGreaterEqual(summary["counts"]["meshes"], 1)
+        self.assertIn("filepath", summary)
+
+    def test_new_tools_are_registered(self):
+        names = [s.name for s in self.tb.SPECS]
+        self.assertIn("blender_api_help", names)
+        self.assertIn("datablocks_summary", names)
+
     def test_execute_python_captures_output_and_result_and_blocks_quit(self):
         out = self.sandbox.run_python("import bpy\nprint('hello')\nresult['count'] = len(bpy.data.objects)")
         self.assertEqual(out["result"]["count"], len(bpy.data.objects))

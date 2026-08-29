@@ -51,6 +51,20 @@ class ShotPlannerTests(unittest.TestCase):
         self.scene.frame_set(frame)
         return cam.matrix_world.translation.copy()
 
+    def test_plan_from_description_applies_a_hold_to_the_arrival_marker(self):
+        self.props.description = "dolly in, hold 2 s"
+        bpy.ops.scenario.shot_from_description()
+        markers = self.sp.marker_objects(self.scene)
+        self.assertTrue(markers)
+        self.assertAlmostEqual(float(markers[-1]["scenario_hold"]), 2.0)  # the pause lands on the last waypoint
+
+    def test_active_marker_helper_finds_a_selected_shot_marker(self):
+        bpy.ops.scenario.shot_add_marker()
+        marker = self.sp.marker_objects(self.scene)[0]
+        bpy.context.view_layer.objects.active = marker
+        self.assertEqual(self.sp.active_marker(bpy.context), marker)
+        self.assertIn("scenario_hold", marker)
+
     def test_markers_are_numbered_cameras_and_build_a_marker_path(self):
         self.scene.cursor.location = (4.0, -4.0, 2.0)
         bpy.ops.scenario.shot_add_marker()

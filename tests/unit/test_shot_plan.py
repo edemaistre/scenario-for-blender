@@ -230,8 +230,13 @@ def test_unknown_preset_falls_back_to_orbit():
     # one move per path: when several are named, the first written wins (predictable from the text)
     ("dolly in and then orbit", {"preset": "dolly_in", "duration": 6.0, "focal": 35.0}),
     ("orbit then dolly in closer", {"preset": "orbit", "duration": 6.0, "focal": 35.0}),
+    # a hold/pause is read out and does not become the move duration
+    ("dolly in 8 s, hold 2 s", {"preset": "dolly_in", "duration": 8.0, "focal": 35.0, "hold": 2.0}),
+    ("orbit, stay for 3 seconds", {"preset": "orbit", "duration": 6.0, "focal": 35.0, "hold": 3.0}),
+    ("push in and pause 1.5s", {"preset": "dolly_in", "duration": 6.0, "focal": 35.0, "hold": 1.5}),
 ])
 def test_plan_from_text(text, expected):
+    expected.setdefault("hold", 0.0)  # existing cases have no hold
     assert sp.plan_from_text(text) == expected
 
 

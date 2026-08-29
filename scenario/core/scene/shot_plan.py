@@ -420,10 +420,12 @@ _PRESET_PATTERNS = (
 )
 _DURATION = re.compile(r"(\d+(?:\.\d+)?)\s*(?:s|sec|secs|second|seconds)\b", re.I)
 _FOCAL = re.compile(r"(\d+(?:\.\d+)?)\s*mm\b", re.I)
+# a pause the camera holds at the end of the move: "hold 2 s", "stay for 3 seconds", "pause 2", "linger 1.5s"
+_HOLD = re.compile(r"\b(?:hold|pause|wait|stay|linger)\w*\s*(?:for\s*)?(\d+(?:\.\d+)?)\s*(?:s|sec|secs|second|seconds)?\b", re.I)
 
 
 def plan_from_text(text):
-    """A deterministic reading of a shot description: {"preset", "duration", "focal"}. Unknown text keeps the defaults."""
+    """A deterministic reading of a shot description: {"preset", "duration", "focal", "hold"}. Unknown text keeps defaults."""
     text = (text or "").strip().lower()
     # one move per path: when several are named ("dolly in and then orbit"), the one written first wins, so the
     # result is predictable from what the user typed; a more specific pattern breaks a tie at the same position.
@@ -433,21 +435,28 @@ def plan_from_text(text):
         match = re.search(pattern, text)
         if match and (best_start is None or match.start() < best_start):
             best_start, preset = match.start(), name
+    # read the hold first and cut it out, so "orbit, hold 2 s" does not read 2 s as the whole move's duration
+    hold = 0.0
+    hmatch = _HOLD.search(text)
+    rest = text
+    if hmatch:
+        hold = max(0.0, min(float(MAX_DURATION), float(hmatch.group(1))))
+        rest = text[:hmatch.start()] + " " + text[hmatch.end():]
     duration = DEFAULT_DURATION
-    match = _DURATION.search(text)
+    match = _DURATION.search(rest)
     if match:
         duration = float(match.group(1))
-    if re.search(r"\b(slow|slowly|gentle|gently)\b", text):
+    if re.search(r"\b(slow|slowly|gentle|gently)\b", rest):
         duration *= 1.5
-    if re.search(r"\b(fast|quick|quickly|snappy|rapid)\b", text):
+    if re.search(r"\b(fast|quick|quickly|snappy|rapid)\b", rest):
         duration *= 0.6
     duration = max(MIN_DURATION, min(MAX_DURATION, duration))
     focal = DEFAULT_FOCAL
-    match = _FOCAL.search(text)
+    match = _FOCAL.search(rest)
     if match:
         focal = max(8.0, min(400.0, float(match.group(1))))
-    elif re.search(r"\b(wide|wide[- ]angle)\b", text):
+    elif re.search(r"\b(wide|wide[- ]angle)\b", rest):
         focal = 24.0
-    elif re.search(r"\b(tele|telephoto|long lens|tight)\b", text):
+    elif re.search(r"\b(tele|telephoto|long lens|tight)\b", rest):
         focal = 85.0
-    return {"preset": preset, "duration": round(duration, 3), "focal": focal}
+    return {"preset": preset, "duration": round(duration, 3), "focal": focal, "hold": round(hold, 3)}

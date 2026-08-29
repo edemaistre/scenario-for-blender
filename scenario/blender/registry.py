@@ -14,9 +14,9 @@ _log_handler = None
 
 
 def _modules():
-    from . import props, shot_planner, operators, prompt_tools, model_picker, panels, popover, composer  # noqa: F401
+    from . import props, shot_planner, operators, prompt_tools, blockout, model_picker, panels, popover, composer  # noqa: F401
 
-    modules = [props, shot_planner, operators, prompt_tools, model_picker, panels, popover, composer]
+    modules = [props, shot_planner, operators, prompt_tools, blockout, model_picker, panels, popover, composer]
     try:
         from . import icons  # Scenario's modality icons; optional so a build without the PNGs still loads
 

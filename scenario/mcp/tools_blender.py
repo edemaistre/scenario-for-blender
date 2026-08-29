@@ -141,6 +141,53 @@ def camera_path(args):
             "note": "The scene camera now follows this path; Render Video (Camera clip) records it."}
 
 
+def blender_api_help(args):
+    """Look up a bpy path (an operator, a type, a collection) and return its docstring, signature and properties, so
+    an agent checks the real API before writing execute_python. Pure introspection, no docs bundled."""
+    import inspect
+
+    path = (args.get("path") or "").strip()
+    if not path:
+        return {"error": "Provide a path, e.g. bpy.ops.mesh.primitive_cube_add, bpy.types.Object, or bpy.data.objects"}
+    target = bpy
+    parts = [p for p in path.split(".") if p]
+    if parts and parts[0] == "bpy":
+        parts = parts[1:]
+    for part in parts:
+        try:
+            target = getattr(target, part)
+        except (AttributeError, KeyError) as err:
+            return {"path": path, "error": f"not found at '{part}': {err}"}
+    info = {"path": path, "type": type(target).__name__}
+    doc = inspect.getdoc(target)
+    if doc:
+        info["doc"] = doc[:2000]
+    try:  # operators and types expose their properties through the RNA
+        rna = target.get_rna_type()
+        info["properties"] = [{"name": p.identifier, "type": p.type, "description": (p.description or "")[:160]}
+                              for p in rna.properties if p.identifier != "rna_type"][:60]
+    except (AttributeError, TypeError):
+        pass
+    if "properties" not in info:
+        try:
+            members = [m for m in dir(target) if not m.startswith("_")]
+            if members:
+                info["members"] = members[:80]
+        except TypeError:
+            pass
+    return info
+
+
+def datablocks_summary(args):
+    """Counts of the data-blocks in the open .blend (objects, meshes, materials, images, collections...) and the file
+    path, so an agent understands the scene's contents before acting."""
+    names = ("objects", "meshes", "materials", "images", "collections", "cameras", "lights", "armatures",
+             "curves", "node_groups", "textures", "actions", "worlds", "scenes")
+    counts = {name: len(getattr(bpy.data, name)) for name in names if hasattr(bpy.data, name)}
+    return {"filepath": bpy.data.filepath or "(unsaved)", "counts": counts,
+            "collections": [c.name for c in bpy.data.collections][:40]}
+
+
 def _schema(props, required=()):
     return {"type": "object", "properties": props, "required": list(required)}
 
@@ -160,4 +207,8 @@ SPECS = (
                                                                                               "focal": {"type": "number"}, "hold": {"type": "number"}}}}}), camera_path),
     ToolSpec("render_still", "Quick OpenGL still of the scene camera (or the viewport) as PNG, default 1280x720 (GUI only).",
              _schema({"source": {"type": "string", "enum": ["CAMERA", "VIEWPORT"]}, "width": {"type": "integer"}, "height": {"type": "integer"}}), render_still, {"readOnlyHint": True}),
+    ToolSpec("blender_api_help", "Look up a bpy path (operator, type or collection) and return its docstring and properties, to check the real API before running execute_python.",
+             _schema({"path": {"type": "string", "description": "e.g. bpy.ops.mesh.primitive_cube_add, bpy.types.Object, bpy.data.objects"}}, ["path"]), blender_api_help, {"readOnlyHint": True}),
+    ToolSpec("datablocks_summary", "Counts of the data-blocks in the open .blend (objects, meshes, materials, images, collections...) and the file path.",
+             _schema({}), datablocks_summary, {"readOnlyHint": True}),
 )

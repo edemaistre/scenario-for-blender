@@ -208,6 +208,7 @@ def draw_generate_lane(layout, context, lane):
     lane_state = context.scene.scenario.lane_state(lane)
     if lane == "3d":
         layout.row(align=True).prop(context.scene.scenario, "three_d_mode", expand=True)
+        layout.operator("scenario.blockout", text="Blockout from prompt", icon='MESH_CUBE')  # grey-box the scene from text
         if context.scene.scenario.three_d_mode == 'EDIT':
             draw_edit3d_lane(layout, context)
             return
@@ -290,7 +291,7 @@ def draw_mcp_lane(layout, context):
     col = box.column(align=True)
     for kind, label in (("claude_code", "Claude Code"), ("cursor", "Cursor"), ("claude_desktop", "Claude Desktop (stdio)"), ("codex", "Codex"), ("curl", "curl test")):
         col.operator("scenario.mcp_copy", text=label, icon='CONSOLE').kind = kind
-    box.label(text="Tools: scene, objects, Python, screenshots, camera path, models, cost, generate, import", icon='INFO')
+    box.label(text="Tools: scene, objects, Python, API help, screenshots, camera path, models, cost, generate, import", icon='INFO')
 
 
 # -- results ------------------------------------------------------------------

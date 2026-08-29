@@ -90,6 +90,31 @@ def _prepare():
             fail.status, fail.cu_cost = "failed", 60
             fail.error = "The model file is too large for processing. Try reducing the resolution or simplifying the geometry of your input, then retry the generation. [Error ID: error_Uq14k1SGmKWhPfv4HZ4hyZRN]"
             runtime.state.jobs_view.extend([fail, ok])
+        if ACTION == "blockout":
+            # build a sample greybox and frame it, and show the 3D tab (with the Blockout button)
+            import importlib
+            name = next(n for n in bpy.context.preferences.addons.keys() if n.endswith(".scenario"))
+            blockout = importlib.import_module(name + ".blender.blockout")
+            for o in list(bpy.context.scene.objects):
+                if o.type == 'MESH':
+                    bpy.data.objects.remove(o, do_unlink=True)
+            boxes = [
+                {"name": "Ground", "position": [0, 0, -0.1], "size": [12, 12, 0.2]},
+                {"name": "Well", "position": [0, 0, 0.6], "size": [1.6, 1.6, 1.2]},
+                {"name": "Gate", "position": [0, -5.5, 2.0], "size": [4, 0.5, 4]},
+                {"name": "Stall A", "position": [-3.5, 2.5, 1.0], "size": [2.4, 2, 2]},
+                {"name": "Stall B", "position": [3.5, 2.5, 1.0], "size": [2.4, 2, 2]},
+                {"name": "Tower", "position": [4.5, -3.5, 3.0], "size": [2, 2, 6]},
+            ]
+            blockout.build_blockout(bpy.context, boxes)
+            bpy.context.scene.scenario.lane = '3d'
+            for a in bpy.context.window_manager.windows[0].screen.areas:
+                if a.type == 'VIEW_3D':
+                    for region in a.regions:
+                        if region.type == 'WINDOW':
+                            with bpy.context.temp_override(area=a, region=region):
+                                bpy.ops.object.select_all(action='SELECT')
+                                bpy.ops.view3d.view_selected()
         if ACTION == "generations":
             bpy.ops.scenario.history_refresh()
         if ACTION == "edit_mode":
