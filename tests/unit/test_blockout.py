@@ -33,6 +33,15 @@ def test_bad_enums_fall_back_and_values_clamp():
     assert el["position"][0] == blockout.MAX_COORD
 
 
+def test_recovers_elements_from_a_truncated_array():
+    # a capped LLM answer cut off mid-element: keep the complete objects, drop the incomplete tail
+    truncated = ('[{"name": "Floor", "category": "floor", "primitive": "box", "size": [10,10,0.2]}, '
+                 '{"name": "Wall", "category": "wall", "size": [10,0.2,5]}, '
+                 '{"name": "Desk", "category": "furniture", "position": [0.0, 3')
+    els = blockout.parse_plan(truncated)
+    assert [e["name"] for e in els] == ["Floor", "Wall"]
+
+
 def test_unparseable_returns_empty_and_count_is_capped():
     assert blockout.parse_plan("nope") == []
     assert blockout.parse_plan("") == []

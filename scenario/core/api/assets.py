@@ -48,6 +48,13 @@ def asset_type(asset):
     return ((asset or {}).get("metadata") or {}).get("type") or ""
 
 
+def fetch_url_text(url, timeout=60):
+    """Download a text asset's full content from its signed URL (the asset preview is capped, this is not)."""
+    req = urllib.request.Request(url, headers={"User-Agent": "ScenarioBlender"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
 def download_file(url, dest, transport=None, timeout=300, retries=3, sleep=time.sleep):
     """Download a signed CDN URL to `dest` (atomic rename), streaming to disk, with bounded retries.
 

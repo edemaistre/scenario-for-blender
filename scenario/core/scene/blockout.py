@@ -81,18 +81,52 @@ def _vec3(value, defaults, lo, hi):
     return [_num(seq[i] if i < len(seq) else defaults[i], defaults[i], lo, hi) for i in range(3)]
 
 
+def _recover_objects(text):
+    """Every complete top-level {...} object inside an array text, for when the answer was cut off mid-element."""
+    objects, depth, start, in_string, escape = [], 0, None, False, False
+    for i, ch in enumerate(text):
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start is not None:
+                try:
+                    objects.append(json.loads(text[start:i + 1]))
+                except ValueError:
+                    pass
+                start = None
+    return objects
+
+
 def _extract_json_array(text):
     text = (text or "").strip()
     fence = re.search(r"```(?:json)?\s*(.+?)```", text, re.DOTALL)
     if fence:
         text = fence.group(1).strip()
     start, end = text.find("["), text.rfind("]")
-    if start == -1 or end == -1 or end < start:
-        return None
-    try:
-        return json.loads(text[start:end + 1])
-    except ValueError:
-        return None
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end + 1])
+        except ValueError:
+            pass
+    # the array was truncated (a capped output): recover the complete objects written before the cut
+    if start != -1:
+        recovered = _recover_objects(text[start:])
+        if recovered:
+            return recovered
+    return None
 
 
 def parse_plan(text):

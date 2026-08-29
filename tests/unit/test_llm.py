@@ -35,6 +35,19 @@ def test_run_text_submits_polls_and_reads_the_text_asset():
     assert t.calls[3]["url"].endswith("/assets/asset_txt")
 
 
+def test_run_text_fetches_full_content_when_the_preview_is_capped(monkeypatch):
+    # a long answer (a JSON blockout) has hasFullPreview False and a capped preview; fetch the full URL content
+    from scenario.core.api import assets as assets_api
+    full = "[" + ",".join('{"n": %d}' % i for i in range(200)) + "]"
+    monkeypatch.setattr(assets_api, "fetch_url_text", lambda url, timeout=60: full)
+    t = (FakeTransport()
+         .queue(200, _job("success", ["asset_txt"]))
+         .queue(200, {"asset": {"id": "asset_txt", "url": "https://cdn/asset_txt",
+                                "metadata": {"type": "text", "preview": full[:80], "hasFullPreview": False}}}))
+    text = llm.run_text(_client(t), "Design", sleep=lambda s: None)
+    assert text == full and len(text) > 1024
+
+
 def test_run_text_prefers_inline_metadata_text_when_present():
     t = FakeTransport().queue(200, _job("success", ["asset_txt"], text="Inline answer"))
     assert llm.run_text(_client(t), "Q") == "Inline answer"

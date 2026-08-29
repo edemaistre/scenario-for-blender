@@ -6,6 +6,11 @@ All notable changes to Scenario for Blender. The format follows [Keep a Changelo
 
 Planned (see the spec, section 4, and `BUGS.md`): skyboxes applied to the World, remesh, UV unwrap, retexture, part segmentation, auto-rig, text-to-motion with Blender-axis FBX, custom LoRAs, Scenario Workflows, sign in with Scenario (OAuth), an in-Blender agent chat, drag and drop from Generations, a project switcher for team keys.
 
+## [0.9.9] - 2026-08-29
+
+### Fixed
+- **Blockout from prompt no longer comes back empty.** The Scenario LLM's answer is read from the text asset, whose preview the API caps at ~1024 characters; a blockout plan is much longer, so it was cut off mid-element and failed to parse. The full content is now fetched from the asset URL when the preview is capped (`hasFullPreview` is false), and the parser also recovers the complete elements from a truncated array as a fallback. "room" now designs a full interior instead of failing.
+
 ## [0.9.8] - 2026-08-29
 
 ### Added

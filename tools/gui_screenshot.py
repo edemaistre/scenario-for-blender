@@ -126,6 +126,16 @@ def _prepare():
                             with bpy.context.temp_override(area=a, region=region):
                                 bpy.ops.object.select_all(action='SELECT')
                                 bpy.ops.view3d.view_selected()
+        if ACTION == "blockout_live":
+            # the real reported flow: set a prompt and trigger the async LLM design; the pump builds it before the shot
+            for o in list(bpy.context.scene.objects):
+                if o.type == 'MESH':
+                    bpy.data.objects.remove(o, do_unlink=True)
+            bo = bpy.context.scene.scenario_blockout
+            bo.prompt = PROMPT or "a small artist's studio: a desk, an easel, shelves, a couch, a rug, a window"
+            bo.scene_type, bo.scale = 'interior', 'room'
+            bpy.context.scene.scenario.lane = 'blockout'
+            bpy.ops.scenario.blockout_design()
         if ACTION == "generations":
             bpy.ops.scenario.history_refresh()
         if ACTION == "edit_mode":

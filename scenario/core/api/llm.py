@@ -39,7 +39,17 @@ def text_from_job(client, job):
             return value.strip()
     for asset_id in jobs_api.asset_ids(job):
         asset = assets_api.get_asset(client, asset_id)
-        preview = (asset.get("metadata") or {}).get("preview")
+        meta = asset.get("metadata") or {}
+        preview = meta.get("preview")
+        # the preview is capped (~1024 chars); when the text is longer, hasFullPreview is False, so fetch the full
+        # content from the asset URL (a long JSON blockout was being cut off mid-element and failing to parse)
+        if not meta.get("hasFullPreview", True) and asset.get("url"):
+            try:
+                full = assets_api.fetch_url_text(asset["url"])
+                if full.strip():
+                    return full.strip()
+            except (OSError, ValueError):
+                pass  # fall back to the (possibly truncated) preview
         if isinstance(preview, str) and preview.strip():
             return preview.strip()
     raise ValueError("The Scenario LLM returned no text")
