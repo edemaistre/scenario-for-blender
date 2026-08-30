@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** The [redacted]-style "type in the viewport and generate" feel: a gpu/blf floating composer pill at the bottom centre of every 3D viewport, sharing the lane state with the N-panel, with a circuit breaker so a drawing bug can never freeze Blender. Plus a Scenario-hosted extension repository build so updates flow through Blender's own updater.
+**Goal:** A "type in the viewport and generate" feel: a gpu/blf floating composer pill at the bottom centre of every 3D viewport, sharing the lane state with the N-panel, with a circuit breaker so a drawing bug can never freeze Blender. Plus a Scenario-hosted extension repository build so updates flow through Blender's own updater.
 
 **Architecture:** `scenario/core/ui/composer_layout.py` is pure Python (geometry, hit-testing, text editing with caret and selection, word wrap) and unit-tested. `scenario/blender/composer/draw.py` draws with `gpu` built-in shaders and `blf` in a `POST_PIXEL` handler using cached batches. `scenario/blender/composer/modal.py` is a modal operator that only runs while the pointer is inside the pill or the pill has focus, passing every other event through. `scenario/blender/composer/breaker.py` disables the surface after 5 consecutive failures or one draw over 2 s and shows a "re-enable" toggle in preferences. Distribution: `tools/build_repo.sh` runs `blender --command extension server-generate` into `dist/repo/` with `index.json` + zips.
 

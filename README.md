@@ -4,7 +4,7 @@
 
 **User guide: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)**, also as a single-file HTML handbook with screenshots: [`docs/user-guide.html`](docs/user-guide.html). Changelog: [`CHANGELOG.md`](CHANGELOG.md).
 
-Quick start: download `scenario-<version>.zip` from the releases (or run `./tools/build.sh`), drag it onto Blender, paste your key in Preferences > Add-ons > Scenario, press N in the 3D viewport and open the Scenario tab. Details, tests and the agent setup are below; the design lives in `docs/superpowers/specs/`, the delivery plans in `docs/superpowers/plans/`, and the clean-room research that shaped it in `research/`.
+Quick start: download `scenario-<version>.zip` from the releases (or run `./tools/build.sh`), drag it onto Blender, paste your key in Preferences > Add-ons > Scenario, press N in the 3D viewport and open the Scenario tab. Details, tests and the agent setup are below; the design lives in `docs/superpowers/specs/` and the delivery plans in `docs/superpowers/plans/`.
 
 ---
 
@@ -13,19 +13,15 @@ Quick start: download `scenario-<version>.zip` from the releases (or run `./tool
 
 ## Why
 
-[redacted] shipped a Blender plugin on 2026-08-20 (7 tabs, MCP bridge). Emmanuel asked for the same features and more on Scenario (2026-08-28). A Feb 2026 PRD (`Scenario-Blender-Plugin-PRD.docx`) and [redacted]'s April 2026 "Playblast to Seedance 2.0" prototype (see `~/Developer/[redacted]/01_blender_plugin.html`) already pointed the same way. Decisions taken 2026-08-28: API key + secret first (OAuth later, feasible via mcp.scenario.com dynamic client registration), v1 extras = render-to-real + Patina materials, native N-panel plus a floating composer, skyboxes and the Scenario-only 3D utilities (retopo, retexture, rigging, motion) in v2.
+Bring Scenario's generation into the Blender viewport so creators stay in one tool. Decisions taken 2026-08-28: API key + secret first (OAuth later, feasible via mcp.scenario.com dynamic client registration), v1 extras = render-to-real + Patina materials, native N-panel plus a floating composer, skyboxes and the Scenario-only 3D utilities (retopo, retexture, rigging, motion) in v2.
 
 ## Files
 
 - `docs/USER_GUIDE.md`, `docs/user-guide.html`, `docs/images/`: the user guide (Markdown, and a self-contained HTML handbook with the cropped panel screenshots embedded).
 - `docs/user-guide.src.html` + `tools/build_docs_html.py`: edit the source, run the script to rebuild `docs/user-guide.html` with the images embedded.
 - `docs/superpowers/specs/2026-08-28-scenario-for-blender-design.md`: the v1 design (architecture, lanes, phases, tests).
-- `research/00-synthesis.md`: parity matrix and architecture lessons (workflow output; verification log appended).
-- `research/01-06-[redacted]-*.md`: clean-room behavioural specs of [redacted] Blender 1.5.47 (API layer, UI, Blender integration, MCP bridge, motion/realtime/phonecam, product inventory).
-- `research/10-scenario-api-mcp-auth.md`, `11-scenario-models-for-blender.md`, `12-blender-platform-constraints.md`: Scenario and Blender platform maps.
-- `research/20-live-api-probes.md`: what was verified live against the API on 2026-08-28 (dryRun, uploads, Patina output contract, 3D asset shape).
-- `research/fixtures/patina-copper-512/`: a real Patina Material job (6 maps, job/model/dryRun JSON) used as test fixtures.
-- `Scenario-Blender-Plugin-PRD.docx`: the February 2026 PRD (kept as-is).
+- `docs/MODEL_PAYLOAD_AUDIT.md`, `docs/UI_STYLE.md`: the model-payload audit and the UI style guide.
+- `tests/fixtures/`: recorded model schemas and a real Patina Material job (6 maps) used as test fixtures.
 - `versions/`: previous states of deliverables (v0 = idea-stage README).
 - `.env.local` (git-ignored): dev credentials for the "Blender Plugin Tests" project.
 - `scenario/`: the extension source (`core/` is plain Python, `blender/` is the bpy glue). `blender_manifest.toml` at its root.
@@ -78,5 +74,4 @@ Verified live (2026-08-28): REST Basic auth, model records carry UI schema, `?dr
 
 ## Licence and provenance
 
-GPL-3.0-or-later (see `LICENSE`), the licence Blender requires for add-ons that use `bpy`. 
-[redacted]'s GPL source was read for behaviour only (specs in `research/`), no code copied. The MCP bridge follows the Blender Lab `blender_mcp` protocol shape, rewritten.
+GPL-3.0-or-later (see `LICENSE`), the licence Blender requires for add-ons that use `bpy`. All code is original; the MCP bridge follows the Blender Lab `blender_mcp` protocol shape, rewritten.
