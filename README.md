@@ -68,6 +68,15 @@ Agents get scene tools (summary, object detail, select, set frame, screenshots, 
 
 Credits spent on this project so far: about 207 CU (185 CU of probes and smokes, plus two accidental 11 CU GPT Image 2 jobs on 2026-08-28 triggered by keyboard focus landing in an automated GUI test window; the screenshot tool now disables Generate) (two Patina probes 12 CU, Gemini smoke 9 CU, Patina smoke 6 CU, Seedance smoke 76 CU plus one failed 76 CU attempt on a 0.5 s clip, quality-gate fees), cap agreed about $30.
 
+## Commit messages and PR titles
+
+Every change lands by a squash-merged pull request, so the PR title becomes the commit header on `main`. Titles and commit messages follow [Conventional Commits](https://www.conventionalcommits.org): `type(scope): summary`, imperative, at most 120 characters, no em dashes. `commitlint.config.ts` is the single source of truth (types from `@commitlint/config-conventional`, the scope list, the no-em-dash rule). CI lints the PR title with it (`pr-title`, in `.github/workflows/pr-name.yml`) and the branch commits (`commits`, in `.github/workflows/commitlint.yml`). Node is not part of the checkout; to run the same check locally:
+
+```
+npm install --no-save --no-package-lock --no-audit --no-fund @commitlint/cli@21 @commitlint/config-conventional@21 @commitlint/types@21
+printf '%s\n' "feat(ui): my title" | npx --no-install commitlint --config commitlint.config.ts --verbose
+```
+
 ## Verified vs assumed
 
 Verified live (2026-08-28): REST Basic auth, model records carry UI schema, `?dryRun=true` cost preview, Patina returns 6 typed map assets, multipart upload flow, GLB asset shape, Blender 5.1.1 Python 3.13.9 with gltf/fbx/obj importers and `render.opengl`, OAuth dynamic registration on mcp.scenario.com. Assumed: Patina smoothness semantics (pixels suggest dark = rough), normal-map convention, Blender 4.2/4.5 behaviour (only 5.1.1 installed here).
