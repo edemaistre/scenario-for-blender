@@ -1,0 +1,30 @@
+name: commitlint
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Advisory: branch commits are discarded by the squash merge, so this job is
+  # never a required check. It lints every commit the PR adds on top of its base
+  # branch with the same commitlint.config.ts as the pr-title job in pr-name.yml.
+  commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Install commitlint (CI only, the repo has no package.json)
+        run: npm install --no-save --no-package-lock --no-audit --no-fund @commitlint/cli@21 @commitlint/config-conventional@21 @commitlint/types@21
+      # The base branch name goes through an environment variable, like the PR
+      # title in pr-name.yml, so nothing from the event is interpolated into the script.
+      - name: Lint the commit messages
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: npx --no-install commitlint --config commitlint.config.ts --from "origin/$BASE_REF" --to HEAD --verbose

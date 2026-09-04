@@ -16,3 +16,7 @@ tools/*.blend
 tools/*.blend?
 *.blend1
 *.blend2
+
+# commitlint run locally with the same npm command as CI
+node_modules/
+package-lock.json
